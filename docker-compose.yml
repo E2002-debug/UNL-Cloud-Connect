@@ -1,0 +1,70 @@
+services:
+  # 1. Base de Datos Relacional (PostgreSQL)
+  db:
+    image: postgres:15-alpine
+    container_name: unl_postgres_db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres_admin
+      POSTGRES_PASSWORD: postgres123456
+      POSTGRES_DB: unl_cloud_connect
+    ports:
+      - "5433:5432"
+     
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # 2. Broker MQTT para Telemetría IoT (Mosquitto)
+  mqtt-broker:
+    image: eclipse-mosquitto:1.6
+    container_name: unl_mqtt_broker
+    restart: always
+    ports:
+      - "1884:1883"     # Puerto para la comunicación del ESP32
+      - "9003:9001"     # Puerto para WebSockets (futuro)
+    volumes:
+      - mosquitto_data:/mosquitto/data
+
+  # 3. Almacenamiento de Objetos Multimedia (MinIO)
+  minio:
+    image: minio/minio:latest
+    container_name: unl_minio_storage
+    restart: always
+    ports:
+      - "9005:9000"     # Puerto de la API de MinIO
+      - "9002:9001"     # Consola Web de administración
+    environment:
+      MINIO_ROOT_USER: minio_admin
+      MINIO_ROOT_PASSWORD: minio123456
+    command: server /data --console-address ":9001"
+    volumes:
+      - minio_data:/data
+
+  # 4. Backend (FastAPI)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: unl_fastapi_backend
+    restart: always
+    # Ejecuta uvicorn con recarga automática para desarrollo
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - DATABASE_URL=postgresql://postgres_admin:postgres123456@db:5432/unl_cloud_connect
+      - MQTT_BROKER_HOST=mqtt-broker
+      - MINIO_ENDPOINT=minio:9000
+      - MINIO_ACCESS_KEY=minio_admin
+      - MINIO_SECRET_KEY=minio123456
+    depends_on:
+      - db
+      - mqtt-broker
+      - minio
+
+volumes:
+  postgres_data:
+  mosquitto_data:
+  minio_data:
