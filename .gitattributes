@@ -1,0 +1,7 @@
+# Prevenir problemas de saltos de línea (CRLF vs LF) entre Windows y Linux
+* text=auto eol=lf
+
+# Archivos críticos que siempre deben ser LF (scripts, configuraciones de Docker)
+*.sh text eol=lf
+Dockerfile text eol=lf
+docker-compose*.yml text eol=lf
