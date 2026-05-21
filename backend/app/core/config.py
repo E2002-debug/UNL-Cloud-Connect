@@ -1,3 +1,9 @@
+# Autor: David Guamán
+# Fecha: 20/05/2026
+# Version: 0.1
+# Historial:
+# David Guamán: Creación de la configuración base del proyecto, políticas CORS y secretos JWT.
+
 import os
 class Settings:
     # Información general de la API

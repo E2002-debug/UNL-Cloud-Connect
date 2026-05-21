@@ -1,3 +1,10 @@
+# Autor: David Guamán
+# Fecha: 20/05/2026
+# Version: 0.1
+# Historial:
+# David Guamán: Configuración de la conexión a PostgreSQL,
+# creación del motor SQLAlchemy y dependencia get_db para inyección en FastAPI.
+
 from sqlalchemy import create_engine
 from sqlalchemy.orm import DeclarativeBase, sessionmaker
 import os

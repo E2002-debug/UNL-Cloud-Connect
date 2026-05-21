@@ -1,3 +1,10 @@
+# Autor: David Guamán
+# Fecha: 20/05/2026
+# Version: 0.1
+# Historial:
+# David Guamán: Configuración principal de FastAPI, inicialización de la base de datos, 
+# inyección de CORS y registro del enrutador de autenticación.
+
 from fastapi import FastAPI
 
 from app.database.session import engine, Base

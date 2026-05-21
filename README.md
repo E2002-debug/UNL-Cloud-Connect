@@ -16,12 +16,12 @@ Antes de levantar el entorno, asegúrate de tener instalado en tu sistema:
 
 A través de Docker, el sistema levanta automáticamente los siguientes servicios de forma aislada:
 
-| Servicio | Tecnología | Puerto Interno | Puerto Host (Tu PC) |
-| :--- | :--- | :--- | :--- |
-| **Backend API** | FastAPI (Python) | `8000` | `8000` |
-| **Base de Datos** | PostgreSQL 15 | `5432` | `5433` |
-| **Broker IoT** | Eclipse Mosquitto | `1883` | `1883` |
-| **Storage** | MinIO (Object Storage) | `9000` / `9001` | `9000` / `9002` |
+| Servicio          | Tecnología             | Puerto Interno  | Puerto Host (Tu PC) |
+| :---              | :---                   | :---            | :---                |
+| **Backend API**   | FastAPI (Python)       | `8000`          | `8000`              |
+| **Base de Datos** | PostgreSQL 15          | `5432`          | `5433`              |
+| **Broker IoT**    | Eclipse Mosquitto      | `1883`          | `1883`              |
+| **Storage**       | MinIO (Object Storage) | `9000` / `9001` | `9000` / `9002`     |
 
 ---
 

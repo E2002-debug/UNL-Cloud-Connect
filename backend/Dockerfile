@@ -1,3 +1,10 @@
+# Autor: David Guamán
+# Fecha: 21/05/2026
+# Version: 0.1
+# Historial:
+# David Guamán: Creación del Dockerfile para el contenedor del backend, 
+# optimizando la caché de dependencias y variables de entorno.
+
 FROM python:3.12-slim
 
 # Evita que Python escriba archivos .pyc en el disco

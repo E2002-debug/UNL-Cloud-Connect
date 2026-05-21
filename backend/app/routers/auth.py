@@ -1,3 +1,11 @@
+
+# Autor: David Guamán
+# Fecha: 20/05/2026
+# Version: 0.1
+# Historial:
+# David Guamán: Creación de endpoints de registro (HU_01) y login (HU_02)
+# con validación de credenciales y generación de tokens JWT.
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session

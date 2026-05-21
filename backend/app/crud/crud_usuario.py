@@ -1,3 +1,10 @@
+# Autor: David Guamán
+# Fecha: 20/05/2026
+# Version: 0.1
+# Historial:
+# David Guamán: Creación de funciones CRUD para gestionar usuarios, 
+# incluyendo búsqueda por correo y guardado con encriptación de contraseña.
+
 from sqlalchemy.orm import Session
 from app.models.usuario import Usuario
 from app.schemas.usuario import UsuarioCreate
