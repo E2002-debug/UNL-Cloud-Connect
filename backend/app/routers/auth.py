@@ -3,8 +3,7 @@
 # Fecha: 20/05/2026
 # Version: 0.1
 # Historial:
-# David Guamán: Creación de endpoints de registro (HU_01) y login (HU_02)
-# con validación de credenciales y generación de tokens JWT.
+# 20/05/2026 v0.1 - David Guamán: Creación de endpoints de registro (HU_01) y login (HU_02)con validación de credenciales y generación de tokens JWT.
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm

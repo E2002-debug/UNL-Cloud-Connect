@@ -1,15 +1,16 @@
 # Autor: David Guamán
-# Fecha: 20/05/2026
-# Version: 0.1
+# Fecha: 22/05/2026
+# Version: 0.2
 # Historial:
-# David Guamán: Creación de la configuración base del proyecto, políticas CORS y secretos JWT.
+# 20/05/2026 v0.1 - David Guamán: Creación de la configuración base del proyecto, políticas CORS y secretos JWT.
+# 22/05/2026 v0.2 - David Guamán: Integración de os.getenv() para capturar MQTT_BROKER_HOST desde Docker.
 
 import os
 class Settings:
     # Información general de la API
     PROJECT_NAME: str = "UNL Cloud Connect API"
     PROJECT_VERSION: str = "1.0.0"
-    
+    MQTT_BROKER_HOST: str = os.getenv("MQTT_BROKER_HOST", "localhost")
     # --------------------------------------------------------
     # CORS: Aquí defines QUIÉN puede conectarse a tu API
     # --------------------------------------------------------

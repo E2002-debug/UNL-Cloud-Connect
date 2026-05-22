@@ -2,7 +2,7 @@
 # Fecha: 20/05/2026
 # Version: 0.1
 # Historial:
-# David Guamán: Implementación de encriptación de claves con bcrypt, generación de tokens JWT y configuración de CORS.
+# 20/05/2026 v0.1 - David Guamán: Implementación de encriptación de claves con bcrypt, generación de tokens JWT y configuración de CORS.
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware

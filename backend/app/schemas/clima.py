@@ -2,8 +2,7 @@
 # Fecha: 20/05/2026
 # Version: 0.1
 # Historial:
-# David Guamán: Creación de esquemas Pydantic para validar el payload MQTT entrante de la ESP32
-# y estructurar la respuesta hacia el frontend.
+# 20/05/2026 v0.1 - David Guamán: Creación de esquemas Pydantic para validar el payload MQTT entrante de la ESP32 y estructurar la respuesta hacia el frontend.
 
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime

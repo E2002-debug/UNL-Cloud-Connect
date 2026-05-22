@@ -2,7 +2,7 @@
 # Fecha: 20/05/2026
 # Version: 0.1
 # Historial:
-# David Guamán: Creación del modelo SQLAlchemy para la tabla clima, preparando la estructura para los datos de la ESP32.
+# 20/05/2026 v0.1 - David Guamán: Creación del modelo SQLAlchemy para la tabla clima, preparando la estructura para los datos de la ESP32.
 
 from sqlalchemy import Float, String, DateTime, ForeignKey
 from sqlalchemy.sql import func

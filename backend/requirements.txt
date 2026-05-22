@@ -2,7 +2,7 @@
 # Fecha: 21/05/2026
 # Version: 0.1
 # Historial:
-# David Guamán: Definición de las dependencias base del proyecto (FastAPI, PostgreSQL, Seguridad e IoT).
+# 21/05/2026 v0.1 - David Guamán: Definición de las dependencias base del proyecto (FastAPI, PostgreSQL, Seguridad e IoT).
 
 # Framework Base
 fastapi==0.110.0

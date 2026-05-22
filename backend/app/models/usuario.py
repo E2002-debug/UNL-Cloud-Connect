@@ -2,8 +2,7 @@
 # Fecha: 20/05/2026
 # Version: 0.1
 # Historial:
-# David Guamán: Creación de los modelos SQLAlchemy para las tablas rol y usuario,
-# preparando el campo clave para soportar el flujo híbrido (Google Sign-In).
+# 20/05/2026 v0.1 - David Guamán: Creación de los modelos SQLAlchemy para las tablas rol y usuario,preparando el campo clave para soportar el flujo híbrido (Google Sign-In).
 
 from sqlalchemy import String, Date, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column

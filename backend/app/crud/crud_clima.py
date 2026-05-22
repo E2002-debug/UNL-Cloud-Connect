@@ -2,8 +2,8 @@
 # Fecha: 20/05/2026
 # Version: 0.1
 # Historial:
-# David Guamán: Creación de funciones CRUD para insertar y obtener datos de temperatura y humedad enviados por la ESP32.
-###########################################################################
+# 20/05/2026 v0.1 - David Guamán: Creación de funciones CRUD para insertar y obtener datos de temperatura y humedad enviados por la ESP32.
+
 from sqlalchemy.orm import Session
 from app.models.clima import Clima
 

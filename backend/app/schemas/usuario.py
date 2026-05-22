@@ -2,8 +2,7 @@
 # Fecha: 20/05/2026
 # Version: 0.1
 # Historial:
-# David Guamán: Creación de esquemas Pydantic (UsuarioCreate, UsuarioResponse, Token) 
-# y validación estricta para el dominio @unl.edu.ec.
+# 20/05/2026 v0.1 - David Guamán: Creación de esquemas Pydantic (UsuarioCreate, UsuarioResponse, Token) y validación estricta para el dominio @unl.edu.ec.
 
 from pydantic import BaseModel, EmailStr, field_validator
 from typing import Optional
