@@ -1,10 +1,11 @@
 # Autor: David Guamán
-# Fecha: 20/05/2026
-# Version: 0.1
+# Fecha: 22/05/2026
+# Version: 0.2
 # Historial:
 # 20/05/2026 v0.1 - David Guamán: Creación de esquemas Pydantic (UsuarioCreate, UsuarioResponse, Token) y validación estricta para el dominio @unl.edu.ec.
+# 22/05/2026 v0.2    - David Guamán: Adición de esquemas específicos para el flujo híbrido de registro e inicio de sesión con Google (UsuarioRegistroHibrido, TokenGoogleLogin).
 
-from pydantic import BaseModel, EmailStr, field_validator
+from pydantic import BaseModel, EmailStr, field_validator, Field
 from typing import Optional
 from datetime import date
 
@@ -34,6 +35,18 @@ class UsuarioResponse(UsuarioBase):
 
     class Config:
         from_attributes = True # Permite a Pydantic leer los modelos de SQLAlchemy
+
+# Esquema para el flujo de Registro Híbrido (HU_01)
+class UsuarioRegistroHibrido(BaseModel):
+    google_token: str       # Token que React/React Native obtienen de Google
+    fecha_nacimiento: date  # Campo manual obligatorio
+    clave: str = Field(..., min_length=8, description="Debe tener al menos 8 caracteres")
+    id_rol: int             # Rol seleccionado (Estudiante/Docente/Administrador)
+
+# Esquema para el Inicio de Sesión Dual con Google (HU_02)
+class TokenGoogleLogin(BaseModel):
+    google_token: str       # Token de Google para verificar sesión directa
+
 
 class Token(BaseModel):
     access_token: str

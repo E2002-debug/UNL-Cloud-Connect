@@ -23,7 +23,9 @@ services:
       - "1884:1883"     # Puerto para la comunicación del ESP32
       - "9003:9001"     # Puerto para WebSockets (futuro)
     volumes:
-      - mosquitto_data:/mosquitto/data
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./mosquitto/data:/mosquitto/data
+      - ./mosquitto/log:/mosquitto/log
 
   # 3. Almacenamiento de Objetos Multimedia (MinIO)
   minio:

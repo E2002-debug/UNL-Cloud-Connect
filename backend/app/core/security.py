@@ -13,6 +13,8 @@ from jose import jwt
 
 # Importamos las configuraciones centralizadas
 from app.core.config import settings
+from google.oauth2 import id_token
+from google.auth.transport import requests as google_requests
 
 # Configuramos bcrypt como el único algoritmo de hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -48,3 +50,37 @@ def crear_token_acceso(sujeto: Any, tiempo_expiracion: timedelta = None) -> str:
     # Firmamos el token usando los secretos de config.py
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
     return encoded_jwt
+
+def verificar_y_extraer_token_google(google_token: str) -> dict:
+    """
+    Valida criptográficamente el token usando la librería oficial de Google
+    y extrae los datos del usuario.
+    """
+    try:
+        # Aquí es donde leemos el ID que está guardado en tu .env a través de settings
+        idinfo = id_token.verify_oauth2_token(
+            google_token, 
+            google_requests.Request(), 
+            settings.GOOGLE_CLIENT_ID 
+        )
+        
+        correo = idinfo.get("email")
+        
+        # Validación estricta del dominio UNL
+        if not correo or not correo.endswith("@unl.edu.ec"):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Debes usar tu correo institucional estrictamente (@unl.edu.ec)."
+            )
+            
+        return {
+            "correo": correo,
+            "nombre": idinfo.get("given_name", ""),
+            "apellido": idinfo.get("family_name", "")
+        }
+    except ValueError:
+        # Si Google dice que el token es falso, expiró, o no coincide con tu Client ID
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="El token de Google es inválido o ha expirado."
+        )

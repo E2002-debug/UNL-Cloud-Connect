@@ -18,7 +18,7 @@ from app.schemas.clima import ClimaPayload
 cliente_mqtt = MQTTClient("unl-backend-fastapi")
 
 # Definir el tópico al que nos vamos a suscribir (Debe coincidir con el código de la ESP32)
-TOPICO_CLIMA = "unl/feirnnr/clima/esp32"
+TOPICO_CLIMA = "unl/clima/esp32"
 
 def on_connect(client, flags, rc, properties):
     print(f"[MQTT] Conectado exitosamente al broker en {settings.MQTT_BROKER_HOST}")

@@ -1,9 +1,9 @@
 # Autor: David Guamán
-# Fecha: 21/05/2026
-# Version: 0.1
+# Fecha: 22/05/2026
+# Version: 0.2
 # Historial:
 # 21/05/2026 v0.1 - David Guamán: Definición de las dependencias base del proyecto (FastAPI, PostgreSQL, Seguridad e IoT).
-
+# 22/05/2026 v0.2 - David Guamán: Actualización de versiones y adición de dependencias específicas para el flujo híbrido de autenticación con Google (google-auth, requests).
 # Framework Base
 fastapi==0.110.0
 uvicorn==0.28.0
@@ -26,3 +26,7 @@ python-multipart==0.0.9
 # IoT / Comunicación Asíncrona (MQTT y API Clima)
 gmqtt==0.6.12
 httpx==0.27.0
+
+# Google SSO (Flujo Híbrido)
+google-auth==2.29.0
+requests==2.31.0

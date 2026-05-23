@@ -28,5 +28,13 @@ class Settings:
     ALGORITHM = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 1 día de duración
 
+    # Variable necesaria para validar la sesión de Google
+    GOOGLE_CLIENT_ID: str = "" 
+
+    class Config:
+        # Esto le ordena a Pydantic que busque el archivo oculto en tu carpeta backend/
+        env_file = ".env"
+        env_file_encoding = "utf-8"    
+
 # Instanciamos la clase para que el resto de archivos la puedan importar
 settings = Settings()
