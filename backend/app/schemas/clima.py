@@ -1,9 +1,9 @@
 # Autor: David Guamán
-# Fecha: 20/05/2026
-# Version: 0.1
+# Fecha: 28/05/2026
+# Version: 0.2
 # Historial:
 # 20/05/2026 v0.1 - David Guamán: Creación de esquemas Pydantic para validar el payload MQTT entrante de la ESP32 y estructurar la respuesta hacia el frontend.
-
+# 28/05/2026 v0.2 - David Guamán: Actualización de los esquemas para incluir los nuevos campos de alerta (alerta, detalles_alerta) y reflejar estos cambios en el payload MQTT.
 from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from typing import Optional
@@ -15,6 +15,8 @@ class ClimaPayload(BaseModel):
     # Agregamos rangos lógicos para evitar guardar datos corruptos del sensor
     temperatura: float = Field(..., ge=-50.0, le=100.0, description="Temperatura en grados centígrados")
     humedad: float = Field(..., ge=0.0, le=100.0, description="Humedad relativa en porcentaje")  
+    alerta: bool
+    detalles_alerta: str
 class ClimaResponse(BaseModel):
     """
     Esquema para enviar la información climática actual al Frontend.
@@ -24,5 +26,7 @@ class ClimaResponse(BaseModel):
     humedad: float
     fecha_captura: datetime
     fuente: str
+    alerta: bool
+    detalles_alerta: str
 
     model_config = ConfigDict(from_attributes=True)

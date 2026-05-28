@@ -1,9 +1,9 @@
 # Autor: David Guamán
-# Fecha: 20/05/2026
+# Fecha: 28/05/2026
 # Version: 0.1
 # Historial:
 # 20/05/2026 v0.1 - David Guamán: Creación del modelo SQLAlchemy para la tabla clima, preparando la estructura para los datos de la ESP32.
-
+# 28/05/2026 v0.2 - David Guamán: Adición de campos de alerta (alerta, detalle_alerta) para futuras funcionalidades de notificaciones basadas en condiciones climáticas.
 from sqlalchemy import Float, String, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.orm import Mapped, mapped_column
@@ -22,6 +22,10 @@ class Clima(Base):
     
     # Según tu diagrama, la fuente (ej. "ESP32" o "Visual Crossing")
     fuente: Mapped[str] = mapped_column(String(50), nullable=False)
+
+    alerta: Mapped[bool] = mapped_column(default=False)
+
+    detalles_alerta: Mapped[str] = mapped_column(String(100), nullable=True)
 
     # Relación con la tabla Ubicacion (según el diagrama Clima pertenece a Ubicacion)
     # Nota: Asegúrate de crear el modelo Ubicacion luego para que esta FK no dé error.

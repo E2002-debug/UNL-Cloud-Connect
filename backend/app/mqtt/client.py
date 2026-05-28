@@ -1,9 +1,10 @@
 # Autor: David Guamán
-# Fecha: 22/05/2026
-# Version: 0.2
+# Fecha: 28/05/2026
+# Version: 0.3
 # Historial:
 # 20/05/2026 v0.1 - David Guamán: Configuración principal de FastAPI, inicialización de la base de datos, inyección de CORS y registro del enrutador de autenticación.
 # 22/05/2026 v0.2 - David Guamán: Implementación del ciclo de vida de la aplicación para iniciar y detener el cliente MQTT automáticamente.
+# 28/05/2026 v0.3 - David Guamán: Actualización de la función de creación de registros climáticos para incluir los nuevos campos de alerta.
 import json
 import asyncio
 from gmqtt import Client as MQTTClient
@@ -41,7 +42,9 @@ def on_message(client, topic, payload, qos, properties):
                 db=db,
                 temperatura=datos_validados.temperatura,
                 humedad=datos_validados.humedad,
-                fuente="ESP32"
+                fuente="ESP32",
+                alerta=datos_validados.alerta,
+                detalles_alerta=datos_validados.detalles_alerta
             )
             print(f"[MQTT] Clima guardado OK: T={datos_validados.temperatura}°C, H={datos_validados.humedad}%")
         finally:
