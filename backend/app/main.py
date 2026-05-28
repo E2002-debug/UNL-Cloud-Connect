@@ -8,7 +8,7 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
-from app.database.session import engine, Base
+from app.database.session import engine, Base, SessionLocal
 from app.core.config import settings
 from app.core.security import setup_cors
 from app.routers import auth, clima
@@ -17,21 +17,34 @@ from app.routers import auth, clima
 from app.models.usuario import Usuario
 from app.models.clima import Clima
 from app.mqtt.client import iniciar_mqtt, detener_mqtt
-# Creación de tablas
-Base.metadata.create_all(bind=engine)
 
+# IMPORTAMOS EL SCRIPT DE SEMBRADO
+from app.database.init_db import inicializar_datos_maestros
 
+# Definimos el ciclo de vida de la aplicación para servicios en segundo plano
 # Definimos el ciclo de vida de la aplicación para servicios en segundo plano
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Lógica de inicio (Startup)
-    print("Iniciando servicios en segundo plano...")
+    # 1. Preparar la Base de Datos
+    print("[STARTUP] Verificando e inicializando tablas en PostgreSQL...")
+    Base.metadata.create_all(bind=engine)
+
+    # 2. Sembrado de Datos
+    print("[STARTUP] Abriendo sesión temporal para verificar datos maestros...")
+    db = SessionLocal()
+    try:
+        inicializar_datos_maestros(db)
+    finally:
+        db.close() # Cerramos inmediatamente para liberar el pool
+        
+    # 3. Lógica de inicio MQTT
+    print("[STARTUP] Iniciando servicios en segundo plano (Broker MQTT)...")
     await iniciar_mqtt()
     
-    yield # Aquí la aplicación de FastAPI se queda corriendo y recibiendo peticiones HTTP
+    yield # Aquí la aplicación de FastAPI se queda corriendo
     
-    # Lógica de apagado (Shutdown)
-    print("Deteniendo servicios...")
+    # 4. Lógica de apagado (Shutdown)
+    print("[SHUTDOWN] Deteniendo servicios y cerrando conexiones...")
     await detener_mqtt()
 
 # Instancia limpia usando config.py
