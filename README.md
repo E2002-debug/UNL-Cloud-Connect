@@ -16,12 +16,14 @@ Antes de levantar el entorno, asegúrate de tener instalado en tu sistema:
 
 A través de Docker, el sistema levanta automáticamente los siguientes servicios de forma aislada:
 
-| Servicio          | Tecnología             | Puerto Interno  | Puerto Host (Tu PC) |
-| :---              | :---                   | :---            | :---                |
-| **Backend API**   | FastAPI (Python)       | `8000`          | `8000`              |
-| **Base de Datos** | PostgreSQL 15          | `5432`          | `5433`              |
-| **Broker IoT**    | Eclipse Mosquitto      | `1883`          | `1883`              |
-| **Storage**       | MinIO (Object Storage) | `9000` / `9001` | `9000` / `9002`     |
+| Servicio                  | Tecnología             | Puerto Interno  | Puerto Host (Tu PC) |
+| :---                      | :---                   | :---            | :---                |
+| **API Gateway (Puerta Principal)**   | Kong (Modo DB-less)       | `8000`          | `8000`            |
+| **MS_Gestion_Usuarios**   | FastAPI (Python)       | `8000`          | `oculto`            |
+| **MS_CLima**              | FastAPI (Python)       | `8000`          | `oculto`            |
+| **Base de Datos**         | PostgreSQL 15          | `5432`          | `5433`              |
+| **Broker IoT**            | Eclipse Mosquitto      | `1883`          | `1883`              |
+| **Storage**               | MinIO (Object Storage) | `9000` / `9001` | `9000` / `9002`     |
 
 ---
 
@@ -57,9 +59,9 @@ Para comprobar que todos los contenedores estén corriendo de forma óptima:
 Una vez que los contenedores estén en ejecución (Up), puedes acceder a las herramientas mediante las siguientes direcciones:
 
 ### 📡 Backend (FastAPI)
-* **URL de la API:** http://localhost:8000
-* **Documentación Interactiva (Swagger):** http://localhost:8000/docs *(Aquí podrás probar los endpoints de Login y Registro).*
 
+* **Documentación Interactiva GEstion Usuraios(Swagger):** http://localhost:8000/api/auth/docs *(Aquí podrás probar los endpoints de Login y Registro).*
+* **Documentación Interactiva CLima (Swagger):** http://localhost:8000/api/clima/docs *(Aquí podrás probar los endpoints de Clima).*
 ### 💾 Almacenamiento de Imágenes (MinIO)
 * **Consola de Administración Web:** http://localhost:9002
 * **Usuario:** `minio_admin`
