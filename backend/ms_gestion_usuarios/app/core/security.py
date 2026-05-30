@@ -5,6 +5,7 @@
 # 20/05/2026 v0.1 - David Guamán: Implementación de encriptación de claves con bcrypt, generación de tokens JWT y configuración de CORS.
 
 from fastapi import FastAPI
+from app.core.config import settings
 from fastapi.middleware.cors import CORSMiddleware
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
@@ -12,7 +13,7 @@ from typing import Any
 from jose import jwt
 
 # Importamos las configuraciones centralizadas
-from backend.ms_gestion_usuarios.app.core.config import settings
+
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 

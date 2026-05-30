@@ -5,9 +5,9 @@
 # 20/05/2026 v0.1 - David Guamán: Creación de funciones CRUD para gestionar usuarios, incluyendo búsqueda por correo y guardado con encriptación de contraseña.
 
 from sqlalchemy.orm import Session
-from backend.ms_gestion_usuarios.app.models.usuario import Usuario
-from backend.ms_gestion_usuarios.app.schemas.usuario import UsuarioCreate
-from backend.ms_gestion_usuarios.app.core.security import obtener_hash_clave
+from app.models.usuario import Usuario
+from app.schemas.usuario import UsuarioCreate
+from app.core.security import obtener_hash_clave
 
 def obtener_usuario_por_correo(db: Session, correo: str):
     """

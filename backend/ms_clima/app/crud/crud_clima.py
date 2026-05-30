@@ -5,7 +5,7 @@
 # 20/05/2026 v0.1 - David Guamán: Creación de funciones CRUD para insertar y obtener datos de temperatura y humedad enviados por la ESP32.
 # 28/05/2026 v0.2 - David Guamán: Actualización de la función de creación de registros climáticos para incluir los nuevos campos de alerta (alerta, detalles_alerta) y reflejar estos cambios en el payload MQTT.
 from sqlalchemy.orm import Session
-from backend.ms_clima.app.models.clima import Clima
+from app.models.clima import Clima
 
 def crear_registro_clima(db: Session, temperatura: float, humedad: float, fuente: str = "ESP32", alerta: bool = False, detalles_alerta: str = None):
     """

@@ -10,10 +10,10 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import Any
 
-from backend.ms_gestion_usuarios.app.database.session import get_db
-from backend.ms_gestion_usuarios.app.schemas.usuario import UsuarioCreate, UsuarioResponse, Token, UsuarioRegistroHibrido, TokenGoogleLogin
-from backend.ms_gestion_usuarios.app.crud import crud_usuario
-from backend.ms_gestion_usuarios.app.core import security
+from app.database.session import get_db
+from app.schemas.usuario import UsuarioCreate, UsuarioResponse, Token, UsuarioRegistroHibrido, TokenGoogleLogin
+from app.crud import crud_usuario
+from app.core import security
 
 
 router = APIRouter(

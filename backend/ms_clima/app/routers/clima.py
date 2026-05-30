@@ -8,9 +8,9 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from typing import Any
 
-from backend.ms_clima.app.database.session import get_db
-from backend.ms_clima.app.schemas.clima import ClimaResponse
-from backend.ms_clima.app.crud import crud_clima
+from app.database.session import get_db
+from app.schemas.clima import ClimaResponse
+from app.crud import crud_clima
                                                             
 router = APIRouter(
     prefix="/clima",

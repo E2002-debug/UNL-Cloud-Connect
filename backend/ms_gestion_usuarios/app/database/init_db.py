@@ -4,7 +4,7 @@
 # 24/05/2026 - David Guamán: Script de sembrado automático (Data Seeding) para poblar las tablas maestras.
 
 from sqlalchemy.orm import Session
-from backend.ms_gestion_usuarios.app.models.usuario import Rol
+from app.models.usuario import Rol
 
 def inicializar_datos_maestros(db: Session) -> None:
     """

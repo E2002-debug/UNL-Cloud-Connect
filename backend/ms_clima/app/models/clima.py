@@ -8,7 +8,7 @@ from sqlalchemy import Float, String, DateTime, ForeignKey
 from sqlalchemy.sql import func
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import datetime
-from backend.ms_clima.app.database.session import Base
+from app.database.session import Base
 
 class Clima(Base):
     __tablename__ = "clima"

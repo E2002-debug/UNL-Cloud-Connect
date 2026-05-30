@@ -33,7 +33,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=f"{settings.PROJECT_NAME} - MS Clima", 
     version=settings.PROJECT_VERSION,
-    lifespan=lifespan
+    lifespan=lifespan,
+    root_path="/api/clima"
 )
 
 # Inyección de CORS 
@@ -41,7 +42,3 @@ setup_cors(app)
 
 # Incluimos solo los endpoints de telemetría
 app.include_router(clima.router)
-
-@app.get("/")
-def read_root():
-    return {"mensaje": "MS-Clima operativo, MQTT escuchando a la ESP32"}

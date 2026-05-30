@@ -7,7 +7,7 @@
 from sqlalchemy import String, Date, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import date
-from backend.ms_gestion_usuarios.app.database.session import Base
+from app.database.session import Base
 
 class Rol(Base):
     __tablename__ = "rol"

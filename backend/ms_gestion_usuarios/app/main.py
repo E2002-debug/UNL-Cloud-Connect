@@ -36,7 +36,8 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title=f"{settings.PROJECT_NAME} - MS Usuarios", 
     version=settings.PROJECT_VERSION,
-    lifespan=lifespan
+    lifespan=lifespan,
+    root_path="/api/auth"
 )
 
 # Inyección de CORS 
@@ -45,6 +46,3 @@ setup_cors(app)
 # Incluimos solo los endpoints de identidad
 app.include_router(auth.router)
 
-@app.get("/")
-def read_root():
-    return {"mensaje": "MS-Usuarios operativo y base de datos de identidades conectada"}

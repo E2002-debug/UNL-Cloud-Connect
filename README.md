@@ -68,12 +68,19 @@ Una vez que los contenedores estén en ejecución (Up), puedes acceder a las her
 ### 🗄️ Base de Datos (PostgreSQL)
 Si deseas conectarte a la base de datos usando un cliente externo (como DBeaver, PGAdmin o la extensión de VS Code), usa estos parámetros:
 
+**Conexión base de datos (Usuarios):**
 * **Host:** `localhost`
 * **Puerto:** `5433`
-* **Base de Datos:** `unl_cloud_connect`
+* **Base de Datos:** `db_usuarios`
 * **Usuario:** `postgres_admin`
 * **Contraseña:** `postgres123456`
 
+**Conexión base de datos (Clima):**
+* **Host:** `localhost`
+* **Puerto:** `5433`
+* **Base de Datos:** `db_clima`
+* **Usuario:** `postgres_admin`
+* **Contraseña:** `postgres123456`
 ---
 
 ## 🛑 Detener los Servicios
