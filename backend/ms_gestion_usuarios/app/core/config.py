@@ -1,10 +1,10 @@
 # Autor: David Guamán
-# Fecha: 22/05/2026
-# Version: 0.2
+# Fecha: 30/05/2026
+# Version: 0.3
 # Historial:
 # 20/05/2026 v0.1 - David Guamán: Creación de la configuración base del proyecto, políticas CORS y secretos JWT.
 # 22/05/2026 v0.2 - David Guamán: Integración de os.getenv() para capturar MQTT_BROKER_HOST desde Docker.
-
+# 30/05/2026 v0.3 - David Guamán: Adición de variables de configuración para el servicio de correo (SMTP) y validación de tipos para booleanos.
 import os
 class Settings:
     # Información general de la API
@@ -30,6 +30,19 @@ class Settings:
 
     # Variable necesaria para validar la sesión de Google
     GOOGLE_CLIENT_ID: str = "" 
+
+    # ==========================================
+    # CONFIGURACIÓN DE CORREO - Lectura Nativa OS
+    # ==========================================
+    MAIL_USERNAME: str = os.getenv("MAIL_USERNAME", "no-leyo-el-env@gmail.com")
+    MAIL_PASSWORD: str = os.getenv("MAIL_PASSWORD", "")
+    MAIL_FROM: str = os.getenv("MAIL_FROM", "no-leyo-el-env@gmail.com")
+    MAIL_PORT: int = int(os.getenv("MAIL_PORT", 587))
+    MAIL_SERVER: str = os.getenv("MAIL_SERVER", "smtp.gmail.com")
+    
+    # Truco para convertir el texto de Docker a Booleano en Python
+    MAIL_STARTTLS: bool = os.getenv("MAIL_STARTTLS", "True").lower() == "true"
+    MAIL_SSL_TLS: bool = os.getenv("MAIL_SSL_TLS", "False").lower() == "true"
 
     class Config:
         # Esto le ordena a Pydantic que busque el archivo oculto en tu carpeta backend/

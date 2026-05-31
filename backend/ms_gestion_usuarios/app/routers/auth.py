@@ -1,20 +1,22 @@
 
 # Autor: David Guamán
-# Fecha: 22/05/2026
-# Version: 0.2
+# Fecha: 30/05/2026
+# Version: 0.3
 # Historial:
 # 20/05/2026 v0.1 - David Guamán: Creación de endpoints de registro (HU_01) y login (HU_02)con validación de credenciales y generación de tokens JWT.
 # 22/05/2026 v0.2 - David Guamán: Implementación de endpoints específicos para el flujo híbrido de registro e inicio de sesión con Google, incluyendo validación de tokens de Google y manejo de casos especiales (usuarios sin contraseña manual).
-from fastapi import APIRouter, Depends, HTTPException, status
+# 30/05/2026 v0.3 - David Guamán: Adición de endpoints para recuperación de contraseña, incluyendo generación de tokens de recuperación y validación de los mismos al restablecer la clave.
+
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import Any
-
 from app.database.session import get_db
-from app.schemas.usuario import UsuarioCreate, UsuarioResponse, Token, UsuarioRegistroHibrido, TokenGoogleLogin
+from app.schemas.usuario import EmailRequest, UsuarioCreate, UsuarioResponse, Token, UsuarioRegistroHibrido, TokenGoogleLogin, ResetPasswordRequest
 from app.crud import crud_usuario
 from app.core import security
-
+from app.core.security import crear_token_recuperacion, verificar_token_recuperacion, obtener_hash_clave
+from app.core.email import enviar_correo_recuperacion
 
 router = APIRouter(
     prefix="/auth",
@@ -141,3 +143,44 @@ def iniciar_sesion_google(credenciales: TokenGoogleLogin, db: Session = Depends(
         "access_token": token_acceso,
         "token_type": "bearer"
     }
+
+@router.post("/solicitar-recuperacion")
+async def solicitar_recuperacion(request: EmailRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
+    '''Endpoint para solicitar recuperación de contraseña. Envia un correo con un enlace que contiene un token JWT de vida corta.'''
+    # 1. Buscamos si el correo existe (Ajusta la llamada a tu CRUD si tiene otro nombre)
+    usuario = crud_usuario.obtener_usuario_por_correo(db, correo=request.email)
+    
+    # Truco de Seguridad: Si el correo NO existe, igual decimos que lo enviamos. 
+    # Así los atacantes no pueden usar esto para adivinar qué correos están registrados.
+    if usuario:
+        # 2. Generamos el JWT de 15 minutos
+        token = crear_token_recuperacion(email=request.email)
+        
+        # 3. Le pasamos la tarea al cartero en SEGUNDO PLANO
+        background_tasks.add_task(enviar_correo_recuperacion, request.email, token)
+
+    return {"mensaje": "Si el correo está registrado, hemos enviado un enlace de recuperación a tu bandeja de entrada."}
+
+
+@router.post("/restablecer-clave")
+def ejecutar_restablecer_clave(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+    '''Endpoint que el usuario visita desde el enlace del correo. Valida el token, y si es correcto, actualiza la contraseña en la base de datos.'''
+    # 1. El motor criptográfico revisa si el token es falso o expiró
+    email = verificar_token_recuperacion(request.token)
+    if not email:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="El enlace es inválido o ha caducado. Solicita uno nuevo."
+        )
+
+    # 2. Buscamos al usuario dueño de ese correo
+    usuario = crud_usuario.obtener_usuario_por_correo(db, correo=email)
+    if not usuario:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado.")
+
+    # 3. Encriptamos la nueva contraseña y la guardamos en la base de datos
+    # (Si tienes una función específica en tu crud_usuario, úsala aquí. Si no, hazlo manual así:)
+    usuario.clave = obtener_hash_clave(request.nueva_password)
+    db.commit()
+
+    return {"mensaje": "Contraseña actualizada exitosamente. Ya puedes iniciar sesión con tu nueva clave."}

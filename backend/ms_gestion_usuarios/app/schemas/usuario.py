@@ -1,13 +1,14 @@
 # Autor: David Guamán
-# Fecha: 22/05/2026
+# Fecha: 30/05/2026
 # Version: 0.2
 # Historial:
 # 20/05/2026 v0.1 - David Guamán: Creación de esquemas Pydantic (UsuarioCreate, UsuarioResponse, Token) y validación estricta para el dominio @unl.edu.ec.
 # 22/05/2026 v0.2    - David Guamán: Adición de esquemas específicos para el flujo híbrido de registro e inicio de sesión con Google (UsuarioRegistroHibrido, TokenGoogleLogin).
-
+# 30/05/2026 v0.3    - David Guamán: Inclusión de esquemas para la recuperación de contraseña (EmailRequest, ResetPasswordRequest) y validación de longitud mínima para la nueva contraseña.
 from pydantic import BaseModel, EmailStr, field_validator, Field
 from typing import Optional
 from datetime import date
+from pydantic import BaseModel
 
 # Esquema base con los datos comunes
 class UsuarioBase(BaseModel):
@@ -51,3 +52,10 @@ class TokenGoogleLogin(BaseModel):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+class EmailRequest(BaseModel):
+    email: str
+
+class ResetPasswordRequest(BaseModel):
+    token: str
+    nueva_password: str

@@ -1,8 +1,9 @@
 # Autor: David Guamán
-# Fecha: 20/05/2026
-# Version: 0.1
+# Fecha: 30/05/2026
+# Version: 0.2
 # Historial:
 # 20/05/2026 v0.1 - David Guamán: Implementación de encriptación de claves con bcrypt, generación de tokens JWT y configuración de CORS.
+# 30/05/2026 v0.2 - David Guamán: Adición de funciones para generar y verificar tokens de recuperación de contraseña, y validación de tokens de Google.
 
 from fastapi import FastAPI
 from app.core.config import settings
@@ -10,10 +11,11 @@ from fastapi.middleware.cors import CORSMiddleware
 from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 from typing import Any
-from jose import jwt
+from jose import jwt, JWTError
 
 # Importamos las configuraciones centralizadas
-
+# Definimos que el token de recuperación caduca muy rápido por seguridad
+RESET_TOKEN_EXPIRE_MINUTES = 15
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 
@@ -85,3 +87,35 @@ def verificar_y_extraer_token_google(google_token: str) -> dict:
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="El token de Google es inválido o ha expirado."
         )
+    
+
+def crear_token_recuperacion(email: str) -> str:
+    """
+    Genera un JWT de vida corta exclusivo para recuperar contraseñas.
+    """
+    expire = datetime.utcnow() + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES)
+    to_encode = {
+        "sub": email,
+        "type": "reset",  # Etiqueta de seguridad crucial
+        "exp": expire
+    }
+    
+    # Usamos la misma clave secreta de tu .env
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return encoded_jwt
+
+def verificar_token_recuperacion(token: str) -> str | None:
+    """
+    Desencripta el token. Devuelve el correo si es válido y no ha expirado.
+    Devuelve None si es falso, expiró, o no es de tipo 'reset'.
+    """
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        
+        # Si alguien intenta usar un token de login aquí, lo rechazamos
+        if payload.get("type") != "reset":
+            return None
+            
+        return payload.get("sub")
+    except JWTError:
+        return None
