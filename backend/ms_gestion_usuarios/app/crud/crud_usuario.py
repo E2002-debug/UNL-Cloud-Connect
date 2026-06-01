@@ -21,7 +21,16 @@ def crear_usuario(db: Session, usuario: UsuarioCreate):
     """
     Crea un nuevo usuario en la base de datos.
     Aplica el hash a la contraseña antes de persistir los datos por seguridad.
+    Valida que el rol sea uno de los roles válidos (1: Administrador, 2: Participante).
     """
+    # Validar que el id_rol sea válido (solo 1: Administrador o 2: Participante)
+    if usuario.id_rol not in [1, 2]:
+        from fastapi import HTTPException, status
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El rol debe ser 1 (Administrador) o 2 (Participante)."
+        )
+    
     # Encriptar la contraseña si se proporcionó una (soporte para flujo híbrido)
     clave_encriptada = obtener_hash_clave(usuario.clave) if usuario.clave else None
     

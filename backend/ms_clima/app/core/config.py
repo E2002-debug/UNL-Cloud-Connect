@@ -6,6 +6,7 @@
 # 22/05/2026 v0.2 - David Guamán: Integración de os.getenv() para capturar MQTT_BROKER_HOST desde Docker.
 
 import os
+
 class Settings:
     # Información general de la API
     PROJECT_NAME: str = "UNL Cloud Connect API"
@@ -15,8 +16,10 @@ class Settings:
     # CORS: Aquí defines QUIÉN puede conectarse a tu API
     # --------------------------------------------------------
     BACKEND_CORS_ORIGINS: list[str] = [
-        "http://localhost:3000",   # React Web (Vite/Create React App)
+        "http://localhost:5173",   # Frontend-Web (Vite)
+        "http://localhost:8000",   # Kong Gateway
         "http://localhost",        # Contenedores internos
+        "http://127.0.0.1:5173",   # Loopback
         "*"                        # (Recuerda quitar el '*' en producción)
     ]
 
@@ -29,12 +32,7 @@ class Settings:
     ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 1 día de duración
 
     # Variable necesaria para validar la sesión de Google
-    GOOGLE_CLIENT_ID: str = "" 
-
-    class Config:
-        # Esto le ordena a Pydantic que busque el archivo oculto en tu carpeta backend/
-        env_file = ".env"
-        env_file_encoding = "utf-8"    
+    GOOGLE_CLIENT_ID: str = "1045246456759-ukkf353m9h7plhu0t1j1e08lo1r7qdgp.apps.googleusercontent.com"
 
 # Instanciamos la clase para que el resto de archivos la puedan importar
 settings = Settings()

@@ -15,8 +15,10 @@ class Settings:
     # CORS: Aquí defines QUIÉN puede conectarse a tu API
     # --------------------------------------------------------
     BACKEND_CORS_ORIGINS: list[str] = [
-        "http://localhost:3000",   # React Web (Vite/Create React App)
+        "http://localhost:5173",   # Frontend-Web (Vite)
+        "http://localhost:8000",   # Kong Gateway
         "http://localhost",        # Contenedores internos
+        "http://127.0.0.1:5173",   # Loopback
         "*"                        # (Recuerda quitar el '*' en producción)
     ]
 
@@ -29,7 +31,8 @@ class Settings:
     ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 1 día de duración
 
     # Variable necesaria para validar la sesión de Google
-    GOOGLE_CLIENT_ID: str = "" 
+    # Lee desde .env o usa el valor por defecto
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "") 
 
     # ==========================================
     # CONFIGURACIÓN DE CORREO - Lectura Nativa OS

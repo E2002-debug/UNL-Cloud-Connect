@@ -37,12 +37,11 @@ app = FastAPI(
     title=f"{settings.PROJECT_NAME} - MS Usuarios", 
     version=settings.PROJECT_VERSION,
     lifespan=lifespan,
-    root_path="/api/auth"
+    root_path="/api"
 )
 
-# Inyección de CORS 
+# Inyección modular de CORS desde la configuración centralizada
 setup_cors(app)
 
 # Incluimos solo los endpoints de identidad
 app.include_router(auth.router)
-

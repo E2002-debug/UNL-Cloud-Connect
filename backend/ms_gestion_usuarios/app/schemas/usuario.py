@@ -29,6 +29,13 @@ class UsuarioCreate(UsuarioBase):
             raise ValueError('El correo debe pertenecer al dominio institucional @unl.edu.ec')
         return v
 
+    @field_validator('id_rol')
+    @classmethod
+    def validar_rol(cls, v: int) -> int:
+        if v not in [1, 2]:
+            raise ValueError('El rol debe ser 1 (Administrador) o 2 (Participante)')
+        return v
+
 # Esquema para responderle al frontend (ocultando la clave)
 class UsuarioResponse(UsuarioBase):
     id_usuario: int
@@ -42,11 +49,24 @@ class UsuarioRegistroHibrido(BaseModel):
     google_token: str       # Token que React/React Native obtienen de Google
     fecha_nacimiento: date  # Campo manual obligatorio
     clave: str = Field(..., min_length=8, description="Debe tener al menos 8 caracteres")
-    id_rol: int             # Rol seleccionado (Estudiante/Docente/Administrador)
+    id_rol: int             # Rol seleccionado (1: Administrador, 2: Participante)
+
+    @field_validator('id_rol')
+    @classmethod
+    def validar_rol(cls, v: int) -> int:
+        if v not in [1, 2]:
+            raise ValueError('El rol debe ser 1 (Administrador) o 2 (Participante)')
+        return v
 
 # Esquema para el Inicio de Sesión Dual con Google (HU_02)
 class TokenGoogleLogin(BaseModel):
     google_token: str       # Token de Google para verificar sesión directa
+
+
+class UsuarioGoogleData(BaseModel):
+    correo: EmailStr
+    nombre: str
+    apellido: str
 
 
 class Token(BaseModel):
@@ -59,3 +79,8 @@ class EmailRequest(BaseModel):
 class ResetPasswordRequest(BaseModel):
     token: str
     nueva_password: str
+
+class LoginRequest(BaseModel):
+    """Esquema para request de login (desde JSON, no form-data)"""
+    username: str  # correo
+    password: str  # contraseña

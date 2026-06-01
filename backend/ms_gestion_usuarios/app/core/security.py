@@ -5,7 +5,7 @@
 # 20/05/2026 v0.1 - David Guamán: Implementación de encriptación de claves con bcrypt, generación de tokens JWT y configuración de CORS.
 # 30/05/2026 v0.2 - David Guamán: Adición de funciones para generar y verificar tokens de recuperación de contraseña, y validación de tokens de Google.
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, status
 from app.core.config import settings
 from fastapi.middleware.cors import CORSMiddleware
 from passlib.context import CryptContext
@@ -67,7 +67,7 @@ def verificar_y_extraer_token_google(google_token: str) -> dict:
             settings.GOOGLE_CLIENT_ID 
         )
         
-        correo = idinfo.get("email")
+        correo = idinfo.get("email", "").lower().strip()
         
         # Validación estricta del dominio UNL
         if not correo or not correo.endswith("@unl.edu.ec"):
@@ -81,11 +81,21 @@ def verificar_y_extraer_token_google(google_token: str) -> dict:
             "nombre": idinfo.get("given_name", ""),
             "apellido": idinfo.get("family_name", "")
         }
-    except ValueError:
+    except HTTPException:
+        # Re-raise HTTPExceptions sin modificarlas
+        raise
+    except ValueError as e:
         # Si Google dice que el token es falso, expiró, o no coincide con tu Client ID
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="El token de Google es inválido o ha expirado."
+            detail=f"El token de Google es inválido o ha expirado. Detalles: {str(e)}"
+        )
+    except Exception as e:
+        # Catch any other unexpected errors
+        print(f"[GOOGLE-AUTH-ERROR] Error inesperado al validar token: {str(e)}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al validar el token de Google: {str(e)}"
         )
     
 

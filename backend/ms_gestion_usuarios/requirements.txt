@@ -30,4 +30,5 @@ python-multipart==0.0.9
 # Google SSO (Flujo Híbrido)
 google-auth==2.29.0
 requests==2.31.0
-fastapi-mail
+fastapi-mail==1.0.0
+asyncpg==0.29.0

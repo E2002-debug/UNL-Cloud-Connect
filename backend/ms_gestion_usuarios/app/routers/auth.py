@@ -1,7 +1,6 @@
-
 # Autor: David Guamán
 # Fecha: 30/05/2026
-# Version: 0.3
+# Version: 0.3.1 (Corrección de Importación)
 # Historial:
 # 20/05/2026 v0.1 - David Guamán: Creación de endpoints de registro (HU_01) y login (HU_02)con validación de credenciales y generación de tokens JWT.
 # 22/05/2026 v0.2 - David Guamán: Implementación de endpoints específicos para el flujo híbrido de registro e inicio de sesión con Google, incluyendo validación de tokens de Google y manejo de casos especiales (usuarios sin contraseña manual).
@@ -12,7 +11,8 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from typing import Any
 from app.database.session import get_db
-from app.schemas.usuario import EmailRequest, UsuarioCreate, UsuarioResponse, Token, UsuarioRegistroHibrido, TokenGoogleLogin, ResetPasswordRequest
+# CORRECCIÓN: Se agrega UsuarioGoogleData a la lista de esquemas importados
+from app.schemas.usuario import EmailRequest, UsuarioCreate, UsuarioResponse, Token, UsuarioRegistroHibrido, TokenGoogleLogin, ResetPasswordRequest, UsuarioGoogleData, LoginRequest
 from app.crud import crud_usuario
 from app.core import security
 from app.core.security import crear_token_recuperacion, verificar_token_recuperacion, obtener_hash_clave
@@ -41,14 +41,14 @@ def registrar_usuario(usuario_in: UsuarioCreate, db: Session = Depends(get_db)) 
     return nuevo_usuario
 
 
-@router.post("/login", response_model=Token)
+@router.post("/login", response_model=Any)
 def iniciar_sesion(
-    db: Session = Depends(get_db),
-    credenciales: OAuth2PasswordRequestForm = Depends()
+    credenciales: LoginRequest,
+    db: Session = Depends(get_db)
 ) -> Any:
     """
     Inicio de sesión manual (HU_02).
-    Retorna un token JWT Bearer si las credenciales son válidas.
+    Retorna un token JWT Bearer e id_rol si las credenciales son válidas.
     """
     usuario = crud_usuario.obtener_usuario_por_correo(db, correo=credenciales.username)
     
@@ -59,7 +59,7 @@ def iniciar_sesion(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # NUEVO: Prevenir error si el usuario es de Google y no tiene contraseña manual
+    # Prevenir error si el usuario se registró con Google y no tiene contraseña manual
     if not usuario.clave:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -77,9 +77,28 @@ def iniciar_sesion(
     
     return {
         "access_token": token_acceso,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "id_rol": usuario.id_rol,
+        "nombre": usuario.nombre,
+        "apellido": usuario.apellido,
+        "correo": usuario.correo
     }
 
+
+@router.post("/google-register", response_model=UsuarioGoogleData)
+def validar_registro_google(credenciales: TokenGoogleLogin, db: Session = Depends(get_db)) -> Any:
+    """
+    Valida el token de Google y devuelve los datos extraídos para el registro.
+    Si la cuenta ya existe, devuelve un error indicando que el usuario debe iniciar sesión.
+    """
+    datos_google = security.verificar_y_extraer_token_google(credenciales.google_token)
+    usuario_existente = crud_usuario.obtener_usuario_por_correo(db, correo=datos_google["correo"])
+    if usuario_existente:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Esta cuenta ya está registrada. Por favor, inicie sesión."
+        )
+    return datos_google
 
 
 @router.post("/registro-hibrido", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED)
@@ -113,7 +132,16 @@ def registrar_usuario_hibrido(data_in: UsuarioRegistroHibrido, db: Session = Dep
     nuevo_usuario = crud_usuario.crear_usuario(db, usuario=usuario_create)
     return nuevo_usuario
 
-@router.post("/login-google", response_model=Token)
+
+@router.post("/google", response_model=Any)
+def iniciar_sesion_google_alias(credenciales: TokenGoogleLogin, db: Session = Depends(get_db)) -> Any:
+    """
+    Alias de inicio de sesión Google compatible con el flujo frontend.
+    """
+    return iniciar_sesion_google(credenciales, db)
+
+
+@router.post("/login-google", response_model=Any)
 def iniciar_sesion_google(credenciales: TokenGoogleLogin, db: Session = Depends(get_db)) -> Any:
     """
     Caso de Uso: Iniciar Sesión (Flujo Alternativo Google SSO) - HU_02.
@@ -130,18 +158,16 @@ def iniciar_sesion_google(credenciales: TokenGoogleLogin, db: Session = Depends(
             detail="Cuenta no registrada. Por favor, regístrese primero."
         )
         
-    if not usuario.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Esta cuenta institucional se encuentra inactiva."
-        )
-        
-    # 3. El inicio de sesión es rápido y no solicita datos extra si ya existe
+    # 3. Generación del token de la app agregando el id_rol para el control de accesos del frontend
     token_acceso = security.crear_token_acceso(sujeto=usuario.correo)
     
     return {
         "access_token": token_acceso,
-        "token_type": "bearer"
+        "token_type": "bearer",
+        "id_rol": usuario.id_rol,
+        "nombre": usuario.nombre,
+        "apellido": usuario.apellido,
+        "correo": usuario.correo
     }
 
 @router.post("/solicitar-recuperacion")
@@ -179,7 +205,6 @@ def ejecutar_restablecer_clave(request: ResetPasswordRequest, db: Session = Depe
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado.")
 
     # 3. Encriptamos la nueva contraseña y la guardamos en la base de datos
-    # (Si tienes una función específica en tu crud_usuario, úsala aquí. Si no, hazlo manual así:)
     usuario.clave = obtener_hash_clave(request.nueva_password)
     db.commit()
 

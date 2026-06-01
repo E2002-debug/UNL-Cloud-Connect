@@ -34,7 +34,7 @@ app = FastAPI(
     title=f"{settings.PROJECT_NAME} - MS Clima", 
     version=settings.PROJECT_VERSION,
     lifespan=lifespan,
-    root_path="/api/clima"
+    root_path="/api"
 )
 
 # Inyección de CORS 

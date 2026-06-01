@@ -15,7 +15,7 @@ def inicializar_datos_maestros(db: Session) -> None:
         # 1. Definimos el diccionario exacto de cómo queremos que esté el sistema
         roles_requeridos = [
             {"id_rol": 1, "nombre_rol": "Administrador"},
-            {"id_rol": 2, "nombre_rol": "Paciente"},
+            {"id_rol": 2, "nombre_rol": "Participante"},
         ]
         
         roles_agregados = 0
