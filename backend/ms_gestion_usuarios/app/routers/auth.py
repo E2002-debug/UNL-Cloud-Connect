@@ -153,10 +153,14 @@ def iniciar_sesion_google(credenciales: TokenGoogleLogin, db: Session = Depends(
     # 2. Buscar si el usuario existe en el sistema centralizado de la UNL
     usuario = crud_usuario.obtener_usuario_por_correo(db, correo=datos_google["correo"])
     if not usuario:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Cuenta no registrada. Por favor, regístrese primero."
+        # Registrar automáticamente como participante (rol = 2) por defecto
+        usuario_create = UsuarioCreate(
+            nombre=datos_google["nombre"],
+            apellido=datos_google["apellido"],
+            correo=datos_google["correo"],
+            id_rol=2
         )
+        usuario = crud_usuario.crear_usuario(db, usuario=usuario_create)
         
     # 3. Generación del token de la app agregando el id_rol para el control de accesos del frontend
     token_acceso = security.crear_token_acceso(sujeto=usuario.correo)
