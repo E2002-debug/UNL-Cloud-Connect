@@ -50,3 +50,22 @@ def crear_usuario(db: Session, usuario: UsuarioCreate):
     db.refresh(db_usuario)
     
     return db_usuario
+
+def obtener_usuarios(db: Session, skip: int = 0, limit: int = 100):
+    return db.query(Usuario).offset(skip).limit(limit).all()
+
+def obtener_usuario_por_id(db: Session, id_usuario: int):
+    return db.query(Usuario).filter(Usuario.id_usuario == id_usuario).first()
+
+def actualizar_usuario(db: Session, db_usuario: Usuario, datos_actualizar: dict):
+    for key, value in datos_actualizar.items():
+        if value is not None:
+            setattr(db_usuario, key, value)
+    db.commit()
+    db.refresh(db_usuario)
+    return db_usuario
+
+def eliminar_usuario(db: Session, db_usuario: Usuario):
+    db.delete(db_usuario)
+    db.commit()
+    return db_usuario

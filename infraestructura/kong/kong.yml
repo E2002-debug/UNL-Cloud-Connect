@@ -12,6 +12,7 @@ services:
       - name: ruta-usuarios
         paths:
           - /api/auth
+          - /api/usuarios
         strip_path: false
 
   # 2. Servicio de Clima/Telemetría

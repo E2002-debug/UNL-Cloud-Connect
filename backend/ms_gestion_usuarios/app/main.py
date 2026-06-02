@@ -7,7 +7,7 @@ from contextlib import asynccontextmanager
 from app.database.session import engine, Base, SessionLocal
 from app.core.config import settings
 from app.core.security import setup_cors
-from app.routers import auth
+from app.routers import auth, usuarios
 
 # IMPORTACIÓN CRÍTICA: Modelos correspondientes a este microservicio
 from app.models.usuario import Usuario
@@ -45,3 +45,4 @@ setup_cors(app)
 
 # Incluimos solo los endpoints de identidad
 app.include_router(auth.router)
+app.include_router(usuarios.router)

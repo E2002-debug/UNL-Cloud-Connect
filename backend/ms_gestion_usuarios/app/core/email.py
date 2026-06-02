@@ -25,7 +25,7 @@ async def enviar_correo_recuperacion(email_destino: str, token: str):
     Construye un correo HTML bonito y lo envía usando fastapi-mail.
     """
     # Esta es la URL de tu React. Cuando pases a producción, cambias localhost por tu dominio real.
-    url_recuperacion = f"http://localhost:3000/restablecer-clave?token={token}"
+    url_recuperacion = f"http://localhost:5173/reset-password?token={token}"
 
     # Una plantilla HTML con estilo para que se vea profesional
     html = f"""
@@ -48,4 +48,13 @@ async def enviar_correo_recuperacion(email_destino: str, token: str):
     )
 
     fm = FastMail(conf)
-    await fm.send_message(message)
+    try:
+        await fm.send_message(message)
+        print(f"Correo enviado exitosamente a {email_destino}")
+    except Exception as e:
+        print(f"⚠️ ERROR AL ENVIAR CORREO A {email_destino} ⚠️")
+        print("La configuración SMTP de Google falló, pero para que puedas continuar con las pruebas del proyecto, aquí tienes el enlace generado:")
+        print("--------------------------------------------------")
+        print(f"👉 COPIA ESTE ENLACE EN TU NAVEGADOR: {url_recuperacion}")
+        print("--------------------------------------------------")
+        print(f"Error técnico: {e}")

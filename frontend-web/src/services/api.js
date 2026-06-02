@@ -12,13 +12,29 @@ const api = axios.create({
   withCredentials: true  // Incluir cookies y credenciales en las peticiones
 })
 
+// Interceptor para inyectar el token JWT en todas las peticiones
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('access_token')
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+  return config
+}, (error) => {
+  return Promise.reject(error)
+})
+
+// Endpoints de Autenticación
 export const login = (payload) => api.post('/auth/login', payload)
 export const loginGoogle = (payload) => api.post('/auth/login-google', payload)
 export const register = (payload) => api.post('/auth/registro', payload)
 export const googleRegister = (payload) => api.post('/auth/google-register', payload)
 export const registroHibrido = (payload) => api.post('/auth/registro-hibrido', payload)
-export const sendRecovery = (payload) => api.post('/auth/recover', payload)
-export const resetPassword = (payload) => api.post('/auth/reset-password', payload)
+export const sendRecovery = (payload) => api.post('/auth/solicitar-recuperacion', payload)
+export const resetPassword = (payload) => api.post('/auth/restablecer-clave', payload)
+
+// Endpoints de Gestión de Usuarios (Requieren Rol Administrador)
+export const getUsers = () => api.get('/usuarios/')
+export const updateUser = (id, payload) => api.put(`/usuarios/${id}`, payload)
+export const deleteUser = (id) => api.delete(`/usuarios/${id}`)
 
 export default api
-

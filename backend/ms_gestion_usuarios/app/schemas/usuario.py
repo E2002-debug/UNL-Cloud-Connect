@@ -84,3 +84,15 @@ class LoginRequest(BaseModel):
     """Esquema para request de login (desde JSON, no form-data)"""
     username: str  # correo
     password: str  # contraseña
+
+class UsuarioUpdate(BaseModel):
+    nombre: Optional[str] = None
+    apellido: Optional[str] = None
+    id_rol: Optional[int] = None
+
+    @field_validator('id_rol')
+    @classmethod
+    def validar_rol(cls, v: Optional[int]) -> Optional[int]:
+        if v is not None and v not in [1, 2]:
+            raise ValueError('El rol debe ser 1 (Administrador) o 2 (Participante)')
+        return v
