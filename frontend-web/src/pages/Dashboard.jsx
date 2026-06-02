@@ -201,7 +201,7 @@ export default function Dashboard() {
   ] : [
     { id: 'Dashboard', icon: <IconDashboard />, label: 'MI DASHBOARD', badge: 'PIONERO' },
     { id: 'Eventos', icon: <IconEvents />, label: 'MIS EVENTOS', badge: 2 },
-    { id: 'Sensores', icon: <IconSensors />, label: 'SONDA IOT', labelRight: 'VIRTUAL' },
+    { id: 'Sensores', icon: <IconSensors />, label: 'SENSOR IOT', labelRight: 'VIRTUAL' },
     { id: 'Clima', icon: <IconSettings />, label: 'MÉTRICAS CLIMA' },
     { id: 'Perfil', icon: <IconUsers />, label: 'MI PERFIL' },
   ]
@@ -385,7 +385,7 @@ export default function Dashboard() {
 
                 <div style={{ background: '#ffffff', padding: '24px', border: '1px solid #e2e8f0' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <span style={{ fontSize: '10px', fontWeight: '800', color: '#64748b', letterSpacing: '0.5px' }}>SONDAS EN LÍNEA</span>
+                    <span style={{ fontSize: '10px', fontWeight: '800', color: '#64748b', letterSpacing: '0.5px' }}>SENSORS EN LÍNEA</span>
                     <IconSensors />
                   </div>
                   <div style={{ fontSize: '32px', fontWeight: '900', color: '#1e40af', marginBottom: '16px' }}>942</div>
@@ -415,7 +415,7 @@ export default function Dashboard() {
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
                     <div>
                       <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '900', fontStyle: 'italic', color: '#0f172a' }}>FRECUENCIA CLIMÁTICA UNL</h3>
-                      <div style={{ fontSize: '10px', fontWeight: '800', color: '#1e40af', letterSpacing: '1px' }}>TELEMETRÍA DE RED MESH DE SONDAS</div>
+                      <div style={{ fontSize: '10px', fontWeight: '800', color: '#1e40af', letterSpacing: '1px' }}>TELEMETRÍA DE RED MESH DE SENSORS</div>
                     </div>
                     <div style={{ display: 'flex', border: '1px solid #e2e8f0' }}>
                       <button style={{ padding: '6px 16px', background: '#0f172a', color: '#fff', fontSize: '10px', fontWeight: '700', border: 'none', cursor: 'pointer' }}>DÍA</button>
@@ -442,7 +442,7 @@ export default function Dashboard() {
                     </div>
                     <div style={{ fontSize: '9px', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>SINCRONIZACIÓN EN TIEMPO REAL</div>
                   </div>
-                  
+
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', flex: 1 }}>
                     <div>
                       <div style={{ fontSize: '10px', fontWeight: '800', color: '#0f172a', marginBottom: '2px' }}>TEMPERATURA ELEVADA EN LAB 304</div>
@@ -461,11 +461,11 @@ export default function Dashboard() {
                       <div style={{ fontSize: '9px', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase' }}>HACE 3 HORAS <span style={{ color: '#1e40af' }}>• Event_042</span></div>
                     </div>
                     <div>
-                      <div style={{ fontSize: '10px', fontWeight: '800', color: '#0f172a', marginBottom: '2px' }}>SONDA 12B EN ESTADO STAND-BY</div>
+                      <div style={{ fontSize: '10px', fontWeight: '800', color: '#0f172a', marginBottom: '2px' }}>SENSOR 12B EN ESTADO STAND-BY</div>
                       <div style={{ fontSize: '9px', color: '#94a3b8', fontWeight: '700', textTransform: 'uppercase' }}>HACE 5 HORAS <span style={{ color: '#1e40af' }}>• Maintenance</span></div>
                     </div>
                   </div>
-                  
+
                   <button style={{ width: '100%', marginTop: '24px', padding: '12px', background: '#f8fafc', border: '1px solid #e2e8f0', fontSize: '10px', fontWeight: '800', color: '#0f172a', letterSpacing: '1px', cursor: 'pointer' }}>
                     VERIFICAR SERVIDORES IOT
                   </button>
@@ -474,17 +474,17 @@ export default function Dashboard() {
 
               {/* MAPA Y SERVIDORES */}
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
-                {/* TOPOLOGÍA DE SONDAS */}
+                {/* TOPOLOGÍA DE SENSORS */}
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', padding: '32px' }}>
                   <div style={{ marginBottom: '24px' }}>
-                    <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '900', color: '#0f172a' }}>TOPOLOGÍA DE SONDAS UNL (MAPA CONCEPTUAL)</h3>
+                    <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '900', color: '#0f172a' }}>TOPOLOGÍA DE SENSORS UNL (MAPA CONCEPTUAL)</h3>
                     <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500', marginTop: '4px' }}>Representación gráfica del campus de Loja y la central de recepción de tramas atmosféricas.</div>
                   </div>
                   <div style={{ background: '#f1f5f9', height: '120px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '0 20px', border: '1px solid #e2e8f0' }}>
-                    <div style={{ padding: '6px 12px', background: '#64748b', color: '#fff', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}><div style={{width: 6, height: 6, background: '#10b981', borderRadius: '50%'}}></div> Campus Físico (Central)</div>
-                    <div style={{ padding: '6px 12px', background: '#64748b', color: '#fff', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}><div style={{width: 6, height: 6, background: '#10b981', borderRadius: '50%'}}></div> Sonda Norte 002</div>
-                    <div style={{ padding: '6px 12px', background: '#64748b', color: '#fff', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}><div style={{width: 6, height: 6, background: '#10b981', borderRadius: '50%'}}></div> Centro Ambiental</div>
-                    <div style={{ padding: '6px 12px', background: '#64748b', color: '#fff', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}><div style={{width: 6, height: 6, background: '#10b981', borderRadius: '50%'}}></div> Clínica Educativa</div>
+                    <div style={{ padding: '6px 12px', background: '#64748b', color: '#fff', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}><div style={{ width: 6, height: 6, background: '#10b981', borderRadius: '50%' }}></div> Campus Físico (Central)</div>
+                    <div style={{ padding: '6px 12px', background: '#64748b', color: '#fff', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}><div style={{ width: 6, height: 6, background: '#10b981', borderRadius: '50%' }}></div> SENSOR Norte 002</div>
+                    <div style={{ padding: '6px 12px', background: '#64748b', color: '#fff', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}><div style={{ width: 6, height: 6, background: '#10b981', borderRadius: '50%' }}></div> Centro Ambiental</div>
+                    <div style={{ padding: '6px 12px', background: '#64748b', color: '#fff', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}><div style={{ width: 6, height: 6, background: '#10b981', borderRadius: '50%' }}></div> Clínica Educativa</div>
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', fontSize: '10px', fontWeight: '700', color: '#94a3b8', letterSpacing: '1px' }}>
                     <span>CONEXIÓN: CLÚSTER UNL LOJA</span>
@@ -498,7 +498,7 @@ export default function Dashboard() {
                     <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '900', color: '#0f172a' }}>METATRAMA DE SERVIDORES</h3>
                     <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '500', marginTop: '4px' }}>Espacio total de las imágenes y telemetría de estudiantes.</div>
                   </div>
-                  
+
                   <div style={{ marginBottom: '40px' }}>
                     <div style={{ fontSize: '10px', fontWeight: '700', color: '#94a3b8', letterSpacing: '1px', marginBottom: '8px' }}>ALMACENAMIENTO DE RECURSOS</div>
                     <div style={{ width: '100%', height: '8px', background: '#e2e8f0', display: 'flex' }}>
@@ -511,7 +511,7 @@ export default function Dashboard() {
                     <span style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', letterSpacing: '1px' }}>LATENCIA BASE API:</span>
                     <span style={{ fontSize: '12px', fontWeight: '800', color: '#1e40af' }}>24 ms</span>
                   </div>
-                  
+
                   <div style={{ fontSize: '9px', fontWeight: '700', color: '#94a3b8', letterSpacing: '0.5px' }}>REPOSITORIO EN LÍNEA CONFIRMADO</div>
                 </div>
               </div>
@@ -537,7 +537,7 @@ export default function Dashboard() {
 
                 <div style={{ background: '#ffffff', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>APORTES DE SONDA</span>
+                    <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>APORTES DE SENSOR</span>
                     <IconEvents />
                   </div>
                   <div style={{ fontSize: '32px', fontWeight: '800', color: '#1e40af', marginBottom: '16px' }}>142 fotos</div>
@@ -549,7 +549,7 @@ export default function Dashboard() {
 
                 <div style={{ background: '#ffffff', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>ESTADO DEL SONDA</span>
+                    <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>ESTADO DEL SENSOR</span>
                     <IconSensors />
                   </div>
                   <div style={{ fontSize: '32px', fontWeight: '800', color: '#1e40af', marginBottom: '16px' }}>ONLINE</div>
@@ -572,13 +572,13 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* PARTICIPANT CONTENT (SONDAS + ACREDITADA) */}
+              {/* PARTICIPANT CONTENT (SENSORS + ACREDITADA) */}
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
 
-                {/* SONDAS DE EVENTOS ACTIVAS */}
+                {/* SENSORS DE EVENTOS ACTIVAS */}
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', padding: '32px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '900', fontStyle: 'italic', color: '#0f172a' }}>SONDAS DE EVENTOS ACTIVAS</h3>
+                    <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '900', fontStyle: 'italic', color: '#0f172a' }}>SENSORS DE EVENTOS ACTIVAS</h3>
                     <div style={{ width: '10px', height: '10px', background: '#10b981', borderRadius: '50%' }}></div>
                   </div>
                   <div style={{ fontSize: '10px', fontWeight: '800', color: '#1e40af', letterSpacing: '1px', marginBottom: '24px' }}>PARTICIPANDO EN LA RED CENTRAL DE TRAMAS IOT - LOJA</div>
@@ -586,7 +586,7 @@ export default function Dashboard() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
-                        <th style={{ padding: '12px', fontSize: '10px', fontWeight: '700', color: '#94a3b8', letterSpacing: '1px' }}>SONDA / EVENTO</th>
+                        <th style={{ padding: '12px', fontSize: '10px', fontWeight: '700', color: '#94a3b8', letterSpacing: '1px' }}>SENSOR / EVENTO</th>
                         <th style={{ padding: '12px', fontSize: '10px', fontWeight: '700', color: '#94a3b8', letterSpacing: '1px' }}>UBICACIÓN</th>
                         <th style={{ padding: '12px', fontSize: '10px', fontWeight: '700', color: '#94a3b8', letterSpacing: '1px' }}>CATEGORÍA</th>
                         <th style={{ padding: '12px', fontSize: '10px', fontWeight: '700', color: '#94a3b8', letterSpacing: '1px' }}>FECHA</th>
@@ -618,12 +618,12 @@ export default function Dashboard() {
                   </table>
                 </div>
 
-                {/* MI SONDA UNL ACREDITADA */}
+                {/* MI SENSOR UNL ACREDITADA */}
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', padding: '32px', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ marginBottom: '24px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                       <IconDashboard />
-                      <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '900', color: '#0f172a' }}>MI SONDA UNL ACREDITADA</h3>
+                      <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '900', color: '#0f172a' }}>MI SENSOR UNL ACREDITADA</h3>
                     </div>
                     <div style={{ fontSize: '9px', fontWeight: '600', color: '#64748b', letterSpacing: '0.5px' }}>CREDENCIALES DIGITALES DE INVESTIGADOR</div>
                   </div>
@@ -641,7 +641,7 @@ export default function Dashboard() {
 
                     <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
-                        <span style={{ color: '#94a3b8', fontWeight: '700', letterSpacing: '0.5px' }}>IDENTIFICADOR SONDA</span>
+                        <span style={{ color: '#94a3b8', fontWeight: '700', letterSpacing: '0.5px' }}>IDENTIFICADOR SENSOR</span>
                         <span style={{ color: '#1e40af', fontWeight: '700', fontFamily: 'monospace' }}>node-04-Luna</span>
                       </div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px' }}>
@@ -662,7 +662,7 @@ export default function Dashboard() {
                       <div style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <IconSensors /> ESTACIÓN 98%
                       </div>
-                      <div style={{ fontSize: '10px', fontWeight: '800', color: '#1e40af', letterSpacing: '0.5px' }}>UNL IOT SONDAS</div>
+                      <div style={{ fontSize: '10px', fontWeight: '800', color: '#1e40af', letterSpacing: '0.5px' }}>UNL IOT SENSORS</div>
                     </div>
                   </div>
                 </div>
