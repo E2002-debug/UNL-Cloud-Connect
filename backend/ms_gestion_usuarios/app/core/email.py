@@ -24,8 +24,9 @@ async def enviar_correo_recuperacion(email_destino: str, token: str):
     """
     Construye un correo HTML bonito y lo envía usando fastapi-mail.
     """
-    # Esta es la URL de tu React. Cuando pases a producción, cambias localhost por tu dominio real.
-    url_recuperacion = f"http://localhost:5173/reset-password?token={token}"
+    # La URL del frontend se lee de la variable de entorno FRONTEND_URL
+    frontend_url = settings.FRONTEND_URL
+    url_recuperacion = f"{frontend_url}/reset-password?token={token}"
 
     # Una plantilla HTML con estilo para que se vea profesional
     html = f"""

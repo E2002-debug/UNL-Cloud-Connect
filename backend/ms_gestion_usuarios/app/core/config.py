@@ -34,6 +34,9 @@ class Settings(BaseSettings):
     # Variable necesaria para validar la sesión de Google
     GOOGLE_CLIENT_ID: str = "" 
 
+    # URL del frontend (para enlaces en correos de recuperación, etc.)
+    FRONTEND_URL: str = "http://localhost:5173"
+
     # ==========================================
     # CONFIGURACIÓN DE CORREO - Pydantic Autoload
     # ==========================================
