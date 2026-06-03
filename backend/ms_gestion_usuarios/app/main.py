@@ -48,6 +48,10 @@ app = FastAPI(
 # Inyección modular de CORS desde la configuración centralizada
 setup_cors(app)
 
+# Protección CSRF: Al utilizar autenticación basada en Tokens Bearer a través de 
+# cabeceras (header Authorization) en lugar de Cookies de sesión, la API ya es 
+# inmune por naturaleza a los ataques CSRF (Cross-Site Request Forgery).
+
 # Inyección del middleware de protección contra ataques de fuerza bruta (Bloqueo por IP)
 # Bloquea una IP por 5 minutos (300s) si hace más de 50 peticiones en 1 minuto (60s)
 app.add_middleware(IPRateLimitMiddleware, max_requests=50, window_seconds=60, block_seconds=300)
