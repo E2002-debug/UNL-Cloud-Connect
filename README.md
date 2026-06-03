@@ -24,6 +24,7 @@ A través de Docker, el sistema levanta automáticamente los siguientes servicio
 | **Base de Datos**         | PostgreSQL 15          | `5432`          | `5433`              |
 | **Broker IoT**            | Eclipse Mosquitto      | `1883`          | `1883`              |
 | **Storage**               | MinIO (Object Storage) | `9000` / `9001` | `9000` / `9002`     |
+| **Frontend Web**          | React + Vite + Nginx   | `80`            | `80`                |
 
 ---
 
@@ -57,6 +58,10 @@ Para comprobar que todos los contenedores estén corriendo de forma óptima:
 
 ## 🔑 Credenciales y Accesos Locales
 Una vez que los contenedores estén en ejecución (Up), puedes acceder a las herramientas mediante las siguientes direcciones:
+
+### 🌐 Frontend Web (Interfaz Gráfica)
+* **Entorno Dockerizado (Nginx):** http://localhost (Puerto 80 por defecto)
+* **Desarrollo Local (Vite sin Docker):** http://localhost:5173
 
 ### 📡 Backend (FastAPI)
 
