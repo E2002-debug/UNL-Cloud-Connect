@@ -247,7 +247,7 @@ export default function Dashboard() {
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
           </div>
           <div>
-            <h1 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.5px' }}>UNLCONNECT</h1>
+            <h1 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: '#0f172a', letterSpacing: '-0.5px' }}>UNL-CLOUD-CONNECT</h1>
             <span style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', letterSpacing: '1px' }}>{isAdmin ? 'CONSOLE ADMIN' : 'CONSOLE PARTICIPANTE'}</span>
           </div>
         </div>
@@ -537,7 +537,7 @@ export default function Dashboard() {
 
                 <div style={{ background: '#ffffff', padding: '24px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>APORTES DE SENSOR</span>
+                    <span style={{ fontSize: '11px', fontWeight: '700', color: '#64748b', letterSpacing: '0.5px' }}>GALERIA DE FOTOS</span>
                     <IconEvents />
                   </div>
                   <div style={{ fontSize: '32px', fontWeight: '800', color: '#1e40af', marginBottom: '16px' }}>142 fotos</div>
@@ -578,7 +578,7 @@ export default function Dashboard() {
                 {/* SENSORS DE EVENTOS ACTIVAS */}
                 <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', padding: '32px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '900', fontStyle: 'italic', color: '#0f172a' }}>SENSORS DE EVENTOS ACTIVAS</h3>
+                    <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '900', fontStyle: 'italic', color: '#0f172a' }}>EVENTOS ACTIVAS</h3>
                     <div style={{ width: '10px', height: '10px', background: '#10b981', borderRadius: '50%' }}></div>
                   </div>
                   <div style={{ fontSize: '10px', fontWeight: '800', color: '#1e40af', letterSpacing: '1px', marginBottom: '24px' }}>PARTICIPANDO EN LA RED CENTRAL DE TRAMAS IOT - LOJA</div>
@@ -623,7 +623,7 @@ export default function Dashboard() {
                   <div style={{ marginBottom: '24px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
                       <IconDashboard />
-                      <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '900', color: '#0f172a' }}>MI SENSOR UNL ACREDITADA</h3>
+                      <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '900', color: '#0f172a' }}>MI CREDENCIAL UNL ACREDITADA</h3>
                     </div>
                     <div style={{ fontSize: '9px', fontWeight: '600', color: '#64748b', letterSpacing: '0.5px' }}>CREDENCIALES DIGITALES DE INVESTIGADOR</div>
                   </div>
@@ -662,7 +662,7 @@ export default function Dashboard() {
                       <div style={{ fontSize: '10px', fontWeight: '700', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <IconSensors /> ESTACIÓN 98%
                       </div>
-                      <div style={{ fontSize: '10px', fontWeight: '800', color: '#1e40af', letterSpacing: '0.5px' }}>UNL IOT SENSORS</div>
+                      <div style={{ fontSize: '10px', fontWeight: '800', color: '#1e40af', letterSpacing: '0.5px' }}>UNL IOT SENSOR</div>
                     </div>
                   </div>
                 </div>
