@@ -39,6 +39,17 @@ def inicializar_datos_maestros(db: Session) -> None:
         else:
             print("[DATA-SEED] ✓ Todos los roles maestros ya están completos. Omitiendo.")
             
+        # 5. Parche de base de datos para asegurar que el registro con Google (sin contraseña) funcione
+        from sqlalchemy import text
+        try:
+            db.execute(text("ALTER TABLE usuario ALTER COLUMN clave DROP NOT NULL;"))
+            db.commit()
+            print("[DATA-SEED] ✓ Parche aplicado: La columna 'clave' ahora permite valores nulos.")
+        except Exception:
+            db.rollback()
+            # Ignoramos silenciosamente si la tabla o la columna no existe aún
+            pass
+            
     except Exception as e:
         db.rollback()
         print(f"[DATA-SEED-ERROR] No se pudieron sincronizar los datos base: {e}")
