@@ -28,6 +28,7 @@ export default function Login() {
   const [verificacionPendiente, setVerificacionPendiente] = useState(false)
   const [reenviando, setReenviando] = useState(false)
   const [searchParams] = useSearchParams()
+<<<<<<< HEAD
   const navigate = useNavigate()
 
   // Redirigir si el usuario ya está autenticado (evita acceso manual a /login)
@@ -38,6 +39,27 @@ export default function Login() {
       navigate('/dashboard', { replace: true })
     }
   }, [navigate, searchParams])
+=======
+  const navigate = useNavigate() // <-- Hook para la navegación de regreso
+
+  // VARIABLES DE PALETA CROMÁTICA (Verde Esmeralda & Menta)
+  const colors = {
+    bgMain: '#f4f8f6',
+    bgCard: '#ffffff',
+    textMain: '#1e2925',
+    textMuted: '#62726b',
+    border: '#dbe3e0',
+    accentPrimary: '#10b981', // Verde Esmeralda Base
+    accentHover: '#059669',
+    accentMint: '#0f766e',    // Verde profundo institucional
+    mintBright: '#10b981',    // Menta vibrante
+    bgGradient: 'linear-gradient(135deg, #0f766e 0%, #064e3b 100%)', // Degradado del panel izquierdo
+    bgInput: '#eff4f2',
+    bgError: '#fef2f2',
+    textError: '#991b1b',
+    borderError: '#fca5a5'
+  }
+>>>>>>> origin/feature/programador_5
 
   useEffect(() => {
     if (searchParams.get('logout')) {
@@ -48,7 +70,6 @@ export default function Login() {
     }
   }, [searchParams])
 
-  // Procesador unificado de almacenamiento y redirección forzada
   const handleLoginSuccess = (data) => {
     const tokenFinal = data.access_token || data.token || data.token_acceso
     const userRole = data.id_rol || data.user?.id_rol || data.usuario?.id_rol || '2'
@@ -62,18 +83,15 @@ export default function Login() {
       return
     }
 
-    // Persistencia síncrona inmediata en el cliente
     localStorage.setItem('access_token', String(tokenFinal))
     localStorage.setItem('id_rol', String(userRole))
     localStorage.setItem('nombre', String(nombre))
     localStorage.setItem('apellido', String(apellido))
     localStorage.setItem('correo', String(correo))
 
-    // Forzar el cambio de ciclo de vida del DOM e ir al Dashboard de raíz
     window.location.replace('/dashboard')
   }
 
-  // Login con Google
   const handleGoogleSuccess = async (credentialResponse) => {
     setError(null)
     setLoading(true)
@@ -92,7 +110,6 @@ export default function Login() {
     }
   }
 
-  // Login Tradicional por Formulario
   const handleSubmit = async (e) => {
     e.preventDefault()
     setError(null)
@@ -125,20 +142,34 @@ export default function Login() {
   }
 
   return (
+<<<<<<< HEAD
     <div style={{ minHeight: '100vh', background: '#F4F8F6', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
       <div style={{ maxWidth: '960px', width: '100%', background: '#fff', borderRadius: '16px', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)', display: 'flex', overflow: 'hidden' }}>
         
         {/* Panel Izquierdo */}
         <div style={{ flex: 1, background: 'linear-gradient(135deg, #0F766E 0%, #094E48 100%)', color: '#fff', padding: '60px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '500px' }}>
           <div><h1 style={{ fontSize: '24px', fontWeight: '700', margin: '0 0 40px 0' }}>UNL-Cloud-Connect</h1></div>
+=======
+    <div style={{ minHeight: '100vh', background: colors.bgMain, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
+      <div style={{ maxWidth: '960px', width: '100%', background: colors.bgCard, borderRadius: '24px', boxShadow: '0 15px 35px rgba(16, 185, 129, 0.05)', display: 'flex', overflow: 'hidden', border: `1px solid ${colors.border}` }}>
+        
+        {/* Panel Izquierdo - Adaptado con degradado botánico */}
+        <div style={{ flex: 1, background: colors.bgGradient, color: '#e6f4ea', padding: '60px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '500px' }}>
+>>>>>>> origin/feature/programador_5
           <div>
-            <h2 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 24px 0', lineHeight: '1.4' }}>¡Entérate de los nuevos eventos en la facultad!</h2>
-            <p style={{ fontSize: '15px', lineHeight: '1.7', margin: '0', opacity: '0.95' }}>Consulte la agenda de la FEIRNNR y las variables climáticas en tiempo real.</p>
+            <h1 style={{ fontSize: '24px', fontWeight: '800', margin: '0 0 40px 0', color: '#ffffff' }}>
+              UNL-Cloud-<span style={{ color: '#5effcb' }}>Connect</span>
+            </h1>
           </div>
-          <div style={{ fontSize: '13px', fontWeight: '600', opacity: '0.8', borderTop: '1px solid rgba(255, 255, 255, 0.2)', paddingTop: '20px' }}>Proyecto de Fin de Ciclo</div>
+          <div>
+            <h2 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 24px 0', lineHeight: '1.4', color: '#ffffff' }}>¡Entérate de los nuevos eventos en la facultad!</h2>
+            <p style={{ fontSize: '15px', lineHeight: '1.7', margin: '0', color: '#a7f3d0', opacity: '0.95' }}>Consulte la agenda de la FEIRNNR y las variables climáticas en tiempo real.</p>
+          </div>
+          <div style={{ fontSize: '13px', fontWeight: '600', color: '#a7f3d0', opacity: '0.8', borderTop: '1px solid rgba(255, 255, 255, 0.15)', paddingTop: '20px', letterSpacing: '0.5px' }}>Proyecto de Fin de Ciclo</div>
         </div>
 
         {/* Panel Derecho Formulario */}
+<<<<<<< HEAD
         <div style={{ flex: 1, padding: '60px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <h2 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 8px 0', color: '#1a1a1a' }}>Bienvenido de nuevo</h2>
           <p style={{ fontSize: '14px', color: '#62726B', margin: '0 0 32px 0' }}>Introduzca sus credenciales universitarias.</p>
@@ -167,20 +198,81 @@ export default function Login() {
                   {reenviando ? '✓ Correo de verificación reenviado' : 'Reenviar email de verificación'}
                 </button>
               )}
+=======
+        <div style={{ flex: 1, padding: '40px 40px 60px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative' }}>
+          
+          {/* BOTÓN DE REGRESAR AL HOME */}
+          <div style={{ marginBottom: '20px', alignSelf: 'flex-start' }}>
+            <button 
+              onClick={() => navigate('/')} 
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: 'transparent',
+                border: 'none',
+                color: colors.textMuted,
+                fontSize: '14px',
+                fontWeight: '600',
+                cursor: 'pointer',
+                padding: '6px 12px',
+                borderRadius: '8px',
+                transition: 'all 0.2s'
+              }}
+              onMouseOver={(e) => { e.target.style.color = colors.accentPrimary; e.target.style.background = '#effaf5' }}
+              onMouseOut={(e) => { e.target.style.color = colors.textMuted; e.target.style.background = 'transparent' }}
+            >
+              ← Volver al Inicio
+            </button>
+          </div>
+
+          <h2 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 8px 0', color: colors.textMain }}>Bienvenido de nuevo</h2>
+          <p style={{ fontSize: '14px', color: colors.textMuted, margin: '0 0 32px 0' }}>Introduzca sus credenciales universitarias.</p>
+
+          {error && (
+            <div style={{ background: colors.bgError, border: `1px solid ${colors.borderError}`, color: colors.textError, padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', fontSize: '14px', fontWeight: '500' }}>
+              {error}
+>>>>>>> origin/feature/programador_5
             </div>
           )}
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div>
+<<<<<<< HEAD
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#1a1a1a', marginBottom: '8px' }}>Correo Institucional</label>
               <input type="text" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="usuario@unl.edu.ec" style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #DBE3E0', background: '#F4F8F6', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
+=======
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: colors.textMain, marginBottom: '8px' }}>Correo Institucional</label>
+              <input 
+                type="text" 
+                value={email} 
+                onChange={(e) => setEmail(e.target.value)} 
+                placeholder="usuario@unl.edu.ec" 
+                style={{ width: '100%', padding: '12px 16px', borderRadius: '10px', border: `1px solid ${colors.border}`, background: colors.bgInput, fontSize: '14px', boxSizing: 'border-box', outline: 'none', color: colors.textMain, transition: 'all 0.2s' }} 
+                onFocus={(e) => { e.target.style.borderColor = colors.accentPrimary; e.target.style.background = '#ffffff' }}
+                onBlur={(e) => { e.target.style.borderColor = colors.border; e.target.style.background = colors.bgInput }}
+              />
+>>>>>>> origin/feature/programador_5
             </div>
 
             <div>
-              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#1a1a1a', marginBottom: '8px' }}>Contraseña</label>
+              <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: colors.textMain, marginBottom: '8px' }}>Contraseña</label>
               <div style={{ position: 'relative' }}>
+<<<<<<< HEAD
                 <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" style={{ width: '100%', padding: '12px 40px 12px 16px', borderRadius: '8px', border: '1px solid #DBE3E0', background: '#F4F8F6', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#62726B', display: 'flex', alignItems: 'center', padding: 0 }}>
+=======
+                <input 
+                  type={showPassword ? "text" : "password"} 
+                  value={password} 
+                  onChange={(e) => setPassword(e.target.value)} 
+                  placeholder="••••••••" 
+                  style={{ width: '100%', padding: '12px 40px 12px 16px', borderRadius: '10px', border: `1px solid ${colors.border}`, background: colors.bgInput, fontSize: '14px', boxSizing: 'border-box', outline: 'none', color: colors.textMain, transition: 'all 0.2s' }} 
+                  onFocus={(e) => { e.target.style.borderColor = colors.accentPrimary; e.target.style.background = '#ffffff' }}
+                  onBlur={(e) => { e.target.style.borderColor = colors.border; e.target.style.background = colors.bgInput }}
+                />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: colors.textMuted, display: 'flex', alignItems: 'center', padding: 0 }}>
+>>>>>>> origin/feature/programador_5
                   {showPassword ? (
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                   ) : (
@@ -190,18 +282,38 @@ export default function Login() {
               </div>
             </div>
 
-            {/* ENLACE RECUPERADO: ¿Olvidaste tu contraseña? */}
+            {/* Enlace Recuperar Contraseña - Sintonizado */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-8px' }}>
+<<<<<<< HEAD
               <Link to="/recover" style={{ fontSize: '13px', color: '#0F766E', textDecoration: 'none', fontWeight: '500' }}>¿Olvidaste tu contraseña?</Link>
             </div>
 
             <button type="submit" disabled={loading} style={{ width: '100%', padding: '14px 16px', borderRadius: '8px', border: 'none', background: '#094E48', color: '#fff', fontSize: '15px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+=======
+              <Link to="/recover" style={{ fontSize: '13px', color: colors.accentPrimary, textDecoration: 'none', fontWeight: '600' }}>¿Olvidaste tu contraseña?</Link>
+            </div>
+
+            {/* Botón Principal Esmeralda */}
+            <button 
+              type="submit" 
+              disabled={loading} 
+              style={{ width: '100%', padding: '14px 16px', borderRadius: '10px', border: 'none', background: colors.accentPrimary, color: '#fff', fontSize: '15px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1, transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)' }}
+              onMouseOver={(e) => { if(!loading) e.target.style.background = colors.accentHover }}
+              onMouseOut={(e) => { if(!loading) e.target.style.background = colors.accentPrimary }}
+            >
+>>>>>>> origin/feature/programador_5
               {loading ? 'Cargando...' : 'Iniciar sesión →'}
             </button>
           </form>
 
           <div style={{ display: 'flex', alignItems: 'center', margin: '28px 0', gap: '12px' }}>
+<<<<<<< HEAD
             <div style={{ flex: 1, height: '1px', background: '#DBE3E0' }} /><span style={{ color: '#62726B', fontSize: '14px' }}>o</span><div style={{ flex: 1, height: '1px', background: '#DBE3E0' }} />
+=======
+            <div style={{ flex: 1, height: '1px', background: colors.border }}><span style={{ display: 'none' }}></span></div>
+            <span style={{ color: colors.textMuted, fontSize: '14px' }}>o</span>
+            <div style={{ flex: 1, height: '1px', background: colors.border }}><span style={{ display: 'none' }}></span></div>
+>>>>>>> origin/feature/programador_5
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
@@ -213,9 +325,15 @@ export default function Login() {
             />
           </div>
 
+<<<<<<< HEAD
           {/* ENLACE RECUPERADO: Crear cuenta aquí */}
           <div style={{ textAlign: 'center', fontSize: '14px', color: '#62726B' }}>
             ¿No tienes cuenta? <Link to="/register" style={{ color: '#0F766E', fontWeight: '600', textDecoration: 'none' }}>Crear cuenta aquí</Link>
+=======
+          {/* Enlace de Registro - Sintonizado */}
+          <div style={{ textAlign: 'center', fontSize: '14px', color: colors.textMuted }}>
+            ¿No tienes cuenta? <Link to="/register" style={{ color: colors.accentPrimary, fontWeight: '600', textDecoration: 'none' }}>Crear cuenta aquí</Link>
+>>>>>>> origin/feature/programador_5
           </div>
         </div>
 
