@@ -28,7 +28,9 @@
   --primary-light: #0F766E;
 }
 
-html, body, #root {
+html,
+body,
+#root {
   height: 100%;
   margin: 0;
   padding: 0;
@@ -43,7 +45,7 @@ body {
 .card {
   background: var(--bg);
   border-radius: 12px;
-  box-shadow: 0 6px 18px rgba(15,23,42,0.06);
+  box-shadow: 0 6px 18px rgba(15, 23, 42, 0.06);
 }
 
 input {
@@ -58,4 +60,3 @@ button {
   border-radius: 4px;
   cursor: pointer;
 }
-

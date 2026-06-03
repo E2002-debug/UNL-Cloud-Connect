@@ -81,20 +81,15 @@ def _validar_clave(clave: str):
         )
 
 def _validar_edad(fecha_nacimiento):
-    """Valida que el usuario tenga al menos 17 años y una fecha válida."""
+    """Valida que el usuario tenga al menos 18 años."""
     if fecha_nacimiento:
         from datetime import date
         hoy = date.today()
-        if fecha_nacimiento.year < 1900:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="El año de nacimiento no es válido."
-            )
         edad = hoy.year - fecha_nacimiento.year - ((hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day))
-        if edad < 17:
+        if edad < 18:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Debes tener al menos 17 años para registrarte en la plataforma."
+                detail="Debes tener al menos 18 años para registrarte."
             )
 
 async def _verificar_recaptcha(token: str):
@@ -130,7 +125,7 @@ async def _verificar_recaptcha(token: str):
 
 # ============ ENDPOINTS DE REGISTRO ============
 
-@router.post("/registro", response_model=Any, status_code=status.HTTP_201_CREATED)
+@router.post("/registro", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED)
 async def registrar_usuario(
     usuario_in: UsuarioCreate, 
     background_tasks: BackgroundTasks,
@@ -166,15 +161,7 @@ async def registrar_usuario(
     token_verificacion = crear_token_verificacion(usuario_in.correo)
     background_tasks.add_task(enviar_correo_verificacion, usuario_in.correo, token_verificacion)
     
-    return {
-        "success": True,
-        "mensaje": f"¡Registro exitoso! Bienvenido/a {nuevo_usuario.nombre}. Por favor, verifica tu correo.",
-        "usuario": {
-            "correo": nuevo_usuario.correo,
-            "nombre": nuevo_usuario.nombre,
-            "apellido": nuevo_usuario.apellido
-        }
-    }
+    return nuevo_usuario
 
 
 @router.post("/verificar-cuenta")
@@ -194,12 +181,12 @@ def verificar_cuenta(token: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado.")
     
     if usuario.verificado:
-        return {"success": True, "mensaje": "Tu cuenta ya estaba verificada. Puedes iniciar sesión."}
+        return {"mensaje": "Tu cuenta ya estaba verificada. Puedes iniciar sesión."}
     
     usuario.verificado = True
     db.commit()
     
-    return {"success": True, "mensaje": "¡Cuenta verificada exitosamente! Ya puedes iniciar sesión."}
+    return {"mensaje": "¡Cuenta verificada exitosamente! Ya puedes iniciar sesión."}
 
 
 @router.post("/reenviar-verificacion")
@@ -218,7 +205,7 @@ async def reenviar_verificacion(
         token_verificacion = crear_token_verificacion(request.email)
         background_tasks.add_task(enviar_correo_verificacion, request.email, token_verificacion)
     
-    return {"success": True, "mensaje": "Si el correo está registrado y no verificado, hemos enviado un nuevo enlace de verificación."}
+    return {"mensaje": "Si el correo está registrado y no verificado, hemos enviado un nuevo enlace de verificación."}
 
 
 # ============ ENDPOINTS DE LOGIN ============
@@ -269,8 +256,6 @@ def iniciar_sesion(
     token_acceso = security.crear_token_acceso(sujeto=usuario.correo)
     
     return {
-        "success": True,
-        "mensaje": "Inicio de sesión correcto.",
         "access_token": token_acceso,
         "token_type": "bearer",
         "id_rol": usuario.id_rol,
@@ -329,14 +314,7 @@ def registrar_usuario_hibrido(data_in: UsuarioRegistroHibrido, db: Session = Dep
     
     # 4. Persistir en la base de datos (usuario de Google se verifica automáticamente)
     nuevo_usuario = crud_usuario.crear_usuario(db, usuario=usuario_create, verificado=True)
-    return {
-        "success": True,
-        "mensaje": "Cuenta vinculada y registrada exitosamente en UNL Cloud.",
-        "usuario": {
-            "correo": nuevo_usuario.correo,
-            "nombre": nuevo_usuario.nombre
-        }
-    }
+    return nuevo_usuario
 
 
 @router.post("/google", response_model=Any)
@@ -399,7 +377,7 @@ async def solicitar_recuperacion(request: EmailRequest, background_tasks: Backgr
         # 3. Le pasamos la tarea al cartero en SEGUNDO PLANO
         background_tasks.add_task(enviar_correo_recuperacion, request.email, token)
 
-    return {"success": True, "mensaje": "Si el correo está registrado, hemos enviado un enlace de recuperación a tu bandeja de entrada."}
+    return {"mensaje": "Si el correo está registrado, hemos enviado un enlace de recuperación a tu bandeja de entrada."}
 
 
 @router.post("/restablecer-clave")
@@ -425,4 +403,4 @@ def ejecutar_restablecer_clave(request: ResetPasswordRequest, db: Session = Depe
     usuario.clave = obtener_hash_clave(request.nueva_password)
     db.commit()
 
-    return {"success": True, "mensaje": "Contraseña actualizada exitosamente. Ya puedes iniciar sesión con tu nueva clave."}
+    return {"mensaje": "Contraseña actualizada exitosamente. Ya puedes iniciar sesión con tu nueva clave."}

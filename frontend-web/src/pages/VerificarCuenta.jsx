@@ -32,7 +32,7 @@ export default function VerificarCuenta() {
   return (
     <div style={{ minHeight: '100vh', background: '#F4F8F6', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
       <div style={{ maxWidth: '480px', width: '100%', background: '#fff', borderRadius: '16px', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)', padding: '60px 40px', textAlign: 'center' }}>
-        
+
         {status === 'loading' && (
           <>
             <div style={{ fontSize: '48px', marginBottom: '24px' }}>⏳</div>
