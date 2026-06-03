@@ -1,160 +1,86 @@
 # Autor: David Guamán
-# Fecha: 30/05/2026
-# Version: 0.2
+# Fecha: 03/06/2026
+# Version: 1.0
 # Historial:
-# 20/05/2026 v0.1 - David Guamán: Implementación de encriptación de claves con bcrypt, generación de tokens JWT y configuración de CORS.
-# 30/05/2026 v0.2 - David Guamán: Adición de funciones para generar y verificar tokens de recuperación de contraseña, y validación de tokens de Google.
+# 03/06/2026 v1.0 - David Guamán: Creación de middleware para protección contra ataques de fuerza bruta y limitación de peticiones por IP (Rate Limiting y Bloqueo).
 
-from fastapi import FastAPI, HTTPException, status
-from app.core.config import settings
-from fastapi.middleware.cors import CORSMiddleware
-from passlib.context import CryptContext
-from datetime import datetime, timedelta, timezone
-from typing import Any
-from jose import jwt, JWTError
+from fastapi import Request, status
+from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
+import time
+from collections import defaultdict
+import logging
 
-# Importamos las configuraciones centralizadas
-# Definimos que el token de recuperación caduca muy rápido por seguridad
-RESET_TOKEN_EXPIRE_MINUTES = 15
-VERIFICATION_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 horas para verificar correo
-from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
+logger = logging.getLogger(__name__)
 
-# Configuramos bcrypt como el único algoritmo de hashing
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-def setup_cors(app: FastAPI) -> None:
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=settings.BACKEND_CORS_ORIGINS,
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
-
-def verificar_clave(clave_plana: str, clave_hasheada: str) -> bool:
-    return pwd_context.verify(clave_plana, clave_hasheada)
-
-def obtener_hash_clave(clave: str) -> str:
-    return pwd_context.hash(clave)
-
-def crear_token_acceso(sujeto: Any, tiempo_expiracion: timedelta = None) -> str:
+class IPRateLimitMiddleware(BaseHTTPMiddleware):
     """
-    Genera un token JWT firmado para el usuario autenticado.
+    Middleware que bloquea direcciones IP si realizan demasiadas peticiones en un corto período de tiempo.
+    Protege contra ataques de denegación de servicio (DoS) y fuerza bruta en los endpoints de autenticación.
     """
-    # Usamos timezone.utc para compatibilidad estricta con Python 3.12+
-    if tiempo_expiracion:
-        expire = datetime.now(timezone.utc) + tiempo_expiracion
-    else:
-        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    
-    # "sub" (Subject) es a quién le pertenece el token (normalmente el ID o correo del usuario)
-    to_encode = {"exp": expire, "sub": str(sujeto)}
-    
-    # Firmamos el token usando los secretos de config.py
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-    return encoded_jwt
-
-def verificar_y_extraer_token_google(google_token: str) -> dict:
-    """
-    Valida criptográficamente el token usando la librería oficial de Google
-    y extrae los datos del usuario.
-    """
-    try:
-        # Aquí es donde leemos el ID que está guardado en tu .env a través de settings
-        idinfo = id_token.verify_oauth2_token(
-            google_token, 
-            google_requests.Request(), 
-            settings.GOOGLE_CLIENT_ID 
-        )
+    def __init__(self, app, max_requests: int = 50, window_seconds: int = 60, block_seconds: int = 300):
+        super().__init__(app)
+        self.max_requests = max_requests # Máximo de peticiones permitidas
+        self.window_seconds = window_seconds # En este periodo de tiempo (ej. 60 segundos)
+        self.block_seconds = block_seconds # Tiempo de castigo si excede el límite (ej. 300s = 5 min)
         
-        correo = idinfo.get("email", "").lower().strip()
-        
-        # Validación estricta del dominio UNL
-        if not correo or not correo.endswith("@unl.edu.ec"):
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Debes usar tu correo institucional estrictamente (@unl.edu.ec)."
+        # Diccionario en memoria para rastrear IPs: { "192.168.1.5": [timestamp1, timestamp2, ...] }
+        self.request_history = defaultdict(list)
+        # Diccionario para IPs bloqueadas: { "192.168.1.5": tiempo_de_desbloqueo }
+        self.blocked_ips = {}
+
+    async def dispatch(self, request: Request, call_next):
+        # 1. Obtener la IP real del cliente (incluso si estamos detrás de Nginx o Kong)
+        client_ip = request.headers.get("x-forwarded-for")
+        if client_ip:
+            client_ip = client_ip.split(",")[0].strip()
+        else:
+            client_ip = request.client.host if request.client else "unknown"
+
+        current_time = time.time()
+
+        # 2. Verificar si la IP ya se encuentra en la lista negra (bloqueada)
+        if client_ip in self.blocked_ips:
+            block_expire = self.blocked_ips[client_ip]
+            if current_time < block_expire:
+                # Sigue bloqueado
+                tiempo_restante = int(block_expire - current_time)
+                logger.warning(f"Intento de acceso desde IP bloqueada: {client_ip}. Restan {tiempo_restante}s")
+                return JSONResponse(
+                    status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                    content={
+                        "detail": f"Actividad sospechosa detectada. Tu dirección IP ha sido bloqueada por seguridad. Intenta nuevamente en {tiempo_restante} segundos."
+                    }
+                )
+            else:
+                # El castigo terminó, remover de la lista negra
+                logger.info(f"Levantando bloqueo de IP: {client_ip}")
+                del self.blocked_ips[client_ip]
+                # Reiniciamos su historial para darle otra oportunidad
+                if client_ip in self.request_history:
+                    del self.request_history[client_ip]
+
+        # 3. Limpiar el historial de esta IP, quitando peticiones muy antiguas
+        self.request_history[client_ip] = [
+            t for t in self.request_history[client_ip]
+            if current_time - t < self.window_seconds
+        ]
+
+        # 4. Registrar la petición actual
+        self.request_history[client_ip].append(current_time)
+
+        # 5. Evaluar si cruzó el límite de peticiones (Comportamiento de Bot/Ataque)
+        if len(self.request_history[client_ip]) > self.max_requests:
+            logger.error(f"BLOQUEO DE SEGURIDAD: La IP {client_ip} ha excedido {self.max_requests} peticiones en {self.window_seconds}s.")
+            self.blocked_ips[client_ip] = current_time + self.block_seconds
+            
+            return JSONResponse(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                content={
+                    "detail": "Límite de peticiones excedido. Tu dirección IP ha sido bloqueada temporalmente por comportamiento sospechoso."
+                }
             )
-            
-        return {
-            "correo": correo,
-            "nombre": idinfo.get("given_name", ""),
-            "apellido": idinfo.get("family_name", "")
-        }
-    except HTTPException:
-        # Re-raise HTTPExceptions sin modificarlas
-        raise
-    except ValueError as e:
-        # Si Google dice que el token es falso, expiró, o no coincide con tu Client ID
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=f"El token de Google es inválido o ha expirado. Detalles: {str(e)}"
-        )
-    except Exception as e:
-        # Catch any other unexpected errors (sin exponer detalles técnicos)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error interno al validar el token de Google. Intente nuevamente."
-        )
-    
 
-def crear_token_recuperacion(email: str) -> str:
-    """
-    Genera un JWT de vida corta exclusivo para recuperar contraseñas.
-    """
-    expire = datetime.utcnow() + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES)
-    to_encode = {
-        "sub": email,
-        "type": "reset",  # Etiqueta de seguridad crucial
-        "exp": expire
-    }
-    
-    # Usamos la misma clave secreta de tu .env
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-    return encoded_jwt
-
-def verificar_token_recuperacion(token: str) -> str | None:
-    """
-    Desencripta el token. Devuelve el correo si es válido y no ha expirado.
-    Devuelve None si es falso, expiró, o no es de tipo 'reset'.
-    """
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        
-        # Si alguien intenta usar un token de login aquí, lo rechazamos
-        if payload.get("type") != "reset":
-            return None
-            
-        return payload.get("sub")
-    except JWTError:
-        return None
-
-
-def crear_token_verificacion(email: str) -> str:
-    """
-    Genera un JWT de vida media (24h) exclusivo para verificar el correo electrónico.
-    """
-    expire = datetime.now(timezone.utc) + timedelta(minutes=VERIFICATION_TOKEN_EXPIRE_MINUTES)
-    to_encode = {
-        "sub": email,
-        "type": "verify",  # Etiqueta de seguridad para diferenciar de otros tokens
-        "exp": expire
-    }
-    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
-    return encoded_jwt
-
-
-def verificar_token_verificacion(token: str) -> str | None:
-    """
-    Desencripta el token de verificación de correo.
-    Devuelve el correo si es válido y no ha expirado.
-    Devuelve None si es falso, expiró, o no es de tipo 'verify'.
-    """
-    try:
-        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
-        if payload.get("type") != "verify":
-            return None
-        return payload.get("sub")
-    except JWTError:
-        return None
+        # 6. Si todo está en orden, procesar la petición normalmente
+        response = await call_next(request)
+        return response
