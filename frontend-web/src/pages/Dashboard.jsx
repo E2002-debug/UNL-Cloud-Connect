@@ -222,7 +222,6 @@ export default function Dashboard() {
     }
   }
 
-<<<<<<< HEAD
   const handleProfileSubmit = async (e) => {
     e.preventDefault()
     setProfileSaving(true)
@@ -249,9 +248,6 @@ export default function Dashboard() {
   }
 
   if (!user) return <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Cargando...</div>
-=======
-  if (!user) return <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center', background: colors.bgMain, color: colors.textMain, fontWeight: '600' }}>Cargando consola...</div>
->>>>>>> origin/feature/programador_5
 
   const isAdmin = user.id_rol === '1'
 
@@ -269,23 +265,8 @@ export default function Dashboard() {
     { id: 'Perfil', icon: <IconUsers />, label: 'MI PERFIL' },
   ]
 
-<<<<<<< HEAD
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-app)', fontFamily: "'Inter', sans-serif" }}>
-=======
-  const inputStyle = {
-    width: '100%',
-    padding: '10px 14px',
-    borderRadius: '8px',
-    border: `1px solid ${colors.border}`,
-    background: colors.bgInput,
-    fontSize: '14px',
-    boxSizing: 'border-box',
-    outline: 'none',
-    color: colors.textMain,
-    transition: 'all 0.2s'
-  }
->>>>>>> origin/feature/programador_5
 
   const handleInputFocus = (e) => {
     e.target.style.borderColor = colors.accentPrimary
@@ -304,17 +285,10 @@ export default function Dashboard() {
       <div style={{ position: 'fixed', right: '32px', bottom: '32px', display: 'flex', flexDirection: 'column', gap: '12px', zIndex: 9999 }}>
         {notifications.map(n => (
           <div key={n.id} style={{
-<<<<<<< HEAD
             background: 'var(--bg-card)',
             borderLeft: `4px solid ${n.type === 'success' ? '#10b981' : n.type === 'error' ? '#ef4444' : '#10B981'}`,
             boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
             borderRadius: '4px',
-=======
-            background: '#ffffff',
-            borderLeft: `4px solid ${n.type === 'success' ? colors.accentPrimary : n.type === 'error' ? '#ef4444' : colors.accentMint}`,
-            boxShadow: '0 10px 30px rgba(16, 185, 129, 0.08)',
-            borderRadius: '12px',
->>>>>>> origin/feature/programador_5
             padding: '16px 20px',
             width: '340px',
             display: 'flex',
@@ -322,7 +296,6 @@ export default function Dashboard() {
             gap: '12px',
             border: `1px solid ${colors.border}`
           }}>
-<<<<<<< HEAD
             <div style={{ color: n.type === 'success' ? '#10b981' : n.type === 'error' ? '#ef4444' : '#10B981', marginTop: '2px' }}>
               {n.type === 'success' ? <IconCheck /> : n.type === 'error' ? <IconError /> : <IconInfo />}
             </div>
@@ -333,24 +306,11 @@ export default function Dashboard() {
               <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-main)', fontWeight: '600' }}>{n.message}</p>
             </div>
             <button onClick={() => setNotifications(prev => prev.filter(nt => nt.id !== n.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '16px', lineHeight: 1 }}>&times;</button>
-=======
-            <div style={{ color: n.type === 'success' ? colors.accentPrimary : n.type === 'error' ? '#ef4444' : colors.accentMint, marginTop: '2px' }}>
-              {n.type === 'success' ? <IconCheck /> : n.type === 'error' ? <IconError /> : <IconInfo />}
-            </div>
-            <div style={{ flex: 1 }}>
-              <h4 style={{ margin: '0 0 4px 0', fontSize: '11px', fontWeight: '800', letterSpacing: '0.5px', color: n.type === 'success' ? colors.accentHover : n.type === 'error' ? '#b91c1c' : colors.accentMint, textTransform: 'uppercase' }}>
-                {n.title}
-              </h4>
-              <p style={{ margin: 0, fontSize: '13px', color: colors.textMain, fontWeight: '600' }}>{n.message}</p>
-            </div>
-            <button onClick={() => setNotifications(prev => prev.filter(nt => nt.id !== n.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: colors.textMuted, fontSize: '18px', lineHeight: 1 }}>&times;</button>
->>>>>>> origin/feature/programador_5
           </div>
         ))}
       </div>
 
       {/* SIDEBAR IZQUIERDO */}
-<<<<<<< HEAD
       <aside style={{ width: '280px', background: 'var(--bg-card)', borderRight: '1px solid #DBE3E0', display: 'flex', flexDirection: 'column' }}>
 
         {/* LOGO AREA */}
@@ -361,42 +321,20 @@ export default function Dashboard() {
           <div>
             <h1 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: 'var(--text-main)', letterSpacing: '-0.5px' }}>UNL-CLOUD-CONNECT</h1>
             <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '1px' }}>{isAdmin ? 'CONSOLE ADMIN' : 'CONSOLE PARTICIPANTE'}</span>
-=======
-      <aside style={{ width: '280px', background: colors.bgCard, borderRight: `1px solid ${colors.border}`, display: 'flex', flexDirection: 'column' }}>
-
-        {/* LOGO AREA */}
-        <div style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: `1px solid ${colors.border}` }}>
-          <div style={{ width: '40px', height: '40px', background: colors.bgGradient, borderRadius: '10px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
-          </div>
-          <div>
-            <h1 style={{ margin: 0, fontSize: '16px', fontWeight: '800', color: colors.textMain, letterSpacing: '-0.3px' }}>UNL-Cloud-<span style={{ color: colors.accentPrimary }}>Connect</span></h1>
-            <span style={{ fontSize: '10px', fontWeight: '700', color: colors.textMuted, letterSpacing: '1px' }}>{isAdmin ? 'CONSOLE ADMIN' : 'CONSOLE PARTICIPANTE'}</span>
->>>>>>> origin/feature/programador_5
           </div>
         </div>
 
         {/* USER PROFILE */}
         <div style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '16px', borderBottom: `1px solid ${colors.border}` }}>
           <div style={{ position: 'relative' }}>
-<<<<<<< HEAD
             <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: 'linear-gradient(135deg, #0F766E, #10B981)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-inverse)', fontSize: '20px', fontWeight: '700' }}>
               {user.nombre.charAt(0)}
-=======
-            <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: colors.bgGradient, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '18px', fontWeight: '700' }}>
-              {user.nombre.charAt(0).toUpperCase()}
->>>>>>> origin/feature/programador_5
             </div>
             <div style={{ position: 'absolute', bottom: '2px', right: '2px', width: '10px', height: '10px', background: colors.accentPrimary, border: '2px solid #fff', borderRadius: '50%' }}></div>
           </div>
           <div>
-<<<<<<< HEAD
             <h2 style={{ margin: '0 0 2px 0', fontSize: '14px', fontWeight: '700', color: 'var(--text-main)', textTransform: 'uppercase' }}>{user.nombre} {user.apellido}</h2>
             <span style={{ fontSize: '10px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>{isAdmin ? 'ADMINISTRADOR' : 'PARTICIPANTE UNL'}</span>
-=======
-            <h2 style={{ margin: '0 0 2px 0', fontSize: '14px', fontWeight: '700', color: colors.textMain, textTransform: 'uppercase' }}>{user.nombre} {user.apellido}</h2>
-            <span style={{ fontSize: '10px', fontWeight: '600', color: colors.accentMint, letterSpacing: '0.5px' }}>{isAdmin ? 'ADMINISTRADOR' : 'PARTICIPANTE UNL'}</span>
->>>>>>> origin/feature/programador_5
           </div>
         </div>
 
@@ -407,35 +345,20 @@ export default function Dashboard() {
               key={item.id}
               onClick={() => setActiveTab(item.id)}
               style={{
-<<<<<<< HEAD
                 width: '100%', display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px', marginBottom: '8px',
                 background: activeTab === item.id ? '#0F766E' : 'transparent',
                 color: activeTab === item.id ? 'var(--bg-card)' : 'var(--text-muted)',
                 border: 'none', borderRadius: '8px', cursor: 'pointer', textAlign: 'left',
-=======
-                width: '100%', display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px', marginBottom: '6px',
-                background: activeTab === item.id ? colors.bgGradient : 'transparent',
-                color: activeTab === item.id ? '#ffffff' : colors.textMain,
-                border: 'none', borderRadius: '10px', cursor: 'pointer', textAlign: 'left',
->>>>>>> origin/feature/programador_5
                 transition: 'all 0.2s ease', fontWeight: '600', fontSize: '13px'
               }}
               onMouseOver={(e) => { if (activeTab !== item.id) e.currentTarget.style.background = '#f0f5f3' }}
               onMouseOut={(e) => { if (activeTab !== item.id) e.currentTarget.style.background = 'transparent' }}
             >
-<<<<<<< HEAD
               <div style={{ color: activeTab === item.id ? 'var(--bg-card)' : 'var(--text-muted)' }}>{item.icon}</div>
               <span style={{ flex: 1 }}>{item.label}</span>
 
               {item.badge > 0 && (
                 <span style={{ background: activeTab === item.id ? 'rgba(255,255,255,0.2)' : 'var(--border)', color: activeTab === item.id ? 'var(--text-inverse)' : 'var(--text-muted)', padding: '2px 8px', borderRadius: '12px', fontSize: '11px' }}>
-=======
-              <div style={{ color: activeTab === item.id ? '#ffffff' : colors.textMuted }}>{item.icon}</div>
-              <span style={{ flex: 1 }}>{item.label}</span>
-
-              {item.badge > 0 && (
-                <span style={{ background: activeTab === item.id ? 'rgba(255,255,255,0.2)' : colors.accentMintLight, color: activeTab === item.id ? '#fff' : colors.textSuccess, padding: '2px 8px', borderRadius: '12px', fontSize: '11px', fontWeight: '700' }}>
->>>>>>> origin/feature/programador_5
                   {item.badge}
                 </span>
               )}
@@ -448,7 +371,6 @@ export default function Dashboard() {
           ))}
         </nav>
 
-<<<<<<< HEAD
         {/* THEME / CONSOLE TOGGLE (Participant only) */}
         {!isAdmin && (
           <div style={{ padding: '24px', borderTop: '1px solid #f1f5f9' }}>
@@ -464,10 +386,6 @@ export default function Dashboard() {
 
         {/* BOTTOM CONTROLS */}
         <div style={{ padding: '24px', borderTop: '1px solid #f1f5f9', background: 'var(--bg-app)' }}>
-=======
-        {/* BOTTOM CONTROLS */}
-        <div style={{ padding: '24px', borderTop: `1px solid ${colors.border}`, background: '#fcfdfe' }}>
->>>>>>> origin/feature/programador_5
           <button
             onClick={handleLogout}
             style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', background: 'transparent', border: `1px solid ${colors.borderError}`, borderRadius: '10px', color: colors.textError, fontWeight: '600', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s' }}
@@ -483,7 +401,6 @@ export default function Dashboard() {
       <main style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {/* TOP HEADER BAR */}
-<<<<<<< HEAD
         <header style={{ height: '80px', background: 'var(--bg-card)', borderBottom: '1px solid #DBE3E0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 40px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ background: '#dbeafe', color: '#0F766E', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', letterSpacing: '1px' }}>
@@ -491,22 +408,12 @@ export default function Dashboard() {
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>
               <div style={{ width: '8px', height: '8px', background: '#10b981', borderRadius: '50%' }}></div>
-=======
-        <header style={{ height: '80px', background: colors.bgCard, borderBottom: `1px solid ${colors.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 40px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            <div style={{ background: colors.accentMintLight, color: colors.textSuccess, padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', letterSpacing: '1px' }}>
-              PANEL GENERAL
-            </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: '600', color: colors.textMuted }}>
-              <div style={{ width: '8px', height: '8px', background: colors.accentPrimary, borderRadius: '50%' }}></div>
->>>>>>> origin/feature/programador_5
               RED CENTRAL UNL INTEGRADA
             </div>
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
             <div style={{ textAlign: 'right' }}>
-<<<<<<< HEAD
               <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>CLIMA UNL LOJA</div>
               <div style={{ fontSize: '16px', fontWeight: '800', color: 'var(--text-main)' }}>15.2°C <span style={{ fontSize: '12px', color: '#10b981', fontWeight: '600' }}>estable</span></div>
             </div>
@@ -514,15 +421,6 @@ export default function Dashboard() {
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>ESTADO SERVIDOR</div>
               <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-main)' }}>SINCRONIZADO</div>
-=======
-              <div style={{ fontSize: '10px', fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', marginBottom: '2px' }}>CLIMA UNL LOJA</div>
-              <div style={{ fontSize: '16px', fontWeight: '800', color: colors.textMain }}>15.2°C <span style={{ fontSize: '12px', color: colors.accentPrimary, fontWeight: '600' }}>estable</span></div>
-            </div>
-            <div style={{ width: '1px', height: '30px', background: colors.border }}></div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', color: colors.textMuted, textTransform: 'uppercase', marginBottom: '2px' }}>ESTADO SERVIDOR</div>
-              <div style={{ fontSize: '14px', fontWeight: '800', color: colors.accentMint }}>SINCRONIZADO</div>
->>>>>>> origin/feature/programador_5
             </div>
           </div>
         </header>
@@ -535,7 +433,6 @@ export default function Dashboard() {
             <>
               {/* KPI CARDS MENTA */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '24px' }}>
-<<<<<<< HEAD
                 <div style={{ background: 'var(--bg-card)', padding: '24px', border: '1px solid #DBE3E0' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
                     <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>EVENTOS TOTALES</span>
@@ -603,41 +500,6 @@ export default function Dashboard() {
                     {[50, 60, 70, 80, 90, 85, 80, 70, 75, 50, 40, 50, 55, 65, 85].map((val, i) => (
                       <div key={i} style={{ flex: 1, background: i === 14 ? 'var(--text-main)' : i === 10 ? '#cbd5e1' : 'var(--border)', height: `${val}%`, position: 'relative' }}>
                         <span style={{ position: 'absolute', bottom: '-20px', left: '50%', transform: 'translateX(-50%)', fontSize: '9px', fontWeight: '700', color: 'var(--text-muted)' }}>
-=======
-                {[
-                  { title: 'EVENTOS TOTALES', val: '1286', sub: 'Sincronizados en campus', change: '+12% este mes', icon: <IconEvents />, color: colors.accentMint },
-                  { title: 'EVENTOS ACTIVOS', val: '42', sub: 'Transmitiendo microdatos', change: 'En Tiempo Real', icon: <IconActivity />, color: colors.accentPrimary },
-                  { title: 'SENSORES EN LÍNEA', val: '942', sub: 'Nodos MESH activos', change: '98.2% Uptime', icon: <IconSensors />, color: colors.accentMint },
-                  { title: 'ESTUDIANTES UNL', val: usuarios.length > 0 ? usuarios.length : '15,402', sub: 'Usuarios Registrados', change: 'Acreditados', icon: <IconUsers />, color: colors.accentPrimary }
-                ].map((card, idx) => (
-                  <div key={idx} style={{ background: colors.bgCard, padding: '24px', borderRadius: '16px', border: `1px solid ${colors.border}`, boxShadow: '0 4px 12px rgba(0,0,0,0.01)' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px', alignItems: 'center' }}>
-                      <span style={{ fontSize: '10px', fontWeight: '800', color: colors.textMuted, letterSpacing: '0.5px' }}>{card.title}</span>
-                      <div style={{ color: card.color }}>{card.icon}</div>
-                    </div>
-                    <div style={{ fontSize: '32px', fontWeight: '900', color: colors.textMain, marginBottom: '16px' }}>{card.val}</div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '600', color: colors.textMuted }}>
-                      <span>{card.sub}</span>
-                      <span style={{ color: card.color }}>{card.change}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* GRÁFICOS Y SISTEMA */}
-              <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }}>
-                <div style={{ background: colors.bgCard, border: `1px solid ${colors.border}`, padding: '32px', borderRadius: '16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
-                    <div>
-                      <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '900', color: colors.textMain }}>FRECUENCIA CLIMÁTICA UNL</h3>
-                      <div style={{ fontSize: '10px', fontWeight: '800', color: colors.accentMint, letterSpacing: '1px' }}>TELEMETRÍA DE RED MESH</div>
-                    </div>
-                  </div>
-                  <div style={{ height: '240px', display: 'flex', alignItems: 'flex-end', gap: '16px', borderBottom: `1px solid ${colors.border}`, paddingBottom: '20px' }}>
-                    {[50, 60, 70, 80, 90, 85, 80, 70, 75, 50, 40, 50, 55, 65, 85].map((val, i) => (
-                      <div key={i} style={{ flex: 1, background: i === 14 ? colors.accentMint : colors.accentPrimary, opacity: i === 10 ? 0.3 : 1, height: `${val}%`, position: 'relative', borderRadius: '4px 4px 0 0' }}>
-                        <span style={{ position: 'absolute', bottom: '-22px', left: '50%', transform: 'translateX(-50%)', fontSize: '9px', fontWeight: '700', color: colors.textMuted }}>
->>>>>>> origin/feature/programador_5
                           {6 + i}:00
                         </span>
                       </div>
@@ -645,7 +507,6 @@ export default function Dashboard() {
                   </div>
                 </div>
 
-<<<<<<< HEAD
                 {/* ACTIVIDAD DEL SISTEMA */}
                 <div style={{ background: 'var(--bg-card)', border: '1px solid #DBE3E0', padding: '32px', display: 'flex', flexDirection: 'column' }}>
                   <div style={{ marginBottom: '32px' }}>
@@ -717,44 +578,21 @@ export default function Dashboard() {
                     <div style={{ width: '100%', height: '8px', background: 'var(--border)', display: 'flex' }}>
                       <div style={{ width: '70%', background: 'var(--text-main)' }}></div>
                       <div style={{ width: '15%', background: '#0F766E' }}></div>
-=======
-                <div style={{ background: colors.bgCard, border: `1px solid ${colors.border}`, padding: '32px', borderRadius: '16px', display: 'flex', flexDirection: 'column' }}>
-                  <div style={{ marginBottom: '24px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
-                      <div style={{ color: colors.accentMint }}><IconClock /></div>
-                      <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '900', color: colors.textMain }}>ACTIVIDAD DEL SISTEMA</h3>
->>>>>>> origin/feature/programador_5
                     </div>
                     <div style={{ fontSize: '10px', fontWeight: '700', color: colors.textMuted }}>SINCRONIZACIÓN EN VIVO</div>
                   </div>
 
-<<<<<<< HEAD
                   <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #DBE3E0', paddingBottom: '16px', marginBottom: '16px' }}>
                     <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '1px' }}>LATENCIA BASE API:</span>
                     <span style={{ fontSize: '12px', fontWeight: '800', color: '#0F766E' }}>24 ms</span>
                   </div>
 
                   <div style={{ fontSize: '9px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>REPOSITORIO EN LÍNEA CONFIRMADO</div>
-=======
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
-                    {[
-                      { t: 'TEMPERATURA ELEVADA EN LAB 304', sub: 'HACE 2 MIN • NODO FF422' },
-                      { t: 'NUEVA CURADURÍA EN BASE', sub: 'HACE 15 MIN • @elisa_s' },
-                      { t: 'PUSH DE FIRMWARE GATEWAY', sub: 'HACE 1 HORA • System_v4' }
-                    ].map((act, idx) => (
-                      <div key={idx} style={{ paddingBottom: '12px', borderBottom: `1px solid ${colors.bgMain}` }}>
-                        <div style={{ fontSize: '12px', fontWeight: '700', color: colors.textMain }}>{act.t}</div>
-                        <div style={{ fontSize: '10px', color: colors.accentMint, fontWeight: '700', marginTop: '2px' }}>{act.sub}</div>
-                      </div>
-                    ))}
-                  </div>
->>>>>>> origin/feature/programador_5
                 </div>
               </div>
             </>
           )}
 
-<<<<<<< HEAD
           {/* PARTICIPANT DASHBOARD VIEW */}
           {!isAdmin && activeTab === 'Dashboard' && (
             <>
@@ -923,16 +761,6 @@ export default function Dashboard() {
                   <button onClick={() => { fetchUsuarios(); addNotification('info', 'ACTUALIZANDO DATOS', 'Obteniendo la lista más reciente de usuarios.'); }} style={{ padding: '8px 16px', background: 'var(--bg-app)', border: '1px solid #DBE3E0', borderRadius: '6px', fontSize: '13px', fontWeight: '600', color: 'var(--text-muted)', cursor: 'pointer' }}>
                     {loadingUsers ? '...' : 'Recargar'}
                   </button>
-=======
-          {/* TAB DE GESTIÓN DE USUARIOS */}
-          {activeTab === 'Usuarios' && isAdmin && (
-            <div style={{ background: colors.bgCard, borderRadius: '16px', border: `1px solid ${colors.border}`, padding: '32px', boxShadow: '0 4px 12px rgba(0,0,0,0.01)' }}>
-              
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                <div>
-                  <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: colors.textMain }}>Control de Usuarios Académicos</h3>
-                  <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: colors.textMuted }}>Crea, edita o actualiza los roles del personal del proyecto.</p>
->>>>>>> origin/feature/programador_5
                 </div>
                 <button 
                   onClick={openCreateModal}
@@ -956,7 +784,6 @@ export default function Dashboard() {
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '14px' }}>
                     <thead>
-<<<<<<< HEAD
                       <tr style={{ background: 'var(--bg-app)', borderBottom: '1px solid #DBE3E0' }}>
                         <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>ID</th>
                         <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>USUARIO</th>
@@ -979,33 +806,6 @@ export default function Dashboard() {
                               background: u.id_rol === 1 ? '#fee2e2' : '#e0e7ff',
                               color: u.id_rol === 1 ? '#ef4444' : '#4338ca'
                             }}>
-=======
-                      <tr style={{ borderBottom: `2px solid ${colors.border}`, color: colors.textMuted, fontWeight: '700' }}>
-                        <th style={{ padding: '14px' }}>ID</th>
-                        <th style={{ padding: '14px' }}>USUARIO COMPLETO</th>
-                        <th style={{ padding: '14px' }}>CORREO INSTITUCIONAL</th>
-                        <th style={{ padding: '14px' }}>ROL ASIGNADO</th>
-                        <th style={{ padding: '14px', textAlign: 'right' }}>ACCIONES DE CONTROL</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {usuarios.map(u => (
-                        <tr key={u.id_usuario} style={{ borderBottom: `1px solid ${colors.bgMain}`, transition: 'background 0.2s' }} onMouseOver={(e) => e.currentTarget.style.background = '#f9fbf9'} onMouseOut={(e) => e.currentTarget.style.background = 'transparent'}>
-                          <td style={{ padding: '14px', fontWeight: '700', color: colors.textMuted }}>#{u.id_usuario}</td>
-                          <td style={{ padding: '14px', fontWeight: '600', color: colors.textMain }}>{u.nombre} {u.apellido}</td>
-                          <td style={{ padding: '14px', color: colors.textMuted }}>{u.correo}</td>
-                          <td style={{ padding: '14px' }}>
-                            <span 
-                              onClick={() => handleToggleRole(u)}
-                              style={{ 
-                                padding: '4px 10px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', cursor: 'pointer',
-                                background: u.id_rol === 1 ? colors.bgGradient : colors.accentMintLight,
-                                color: u.id_rol === 1 ? '#fff' : colors.textSuccess,
-                                display: 'inline-block'
-                              }}
-                              title="Haz clic para cambiar el rol rápidamente"
-                            >
->>>>>>> origin/feature/programador_5
                               {u.id_rol === 1 ? 'ADMINISTRADOR' : 'PARTICIPANTE'}
                             </span>
                           </td>
@@ -1021,19 +821,15 @@ export default function Dashboard() {
                           </td>
                         </tr>
                       ))}
-<<<<<<< HEAD
                       {usuarios.length === 0 && !loadingUsers && (
                         <tr><td colSpan="5" style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>No se encontraron usuarios</td></tr>
                       )}
-=======
->>>>>>> origin/feature/programador_5
                     </tbody>
                   </table>
                 </div>
               )}
             </div>
           )}
-<<<<<<< HEAD
 
           
           {/* MÓDULO DE PERFIL */}
@@ -1118,14 +914,11 @@ export default function Dashboard() {
             <div>METODOLOGÍA: KANBAN + XP <span style={{ margin: '0 8px' }}>|</span> STACK: PY / RJS / IOT ESP32</div>
           </div>
 
-=======
->>>>>>> origin/feature/programador_5
         </div>
       </main>
 
       {/* MODAL CRUD INTEGRADO (REGISTRO Y EDICIÓN) */}
       {isModalOpen && (
-<<<<<<< HEAD
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
           <div style={{ background: 'var(--text-inverse)', width: '100%', maxWidth: '400px', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
 
@@ -1134,15 +927,6 @@ export default function Dashboard() {
                 {modalMode === 'create' ? 'Agregar Nuevo Usuario' : 'Editar Usuario'}
               </h3>
               <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '20px', cursor: 'pointer', color: 'var(--text-muted)' }}>&times;</button>
-=======
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(30, 41, 37, 0.4)', backdropFilter: 'blur(4px)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 10000 }}>
-          <div style={{ background: colors.bgCard, borderRadius: '20px', width: '100%', maxWidth: '480px', padding: '32px', boxShadow: '0 20px 40px rgba(0,0,0,0.15)', border: `1px solid ${colors.border}` }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: '800', color: colors.textMain }}>
-                {modalMode === 'create' ? 'Registrar Usuario' : 'Modificar Atributos'}
-              </h3>
-              <button onClick={() => setIsModalOpen(false)} style={{ background: 'none', border: 'none', fontSize: '24px', color: colors.textMuted, cursor: 'pointer' }}>&times;</button>
->>>>>>> origin/feature/programador_5
             </div>
 
             {modalError && (
@@ -1174,7 +958,6 @@ export default function Dashboard() {
                 </div>
               )}
 
-<<<<<<< HEAD
               <form onSubmit={handleModalSubmit}>
                 <div style={{ marginBottom: '16px', display: 'flex', gap: '12px' }}>
                   <div style={{ flex: 1 }}>
@@ -1225,15 +1008,6 @@ export default function Dashboard() {
                 </div>
               </form>
             </div>
-=======
-              <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', color: colors.textMain, marginBottom: '6px' }}>Rol del Sistema</label>
-                <select value={formData.id_rol} onChange={(e) => setFormData({...formData, id_rol: Number(e.target.value)})} style={inputStyle}>
-                  <option value={2}>Participante</option>
-                  <option value={1}>Administrador</option>
-                </select>
-              </div>
->>>>>>> origin/feature/programador_5
 
               <div style={{ display: 'flex', gap: '12px', marginTop: '10px' }}>
                 <button type="button" onClick={() => setIsModalOpen(false)} style={{ flex: 1, padding: '12px', borderRadius: '10px', border: `1px solid ${colors.border}`, background: 'none', color: colors.textMain, fontWeight: '600', cursor: 'pointer' }}>

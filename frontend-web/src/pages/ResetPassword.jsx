@@ -116,15 +116,9 @@ export default function ResetPassword() {
   const inputStyle = {
     width: '100%',
     padding: '12px 16px',
-<<<<<<< HEAD
     borderRadius: '8px',
     border: '1px solid #DBE3E0',
     background: '#F4F8F6',
-=======
-    borderRadius: '10px',
-    border: `1px solid ${colors.border}`,
-    background: colors.bgInput,
->>>>>>> origin/feature/programador_5
     fontSize: '14px',
     boxSizing: 'border-box',
     outline: 'none',
@@ -152,20 +146,12 @@ export default function ResetPassword() {
   }
 
   return (
-<<<<<<< HEAD
     <div style={{ minHeight: '100vh', background: '#F4F8F6', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
       <div style={{ maxWidth: '960px', width: '100%', background: '#fff', borderRadius: '16px', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)', display: 'flex', overflow: 'hidden' }}>
         
         {/* Panel Izquierdo */}
         <div style={{ flex: 1, background: 'linear-gradient(135deg, #0F766E 0%, #094E48 100%)', color: '#fff', padding: '60px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '500px' }}>
           <div><h1 style={{ fontSize: '24px', fontWeight: '700', margin: '0 0 40px 0' }}>UNL-Cloud-Connect</h1></div>
-=======
-    <div style={{ minHeight: '100vh', background: colors.bgMain, display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px', fontFamily: "'Segoe UI', system-ui, sans-serif" }}>
-      <div style={{ maxWidth: '960px', width: '100%', background: colors.bgCard, borderRadius: '24px', boxShadow: '0 15px 35px rgba(16, 185, 129, 0.05)', display: 'flex', overflow: 'hidden', border: `1px solid ${colors.border}` }}>
-        
-        {/* Panel Izquierdo - Adaptado con degradado botánico */}
-        <div style={{ flex: 1, background: colors.bgGradient, color: '#e6f4ea', padding: '60px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '500px' }}>
->>>>>>> origin/feature/programador_5
           <div>
             <h1 style={{ fontSize: '24px', fontWeight: '800', margin: '0 0 40px 0', color: '#ffffff' }}>
               UNL-Cloud-<span style={{ color: '#5effcb' }}>Connect</span>
@@ -180,13 +166,8 @@ export default function ResetPassword() {
 
         {/* Panel Derecho Formulario */}
         <div style={{ flex: 1, padding: '60px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-<<<<<<< HEAD
           <h2 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 8px 0', color: '#1a1a1a' }}>Restablecer clave</h2>
           <p style={{ fontSize: '14px', color: '#62726B', margin: '0 0 32px 0' }}>Establece una contraseña fuerte y segura.</p>
-=======
-          <h2 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 8px 0', color: colors.textMain }}>Restablecer clave</h2>
-          <p style={{ fontSize: '14px', color: colors.textMuted, margin: '0 0 32px 0' }}>Establece una contraseña fuerte y segura.</p>
->>>>>>> origin/feature/programador_5
 
           {error && (
             <div style={{ background: colors.bgError, border: `1px solid ${colors.borderError}`, color: colors.textError, padding: '12px 16px', borderRadius: '10px', marginBottom: '20px', fontSize: '14px', fontWeight: '500' }}>
@@ -206,22 +187,8 @@ export default function ResetPassword() {
             <div>
               <label style={labelStyle}>Nueva Contraseña</label>
               <div style={{ position: 'relative' }}>
-<<<<<<< HEAD
                 <input type={showPassword ? "text" : "password"} name="nueva_password" value={form.nueva_password} onChange={handleChange} placeholder="••••••••" style={{ ...inputStyle, paddingRight: '40px' }} />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#62726B', display: 'flex', alignItems: 'center', padding: 0 }}>
-=======
-                <input 
-                  type={showPassword ? "text" : "password"} 
-                  name="nueva_password" 
-                  value={form.nueva_password} 
-                  onChange={handleChange} 
-                  placeholder="••••••••" 
-                  style={{ ...inputStyle, paddingRight: '40px' }} 
-                  onFocus={handleFocus}
-                  onBlur={handleBlur}
-                />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: colors.textMuted, display: 'flex', alignItems: 'center', padding: 0 }}>
->>>>>>> origin/feature/programador_5
                   {showPassword ? (
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                   ) : (
@@ -235,22 +202,8 @@ export default function ResetPassword() {
             <div>
               <label style={labelStyle}>Confirmar Contraseña</label>
               <div style={{ position: 'relative' }}>
-<<<<<<< HEAD
                 <input type={showConfirm ? "text" : "password"} name="confirm" value={form.confirm} onChange={handleChange} placeholder="••••••••" style={{ ...inputStyle, paddingRight: '40px' }} />
                 <button type="button" onClick={() => setShowConfirm(!showConfirm)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#62726B', display: 'flex', alignItems: 'center', padding: 0 }}>
-=======
-                <input 
-                  type={showConfirm ? "text" : "password"} 
-                  name="confirm" 
-                  value={form.confirm} 
-                  onChange={handleChange} 
-                  placeholder="••••••••" 
-                  style={{ ...inputStyle, paddingRight: '40px' }} 
-                  onFocus={handleFocus}
-                  onBlur={handleBlur}
-                />
-                <button type="button" onClick={() => setShowConfirm(!showConfirm)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: colors.textMuted, display: 'flex', alignItems: 'center', padding: 0 }}>
->>>>>>> origin/feature/programador_5
                   {showConfirm ? (
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                   ) : (
@@ -260,44 +213,17 @@ export default function ResetPassword() {
               </div>
             </div>
 
-<<<<<<< HEAD
             <button type="submit" disabled={loading || success} style={{ width: '100%', padding: '14px 16px', borderRadius: '8px', border: 'none', background: '#094E48', color: '#fff', fontSize: '15px', fontWeight: '600', cursor: (loading || success) ? 'not-allowed' : 'pointer', opacity: (loading || success) ? 0.7 : 1 }}>
-=======
-            {/* Botón Principal Esmeralda */}
-            <button 
-              type="submit" 
-              disabled={loading || success} 
-              style={{ width: '100%', padding: '14px 16px', borderRadius: '10px', border: 'none', background: colors.accentPrimary, color: '#fff', fontSize: '15px', fontWeight: '600', cursor: (loading || success) ? 'not-allowed' : 'pointer', opacity: (loading || success) ? 0.7 : 1, transition: 'all 0.2s', boxShadow: '0 4px 12px rgba(16, 185, 129, 0.2)' }}
-              onMouseOver={(e) => { if(!loading && !success) e.target.style.background = colors.accentHover }}
-              onMouseOut={(e) => { if(!loading && !success) e.target.style.background = colors.accentPrimary }}
-            >
->>>>>>> origin/feature/programador_5
               {loading ? 'Actualizando...' : 'Actualizar contraseña →'}
             </button>
           </form>
           
           <div style={{ display: 'flex', alignItems: 'center', margin: '28px 0', gap: '12px' }}>
-<<<<<<< HEAD
             <div style={{ flex: 1, height: '1px', background: '#DBE3E0' }} />
           </div>
 
           <div style={{ textAlign: 'center', fontSize: '14px', color: '#62726B' }}>
             <Link to="/login" style={{ color: '#0F766E', fontWeight: '600', textDecoration: 'none' }}>Cancelar y volver al login</Link>
-=======
-            <div style={{ flex: 1, height: '1px', background: colors.border }} />
-          </div>
-
-          {/* Cancelar Acceso */}
-          <div style={{ textAlign: 'center', fontSize: '14px', color: colors.textMuted }}>
-            <Link 
-              to="/login" 
-              style={{ color: colors.accentPrimary, fontWeight: '600', textDecoration: 'none', transition: 'color 0.2s' }}
-              onMouseOver={(e) => e.target.style.color = colors.accentHover}
-              onMouseOut={(e) => e.target.style.color = colors.accentPrimary}
-            >
-              Cancelar y volver al login
-            </Link>
->>>>>>> origin/feature/programador_5
           </div>
           
         </div>
