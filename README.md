@@ -16,12 +16,15 @@ Antes de levantar el entorno, asegúrate de tener instalado en tu sistema:
 
 A través de Docker, el sistema levanta automáticamente los siguientes servicios de forma aislada:
 
-| Servicio          | Tecnología             | Puerto Interno  | Puerto Host (Tu PC) |
-| :---              | :---                   | :---            | :---                |
-| **Backend API**   | FastAPI (Python)       | `8000`          | `8000`              |
-| **Base de Datos** | PostgreSQL 15          | `5432`          | `5433`              |
-| **Broker IoT**    | Eclipse Mosquitto      | `1883`          | `1883`              |
-| **Storage**       | MinIO (Object Storage) | `9000` / `9001` | `9000` / `9002`     |
+| Servicio                  | Tecnología             | Puerto Interno  | Puerto Host (Tu PC) |
+| :---                      | :---                   | :---            | :---                |
+| **API Gateway (Puerta Principal)**   | Kong (Modo DB-less)       | `8000`          | `8000`            |
+| **MS_Gestion_Usuarios**   | FastAPI (Python)       | `8000`          | `oculto`            |
+| **MS_CLima**              | FastAPI (Python)       | `8000`          | `oculto`            |
+| **Base de Datos**         | PostgreSQL 15          | `5432`          | `5433`              |
+| **Broker IoT**            | Eclipse Mosquitto      | `1883`          | `1883`              |
+| **Storage**               | MinIO (Object Storage) | `9000` / `9001` | `9000` / `9002`     |
+| **Frontend Web**          | React + Vite + Nginx   | `80`            | `80`                |
 
 ---
 
@@ -56,10 +59,14 @@ Para comprobar que todos los contenedores estén corriendo de forma óptima:
 ## 🔑 Credenciales y Accesos Locales
 Una vez que los contenedores estén en ejecución (Up), puedes acceder a las herramientas mediante las siguientes direcciones:
 
-### 📡 Backend (FastAPI)
-* **URL de la API:** http://localhost:8000
-* **Documentación Interactiva (Swagger):** http://localhost:8000/docs *(Aquí podrás probar los endpoints de Login y Registro).*
+### 🌐 Frontend Web (Interfaz Gráfica)
+* **Entorno Dockerizado (Nginx):** http://localhost (Puerto 80 por defecto)
+* **Desarrollo Local (Vite sin Docker):** http://localhost:5173
 
+### 📡 Backend (FastAPI)
+
+* **Documentación Interactiva GEstion Usuraios(Swagger):** http://localhost:8000/api/auth/docs *(Aquí podrás probar los endpoints de Login y Registro).*
+* **Documentación Interactiva CLima (Swagger):** http://localhost:8000/api/clima/docs *(Aquí podrás probar los endpoints de Clima).*
 ### 💾 Almacenamiento de Imágenes (MinIO)
 * **Consola de Administración Web:** http://localhost:9002
 * **Usuario:** `minio_admin`
@@ -68,12 +75,19 @@ Una vez que los contenedores estén en ejecución (Up), puedes acceder a las her
 ### 🗄️ Base de Datos (PostgreSQL)
 Si deseas conectarte a la base de datos usando un cliente externo (como DBeaver, PGAdmin o la extensión de VS Code), usa estos parámetros:
 
+**Conexión base de datos (Usuarios):**
 * **Host:** `localhost`
 * **Puerto:** `5433`
-* **Base de Datos:** `unl_cloud_connect`
+* **Base de Datos:** `db_usuarios`
 * **Usuario:** `postgres_admin`
 * **Contraseña:** `postgres123456`
 
+**Conexión base de datos (Clima):**
+* **Host:** `localhost`
+* **Puerto:** `5433`
+* **Base de Datos:** `db_clima`
+* **Usuario:** `postgres_admin`
+* **Contraseña:** `postgres123456`
 ---
 
 ## 🛑 Detener los Servicios
