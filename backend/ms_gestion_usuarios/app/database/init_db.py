@@ -42,9 +42,14 @@ def inicializar_datos_maestros(db: Session) -> None:
         # 5. Parche de base de datos para asegurar que el registro con Google (sin contraseña) funcione
         from sqlalchemy import text
         try:
+            # Eliminar restricción NOT NULL de la clave
             db.execute(text("ALTER TABLE usuario ALTER COLUMN clave DROP NOT NULL;"))
+            
+            # Agregar la columna 'verificado' si no existe (agregada en la v0.4)
+            db.execute(text("ALTER TABLE usuario ADD COLUMN IF NOT EXISTS verificado BOOLEAN DEFAULT FALSE NOT NULL;"))
+            
             db.commit()
-            print("[DATA-SEED] ✓ Parche aplicado: La columna 'clave' ahora permite valores nulos.")
+            print("[DATA-SEED] ✓ Parches aplicados: clave nullable y columna verificado asegurada.")
         except Exception:
             db.rollback()
             # Ignoramos silenciosamente si la tabla o la columna no existe aún
