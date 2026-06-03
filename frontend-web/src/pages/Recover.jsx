@@ -29,7 +29,6 @@ export default function Recover() {
       await sendRecovery({ email: cleanEmail })
       setMsg('Correo enviado exitosamente. Revisa tu bandeja de entrada o carpeta de spam.')
     } catch (err) {
-      console.error('Error al enviar correo:', err)
       setError(err.response?.data?.detail || 'Error al procesar la solicitud de recuperación.')
     } finally {
       setLoading(false)
@@ -37,11 +36,11 @@ export default function Recover() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f7fa', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
+    <div style={{ minHeight: '100vh', background: '#F4F8F6', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
       <div style={{ maxWidth: '960px', width: '100%', background: '#fff', borderRadius: '16px', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)', display: 'flex', overflow: 'hidden' }}>
         
         {/* Panel Izquierdo */}
-        <div style={{ flex: 1, background: 'linear-gradient(135deg, #1a56c9 0%, #103783 100%)', color: '#fff', padding: '60px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '500px' }}>
+        <div style={{ flex: 1, background: 'linear-gradient(135deg, #0F766E 0%, #094E48 100%)', color: '#fff', padding: '60px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '500px' }}>
           <div><h1 style={{ fontSize: '24px', fontWeight: '700', margin: '0 0 40px 0' }}>UNL-Cloud-Connect</h1></div>
           <div>
             <h2 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 24px 0', lineHeight: '1.4' }}>Recupera tu acceso</h2>
@@ -53,7 +52,7 @@ export default function Recover() {
         {/* Panel Derecho Formulario */}
         <div style={{ flex: 1, padding: '60px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <h2 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 8px 0', color: '#1a1a1a' }}>Recuperar contraseña</h2>
-          <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 32px 0' }}>Enviaremos un enlace a tu correo institucional.</p>
+          <p style={{ fontSize: '14px', color: '#62726B', margin: '0 0 32px 0' }}>Enviaremos un enlace a tu correo institucional.</p>
 
           {error && (
             <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px' }}>
@@ -70,20 +69,20 @@ export default function Recover() {
           <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#1a1a1a', marginBottom: '8px' }}>Correo Institucional</label>
-              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="usuario@unl.edu.ec" style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f4f7fa', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="usuario@unl.edu.ec" style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #DBE3E0', background: '#F4F8F6', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
             </div>
 
-            <button type="submit" disabled={loading} style={{ width: '100%', padding: '14px 16px', borderRadius: '8px', border: 'none', background: '#103783', color: '#fff', fontSize: '15px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+            <button type="submit" disabled={loading} style={{ width: '100%', padding: '14px 16px', borderRadius: '8px', border: 'none', background: '#094E48', color: '#fff', fontSize: '15px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
               {loading ? 'Enviando...' : 'Enviar enlace de recuperación →'}
             </button>
           </form>
 
           <div style={{ display: 'flex', alignItems: 'center', margin: '28px 0', gap: '12px' }}>
-            <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }} />
+            <div style={{ flex: 1, height: '1px', background: '#DBE3E0' }} />
           </div>
 
-          <div style={{ textAlign: 'center', fontSize: '14px', color: '#6b7280' }}>
-            ¿Recordaste tu contraseña? <Link to="/login" style={{ color: '#1a56c9', fontWeight: '600', textDecoration: 'none' }}>Vuelve al inicio de sesión</Link>
+          <div style={{ textAlign: 'center', fontSize: '14px', color: '#62726B' }}>
+            ¿Recordaste tu contraseña? <Link to="/login" style={{ color: '#0F766E', fontWeight: '600', textDecoration: 'none' }}>Vuelve al inicio de sesión</Link>
           </div>
         </div>
 

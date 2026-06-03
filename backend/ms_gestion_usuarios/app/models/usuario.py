@@ -4,7 +4,7 @@
 # Historial:
 # 20/05/2026 v0.1 - David Guamán: Creación de los modelos SQLAlchemy para las tablas rol y usuario,preparando el campo clave para soportar el flujo híbrido (Google Sign-In).
 
-from sqlalchemy import String, Date, ForeignKey
+from sqlalchemy import String, Date, ForeignKey, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 from datetime import date
 from app.database.session import Base
@@ -30,3 +30,6 @@ class Usuario(Base):
 
     # Relación con la tabla Rol
     id_rol: Mapped[int] = mapped_column(ForeignKey("rol.id_rol"), nullable=False)
+    
+    # Campo de verificación de correo electrónico
+    verificado: Mapped[bool] = mapped_column(Boolean, default=False, server_default="false", nullable=False)

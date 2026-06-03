@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { GoogleLogin } from '@react-oauth/google'
-import { login as apiLogin, loginGoogle as apiLoginGoogle } from '../services/api'
+import { login as apiLogin, loginGoogle as apiLoginGoogle, reenviarVerificacion } from '../services/api'
 
 const extractErrorMessage = (error) => {
   if (error.response?.data) {
@@ -25,7 +25,19 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+  const [verificacionPendiente, setVerificacionPendiente] = useState(false)
+  const [reenviando, setReenviando] = useState(false)
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
+
+  // Redirigir si el usuario ya está autenticado (evita acceso manual a /login)
+  useEffect(() => {
+    const token = localStorage.getItem('access_token')
+    const idRol = localStorage.getItem('id_rol')
+    if (token && (String(idRol) === '1' || String(idRol) === '2') && !searchParams.get('logout')) {
+      navigate('/dashboard', { replace: true })
+    }
+  }, [navigate, searchParams])
 
   useEffect(() => {
     if (searchParams.get('logout')) {
@@ -71,7 +83,10 @@ export default function Login() {
       const data = response.data || response
       handleLoginSuccess(data)
     } catch (err) {
-      console.error('Google login error:', err)
+      const status = err.response?.status
+      if (status === 403) {
+        setVerificacionPendiente(true)
+      }
       setError('Error en autenticación Google: ' + extractErrorMessage(err))
       setLoading(false)
     }
@@ -100,18 +115,21 @@ export default function Login() {
       const data = response.data || response
       handleLoginSuccess(data)
     } catch (err) {
-      console.error('Manual login error:', err)
+      const status = err.response?.status
+      if (status === 403) {
+        setVerificacionPendiente(true)
+      }
       setError(extractErrorMessage(err))
       setLoading(false)
     }
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#f4f7fa', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
+    <div style={{ minHeight: '100vh', background: '#F4F8F6', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
       <div style={{ maxWidth: '960px', width: '100%', background: '#fff', borderRadius: '16px', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)', display: 'flex', overflow: 'hidden' }}>
         
         {/* Panel Izquierdo */}
-        <div style={{ flex: 1, background: 'linear-gradient(135deg, #1a56c9 0%, #103783 100%)', color: '#fff', padding: '60px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '500px' }}>
+        <div style={{ flex: 1, background: 'linear-gradient(135deg, #0F766E 0%, #094E48 100%)', color: '#fff', padding: '60px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '500px' }}>
           <div><h1 style={{ fontSize: '24px', fontWeight: '700', margin: '0 0 40px 0' }}>UNL-Cloud-Connect</h1></div>
           <div>
             <h2 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 24px 0', lineHeight: '1.4' }}>¡Entérate de los nuevos eventos en la facultad!</h2>
@@ -123,25 +141,46 @@ export default function Login() {
         {/* Panel Derecho Formulario */}
         <div style={{ flex: 1, padding: '60px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <h2 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 8px 0', color: '#1a1a1a' }}>Bienvenido de nuevo</h2>
-          <p style={{ fontSize: '14px', color: '#6b7280', margin: '0 0 32px 0' }}>Introduzca sus credenciales universitarias.</p>
+          <p style={{ fontSize: '14px', color: '#62726B', margin: '0 0 32px 0' }}>Introduzca sus credenciales universitarias.</p>
 
           {error && (
-            <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px' }}>
-              {error}
+            <div style={{ background: verificacionPendiente ? '#fef3c7' : '#fee2e2', border: `1px solid ${verificacionPendiente ? '#fde68a' : '#fca5a5'}`, color: verificacionPendiente ? '#92400e' : '#dc2626', padding: '16px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px' }}>
+              <p style={{ margin: '0 0 8px 0' }}>{error}</p>
+              {verificacionPendiente && (
+                <button
+                  onClick={async () => {
+                    setReenviando(true)
+                    try {
+                      await reenviarVerificacion({ email: email.trim().toLowerCase() })
+                    } catch (e) { /* silencioso */ }
+                    setTimeout(() => setReenviando(false), 3000)
+                  }}
+                  disabled={reenviando}
+                  style={{
+                    display: 'block', width: '100%', padding: '10px',
+                    border: '2px solid #f59e0b', borderRadius: '6px',
+                    background: reenviando ? '#fef3c7' : '#fff',
+                    color: '#92400e', fontWeight: '600', fontSize: '13px',
+                    cursor: reenviando ? 'not-allowed' : 'pointer', marginTop: '8px'
+                  }}
+                >
+                  {reenviando ? '✓ Correo de verificación reenviado' : 'Reenviar email de verificación'}
+                </button>
+              )}
             </div>
           )}
 
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#1a1a1a', marginBottom: '8px' }}>Correo Institucional</label>
-              <input type="text" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="usuario@unl.edu.ec" style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f4f7fa', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
+              <input type="text" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="usuario@unl.edu.ec" style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #DBE3E0', background: '#F4F8F6', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
             </div>
 
             <div>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#1a1a1a', marginBottom: '8px' }}>Contraseña</label>
               <div style={{ position: 'relative' }}>
-                <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" style={{ width: '100%', padding: '12px 40px 12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0', background: '#f4f7fa', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', display: 'flex', alignItems: 'center', padding: 0 }}>
+                <input type={showPassword ? "text" : "password"} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" style={{ width: '100%', padding: '12px 40px 12px 16px', borderRadius: '8px', border: '1px solid #DBE3E0', background: '#F4F8F6', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#62726B', display: 'flex', alignItems: 'center', padding: 0 }}>
                   {showPassword ? (
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                   ) : (
@@ -153,16 +192,16 @@ export default function Login() {
 
             {/* ENLACE RECUPERADO: ¿Olvidaste tu contraseña? */}
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-8px' }}>
-              <Link to="/recover" style={{ fontSize: '13px', color: '#1a56c9', textDecoration: 'none', fontWeight: '500' }}>¿Olvidaste tu contraseña?</Link>
+              <Link to="/recover" style={{ fontSize: '13px', color: '#0F766E', textDecoration: 'none', fontWeight: '500' }}>¿Olvidaste tu contraseña?</Link>
             </div>
 
-            <button type="submit" disabled={loading} style={{ width: '100%', padding: '14px 16px', borderRadius: '8px', border: 'none', background: '#103783', color: '#fff', fontSize: '15px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
+            <button type="submit" disabled={loading} style={{ width: '100%', padding: '14px 16px', borderRadius: '8px', border: 'none', background: '#094E48', color: '#fff', fontSize: '15px', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
               {loading ? 'Cargando...' : 'Iniciar sesión →'}
             </button>
           </form>
 
           <div style={{ display: 'flex', alignItems: 'center', margin: '28px 0', gap: '12px' }}>
-            <div style={{ flex: 1, height: '1px', background: '#e5e7eb' }} /><span style={{ color: '#9ca3af', fontSize: '14px' }}>o</span><div style={{ flex: 1, height: '1px', background: '#e5e7eb' }} />
+            <div style={{ flex: 1, height: '1px', background: '#DBE3E0' }} /><span style={{ color: '#62726B', fontSize: '14px' }}>o</span><div style={{ flex: 1, height: '1px', background: '#DBE3E0' }} />
           </div>
 
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '24px' }}>
@@ -175,8 +214,8 @@ export default function Login() {
           </div>
 
           {/* ENLACE RECUPERADO: Crear cuenta aquí */}
-          <div style={{ textAlign: 'center', fontSize: '14px', color: '#6b7280' }}>
-            ¿No tienes cuenta? <Link to="/register" style={{ color: '#1a56c9', fontWeight: '600', textDecoration: 'none' }}>Crear cuenta aquí</Link>
+          <div style={{ textAlign: 'center', fontSize: '14px', color: '#62726B' }}>
+            ¿No tienes cuenta? <Link to="/register" style={{ color: '#0F766E', fontWeight: '600', textDecoration: 'none' }}>Crear cuenta aquí</Link>
           </div>
         </div>
 

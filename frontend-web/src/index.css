@@ -3,10 +3,29 @@
 @tailwind utilities;
 
 :root {
-  --bg: #FFFFFF;
-  --bg-muted: #F9FAFB;
-  --text: #0F172A;
-  --primary: #2563EB;
+  --bg-app: #F4F8F6;
+  --bg-sidebar: #ffffff;
+  --bg-card: #ffffff;
+  --text-main: #1E2925;
+  --text-muted: #62726B;
+  --text-inverse: #ffffff;
+  --border: #DBE3E0;
+  --border-light: #f1f5f9;
+  --primary: #0F766E;
+  --primary-light: #dbeafe;
+}
+
+[data-theme='oscuro'] {
+  --bg-app: #1E2925;
+  --bg-sidebar: #1E2925;
+  --bg-card: #1E2925;
+  --text-main: #F4F8F6;
+  --text-muted: #62726B;
+  --text-inverse: #ffffff;
+  --border: #334155;
+  --border-light: #1E2925;
+  --primary: #10B981;
+  --primary-light: #0F766E;
 }
 
 html, body, #root {
@@ -28,12 +47,12 @@ body {
 }
 
 input {
-  border: 1px solid #d1d5db;
+  border: 1px solid #DBE3E0;
   border-radius: 4px;
 }
 
 button {
-  background: #2563eb;
+  background: #10B981;
   color: #fff;
   border: none;
   border-radius: 4px;

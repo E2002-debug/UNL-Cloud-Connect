@@ -6,6 +6,7 @@ import GoogleHybrid from './pages/GoogleHybrid'
 import Recover from './pages/Recover'
 import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
+import VerificarCuenta from './pages/VerificarCuenta'
 
 /**
  * Componente de protección de ruta por Rol (Permite Admin '1' y Usuario '2')
@@ -51,6 +52,7 @@ export default function App() {
       <Route path="/registro-hibrido" element={<GoogleHybrid mode="registro-hibrido" />} />
       <Route path="/recover" element={<Recover />} />
       <Route path="/reset-password" element={<ResetPassword />} />
+      <Route path="/verificar-cuenta" element={<VerificarCuenta />} />
       
       {/* Ruta Privada Protegida y Controlada por Rol */}
       <Route 

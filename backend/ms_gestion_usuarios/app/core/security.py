@@ -16,6 +16,7 @@ from jose import jwt, JWTError
 # Importamos las configuraciones centralizadas
 # Definimos que el token de recuperación caduca muy rápido por seguridad
 RESET_TOKEN_EXPIRE_MINUTES = 15
+VERIFICATION_TOKEN_EXPIRE_MINUTES = 60 * 24  # 24 horas para verificar correo
 from google.oauth2 import id_token
 from google.auth.transport import requests as google_requests
 
@@ -91,11 +92,10 @@ def verificar_y_extraer_token_google(google_token: str) -> dict:
             detail=f"El token de Google es inválido o ha expirado. Detalles: {str(e)}"
         )
     except Exception as e:
-        # Catch any other unexpected errors
-        print(f"[GOOGLE-AUTH-ERROR] Error inesperado al validar token: {str(e)}")
+        # Catch any other unexpected errors (sin exponer detalles técnicos)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al validar el token de Google: {str(e)}"
+            detail="Error interno al validar el token de Google. Intente nuevamente."
         )
     
 
@@ -126,6 +126,35 @@ def verificar_token_recuperacion(token: str) -> str | None:
         if payload.get("type") != "reset":
             return None
             
+        return payload.get("sub")
+    except JWTError:
+        return None
+
+
+def crear_token_verificacion(email: str) -> str:
+    """
+    Genera un JWT de vida media (24h) exclusivo para verificar el correo electrónico.
+    """
+    expire = datetime.now(timezone.utc) + timedelta(minutes=VERIFICATION_TOKEN_EXPIRE_MINUTES)
+    to_encode = {
+        "sub": email,
+        "type": "verify",  # Etiqueta de seguridad para diferenciar de otros tokens
+        "exp": expire
+    }
+    encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+    return encoded_jwt
+
+
+def verificar_token_verificacion(token: str) -> str | None:
+    """
+    Desencripta el token de verificación de correo.
+    Devuelve el correo si es válido y no ha expirado.
+    Devuelve None si es falso, expiró, o no es de tipo 'verify'.
+    """
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if payload.get("type") != "verify":
+            return None
         return payload.get("sub")
     except JWTError:
         return None
