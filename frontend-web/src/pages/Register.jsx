@@ -17,6 +17,7 @@ export default function Register() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
+<<<<<<< HEAD
   const [registroExitoso, setRegistroExitoso] = useState(false)
   const [correoRegistrado, setCorreoRegistrado] = useState('')
   const [reenviando, setReenviando] = useState(false)
@@ -83,6 +84,33 @@ export default function Register() {
     }
     setTimeout(() => setReenviando(false), 3000)
   }
+=======
+  const [successMessage, setSuccessMessage] = useState(null)
+  const nav = useNavigate()
+
+  // VARIABLES DE PALETA CROMÁTICA (Verde Esmeralda & Menta)
+  const colors = {
+    bgMain: '#f4f8f6',
+    bgCard: '#ffffff',
+    textMain: '#1e2925',
+    textMuted: '#62726b',
+    border: '#dbe3e0',
+    accentPrimary: '#10b981', // Verde Esmeralda Base
+    accentHover: '#059669',
+    accentMint: '#0f766e',    // Verde profundo institucional
+    mintBright: '#10b981',    // Menta vibrante
+    bgGradient: 'linear-gradient(135deg, #0f766e 0%, #064e3b 100%)', // Degradado del panel izquierdo
+    bgInput: '#eff4f2',
+    bgError: '#fef2f2',
+    textError: '#991b1b',
+    borderError: '#fca5a5',
+    bgSuccess: '#e6f4ea',     // Fondo verde menta suave para éxito
+    textSuccess: '#065f46',
+    borderSuccess: '#a7f3d0'
+  }
+
+  const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
+>>>>>>> origin/feature/programador_5
 
   const submit = async (e) => {
     e.preventDefault()
@@ -158,6 +186,7 @@ export default function Register() {
     setLoading(true)
     try {
       const payload = { ...form, correo: cleanEmail, id_rol: parseInt(form.id_rol, 10) || 2 }
+<<<<<<< HEAD
       await register(payload)
       
       // Ocultar parcialmente el correo para mostrar
@@ -165,6 +194,17 @@ export default function Register() {
       const oculto = partes[0].substring(0, 2) + '***@' + partes[1]
       setCorreoRegistrado(oculto)
       setRegistroExitoso(true)
+=======
+      
+      const response = await register(payload)
+      const mensajeExito = response?.mensaje || '¡Registro exitoso! Redirigiendo...'
+      setSuccessMessage(mensajeExito)
+      
+      setTimeout(() => {
+        nav('/login')
+      }, 3000)
+
+>>>>>>> origin/feature/programador_5
     } catch (err) {
       setError(err.response?.data?.detail || err.message || 'Error en el registro')
       setLoading(false)
@@ -179,9 +219,15 @@ export default function Register() {
   const inputStyle = {
     width: '100%',
     padding: '12px 16px',
+<<<<<<< HEAD
     borderRadius: '8px',
     border: '1px solid #DBE3E0',
     background: '#F4F8F6',
+=======
+    borderRadius: '10px',
+    border: `1px solid ${colors.border}`,
+    background: colors.bgInput,
+>>>>>>> origin/feature/programador_5
     fontSize: '14px',
     boxSizing: 'border-box',
     outline: 'none',
@@ -197,6 +243,7 @@ export default function Register() {
     marginBottom: '8px'
   }
 
+<<<<<<< HEAD
   // ============ PANTALLA DE VERIFICACIÓN PENDIENTE ============
   if (registroExitoso) {
     return (
@@ -278,6 +325,23 @@ export default function Register() {
     <div style={{
       minHeight: '100vh',
       background: '#F4F8F6',
+=======
+  // Manejadores dinámicos para inputs compartidos
+  const handleFocus = (e) => {
+    e.target.style.borderColor = colors.accentPrimary
+    e.target.style.background = '#ffffff'
+  }
+
+  const handleBlur = (e) => {
+    e.target.style.borderColor = colors.border
+    e.target.style.background = colors.bgInput
+  }
+
+  return (
+    <div style={{
+      minHeight: '100vh',
+      background: colors.bgMain,
+>>>>>>> origin/feature/programador_5
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
@@ -299,8 +363,13 @@ export default function Register() {
         {/* Columna Izquierda - Panel Verde con Degradado Botánico */}
         <div style={{
           flex: 1,
+<<<<<<< HEAD
           background: 'linear-gradient(135deg, #0F766E 0%, #094E48 100%)',
           color: '#fff',
+=======
+          background: colors.bgGradient,
+          color: '#e6f4ea',
+>>>>>>> origin/feature/programador_5
           padding: '60px 40px',
           display: 'flex',
           flexDirection: 'column',
@@ -344,7 +413,11 @@ export default function Register() {
           <h2 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 8px 0', color: colors.textMain }}>
             Registro de Usuario
           </h2>
+<<<<<<< HEAD
           <p style={{ fontSize: '14px', color: '#62726B', margin: '0 0 24px 0' }}>
+=======
+          <p style={{ fontSize: '14px', color: colors.textMuted, margin: '0 0 24px 0' }}>
+>>>>>>> origin/feature/programador_5
             Regístrate utilizando tu dirección de correo institucional.
           </p>
 
@@ -442,7 +515,11 @@ export default function Register() {
                   onFocus={handleFocus}
                   onBlur={handleBlur}
                 />
+<<<<<<< HEAD
                 <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#62726B', display: 'flex', alignItems: 'center', padding: 0 }}>
+=======
+                <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: colors.textMuted, display: 'flex', alignItems: 'center', padding: 0 }}>
+>>>>>>> origin/feature/programador_5
                   {showPassword ? (
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                   ) : (
@@ -499,6 +576,7 @@ export default function Register() {
               </div>
             </div>
 
+<<<<<<< HEAD
             {/* reCAPTCHA */}
             {RECAPTCHA_SITE_KEY && (
               <div style={{ display: 'flex', justifyContent: 'center', margin: '8px 0' }}>
@@ -513,6 +591,9 @@ export default function Register() {
             )}
 
             {/* Botón Guardar / Enviar */}
+=======
+            {/* Botón Principal Esmeralda */}
+>>>>>>> origin/feature/programador_5
             <button
               type="submit"
               disabled={loading}
@@ -521,7 +602,11 @@ export default function Register() {
                 padding: '14px 16px',
                 borderRadius: '10px',
                 border: 'none',
+<<<<<<< HEAD
                 background: '#094E48',
+=======
+                background: colors.accentPrimary,
+>>>>>>> origin/feature/programador_5
                 color: '#fff',
                 fontSize: '15px',
                 fontWeight: '600',
@@ -548,12 +633,22 @@ export default function Register() {
           </form>
 
           <div style={{ display: 'flex', alignItems: 'center', margin: '24px 0', gap: '12px' }}>
+<<<<<<< HEAD
             <div style={{ flex: 1, height: '1px', background: '#DBE3E0' }} />
           </div>
 
           <div style={{ textAlign: 'center', fontSize: '14px', color: '#62726B' }}>
             ¿Ya tienes una cuenta?{' '}
             <Link to="/login" style={{ color: '#0F766E', fontWeight: '600', textDecoration: 'none' }}>
+=======
+            <div style={{ flex: 1, height: '1px', background: colors.border }} />
+          </div>
+
+          {/* Enlace de redirección al Login */}
+          <div style={{ textAlign: 'center', fontSize: '14px', color: colors.textMuted }}>
+            ¿Ya tienes una cuenta?{' '}
+            <Link to="/login" style={{ color: colors.accentPrimary, fontWeight: '600', textDecoration: 'none' }}>
+>>>>>>> origin/feature/programador_5
               Inicia sesión aquí
             </Link>
           </div>
