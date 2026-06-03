@@ -1,9 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { register, reenviarVerificacion } from '../services/api'
-
-// Clave pública de reCAPTCHA v2 (se carga desde variables de entorno de Vite)
-const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || ''
+import { register } from '../services/api'
 
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false)
@@ -17,74 +14,6 @@ export default function Register() {
   })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
-<<<<<<< HEAD
-  const [registroExitoso, setRegistroExitoso] = useState(false)
-  const [correoRegistrado, setCorreoRegistrado] = useState('')
-  const [reenviando, setReenviando] = useState(false)
-  const [recaptchaToken, setRecaptchaToken] = useState('')
-  const recaptchaRef = useRef(null)
-  const nav = useNavigate()
-
-  // Cargar script de reCAPTCHA dinámicamente
-  useEffect(() => {
-    if (RECAPTCHA_SITE_KEY && !window.grecaptcha) {
-      const script = document.createElement('script')
-      script.src = 'https://www.google.com/recaptcha/api.js'
-      script.async = true
-      script.defer = true
-      document.head.appendChild(script)
-    }
-  }, [])
-
-  // Callback global para reCAPTCHA
-  useEffect(() => {
-    window.onRecaptchaSuccess = (token) => setRecaptchaToken(token)
-    window.onRecaptchaExpired = () => setRecaptchaToken('')
-    return () => {
-      delete window.onRecaptchaSuccess
-      delete window.onRecaptchaExpired
-    }
-  }, [])
-
-  // Validación: no permitir números en nombre y apellido, ni espacios en la clave
-  const handleChange = (e) => {
-    const { name, value } = e.target
-    if ((name === 'nombre' || name === 'apellido') && /\d/.test(value)) {
-      return // Ignora la entrada si contiene números
-    }
-    if (name === 'clave' && /\s/.test(value)) {
-      return // Bloquea espacios físicamente al escribir
-    }
-    setForm({ ...form, [name]: value })
-  }
-
-  // Función para validar la fortaleza de la contraseña
-  const getPasswordStrength = (password) => {
-    if (!password) return { level: 0, text: '', color: '#DBE3E0' }
-    let score = 0
-    if (password.length >= 8) score++
-    if (/[A-Z]/.test(password)) score++
-    if (/[a-z]/.test(password)) score++
-    if (/\d/.test(password)) score++
-    if (/[^a-zA-Z0-9]/.test(password)) score++
-    if (score <= 2) return { level: score, text: 'Débil', color: '#ef4444' }
-    if (score <= 4) return { level: score, text: 'Aceptable', color: '#f59e0b' }
-    return { level: 5, text: 'Fuerte', color: '#10b981' }
-  }
-
-  const passwordStrength = getPasswordStrength(form.clave)
-
-  // Reenviar correo de verificación
-  const handleReenviar = async () => {
-    setReenviando(true)
-    try {
-      await reenviarVerificacion({ email: correoRegistrado })
-    } catch (err) {
-      // silencioso
-    }
-    setTimeout(() => setReenviando(false), 3000)
-  }
-=======
   const [successMessage, setSuccessMessage] = useState(null)
   const nav = useNavigate()
 
@@ -110,7 +39,6 @@ export default function Register() {
   }
 
   const handleChange = (e) => setForm({ ...form, [e.target.name]: e.target.value })
->>>>>>> origin/feature/programador_5
 
   const submit = async (e) => {
     e.preventDefault()
@@ -122,79 +50,15 @@ export default function Register() {
       return
     }
 
-    // Validación: no permitir números en nombre y apellido
-    if (/\d/.test(form.nombre) || /\d/.test(form.apellido)) {
-      setError('El nombre y apellido no pueden contener números.')
-      return
-    }
-
-    // Validación: edad mínima 18 años
-    const fechaNac = new Date(form.fecha_nacimiento)
-    const hoy = new Date()
-    let edad = hoy.getFullYear() - fechaNac.getFullYear()
-    const mesDiff = hoy.getMonth() - fechaNac.getMonth()
-    if (mesDiff < 0 || (mesDiff === 0 && hoy.getDate() < fechaNac.getDate())) {
-      edad--
-    }
-    if (edad < 18) {
-      setError('Debes tener al menos 18 años para crear una cuenta.')
-      return
-    }
-
-    // Validación: contraseña segura
-    if (form.clave.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres.')
-      return
-    }
-    if (/\s/.test(form.clave)) {
-      setError('La contraseña no puede contener espacios.')
-      return
-    }
-    if (!/[A-Z]/.test(form.clave)) {
-      setError('La contraseña debe contener al menos una letra mayúscula.')
-      return
-    }
-    if (!/[a-z]/.test(form.clave)) {
-      setError('La contraseña debe contener al menos una letra minúscula.')
-      return
-    }
-    if (!/\d/.test(form.clave)) {
-      setError('La contraseña debe contener al menos un número.')
-      return
-    }
-    if (!/[^a-zA-Z0-9]/.test(form.clave)) {
-      setError('La contraseña debe contener al menos un carácter especial.')
-      return
-    }
-    if (form.clave.toLowerCase().includes('usuario')) {
-      setError("La contraseña no puede contener la palabra 'usuario'.")
-      return
-    }
-
     const cleanEmail = form.correo.trim().toLowerCase()
     if (!cleanEmail.endsWith('@unl.edu.ec')) {
       setError('El correo debe pertenecer al dominio @unl.edu.ec')
       return
     }
 
-    // Validar reCAPTCHA si está configurado
-    if (RECAPTCHA_SITE_KEY && !recaptchaToken) {
-      setError('Por favor, completa el captcha de seguridad.')
-      return
-    }
-
     setLoading(true)
     try {
       const payload = { ...form, correo: cleanEmail, id_rol: parseInt(form.id_rol, 10) || 2 }
-<<<<<<< HEAD
-      await register(payload)
-      
-      // Ocultar parcialmente el correo para mostrar
-      const partes = cleanEmail.split('@')
-      const oculto = partes[0].substring(0, 2) + '***@' + partes[1]
-      setCorreoRegistrado(oculto)
-      setRegistroExitoso(true)
-=======
       
       const response = await register(payload)
       const mensajeExito = response?.mensaje || '¡Registro exitoso! Redirigiendo...'
@@ -204,30 +68,18 @@ export default function Register() {
         nav('/login')
       }, 3000)
 
->>>>>>> origin/feature/programador_5
     } catch (err) {
       setError(err.response?.data?.detail || err.message || 'Error en el registro')
       setLoading(false)
-      // Reset reCAPTCHA
-      if (window.grecaptcha) {
-        window.grecaptcha.reset()
-        setRecaptchaToken('')
-      }
     }
   }
 
   const inputStyle = {
     width: '100%',
     padding: '12px 16px',
-<<<<<<< HEAD
-    borderRadius: '8px',
-    border: '1px solid #DBE3E0',
-    background: '#F4F8F6',
-=======
     borderRadius: '10px',
     border: `1px solid ${colors.border}`,
     background: colors.bgInput,
->>>>>>> origin/feature/programador_5
     fontSize: '14px',
     boxSizing: 'border-box',
     outline: 'none',
@@ -243,89 +95,6 @@ export default function Register() {
     marginBottom: '8px'
   }
 
-<<<<<<< HEAD
-  // ============ PANTALLA DE VERIFICACIÓN PENDIENTE ============
-  if (registroExitoso) {
-    return (
-      <div style={{
-        minHeight: '100vh',
-        background: '#F4F8F6',
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        padding: '20px'
-      }}>
-        <div style={{
-          maxWidth: '480px',
-          width: '100%',
-          background: '#fff',
-          borderRadius: '16px',
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)',
-          padding: '60px 40px',
-          textAlign: 'center'
-        }}>
-          <div style={{
-            width: '80px', height: '80px',
-            background: 'linear-gradient(135deg, #fef3c7, #fde68a)',
-            borderRadius: '50%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 24px auto',
-            border: '3px solid #f59e0b'
-          }}>
-            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#d97706" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-              <polyline points="22,6 12,13 2,6"></polyline>
-            </svg>
-          </div>
-
-          <h2 style={{ fontSize: '22px', fontWeight: '700', color: '#1a1a1a', margin: '0 0 12px 0' }}>
-            Debes verificar tu correo electrónico antes de iniciar sesión.
-          </h2>
-          
-          <p style={{ fontSize: '14px', color: '#62726B', lineHeight: '1.6', margin: '0 0 8px 0' }}>
-            Revisa tu bandeja de entrada en <strong style={{ color: '#92400e' }}>{correoRegistrado}</strong>
-          </p>
-          
-          <p style={{ fontSize: '13px', color: '#62726B', marginBottom: '32px' }}>
-            Haz clic en el enlace de verificación que te enviamos para activar tu cuenta.
-          </p>
-
-          <button
-            onClick={handleReenviar}
-            disabled={reenviando}
-            style={{
-              width: '100%',
-              padding: '14px 16px',
-              borderRadius: '8px',
-              border: '2px solid #f59e0b',
-              background: reenviando ? '#fef3c7' : '#fff',
-              color: '#92400e',
-              fontSize: '15px',
-              fontWeight: '600',
-              cursor: reenviando ? 'not-allowed' : 'pointer',
-              marginBottom: '16px',
-              transition: 'all 0.2s'
-            }}
-          >
-            {reenviando ? '✓ Correo reenviado' : 'Reenviar email de verificación'}
-          </button>
-
-          <div style={{ fontSize: '14px', color: '#62726B' }}>
-            <Link to="/login" style={{ color: '#0F766E', fontWeight: '600', textDecoration: 'none' }}>
-              ← Volver al inicio de sesión
-            </Link>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // ============ FORMULARIO DE REGISTRO ============
-  return (
-    <div style={{
-      minHeight: '100vh',
-      background: '#F4F8F6',
-=======
   // Manejadores dinámicos para inputs compartidos
   const handleFocus = (e) => {
     e.target.style.borderColor = colors.accentPrimary
@@ -341,7 +110,6 @@ export default function Register() {
     <div style={{
       minHeight: '100vh',
       background: colors.bgMain,
->>>>>>> origin/feature/programador_5
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
@@ -363,13 +131,8 @@ export default function Register() {
         {/* Columna Izquierda - Panel Verde con Degradado Botánico */}
         <div style={{
           flex: 1,
-<<<<<<< HEAD
-          background: 'linear-gradient(135deg, #0F766E 0%, #094E48 100%)',
-          color: '#fff',
-=======
           background: colors.bgGradient,
           color: '#e6f4ea',
->>>>>>> origin/feature/programador_5
           padding: '60px 40px',
           display: 'flex',
           flexDirection: 'column',
@@ -413,11 +176,7 @@ export default function Register() {
           <h2 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 8px 0', color: colors.textMain }}>
             Registro de Usuario
           </h2>
-<<<<<<< HEAD
-          <p style={{ fontSize: '14px', color: '#62726B', margin: '0 0 24px 0' }}>
-=======
           <p style={{ fontSize: '14px', color: colors.textMuted, margin: '0 0 24px 0' }}>
->>>>>>> origin/feature/programador_5
             Regístrate utilizando tu dirección de correo institucional.
           </p>
 
@@ -515,11 +274,7 @@ export default function Register() {
                   onFocus={handleFocus}
                   onBlur={handleBlur}
                 />
-<<<<<<< HEAD
-                <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#62726B', display: 'flex', alignItems: 'center', padding: 0 }}>
-=======
                 <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: colors.textMuted, display: 'flex', alignItems: 'center', padding: 0 }}>
->>>>>>> origin/feature/programador_5
                   {showPassword ? (
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                   ) : (
@@ -527,20 +282,6 @@ export default function Register() {
                   )}
                 </button>
               </div>
-              {/* Indicador de fortaleza de contraseña */}
-              {form.clave && (
-                <div style={{ marginTop: '8px' }}>
-                  <div style={{ display: 'flex', gap: '4px', marginBottom: '4px' }}>
-                    {[1, 2, 3, 4, 5].map(i => (
-                      <div key={i} style={{ flex: 1, height: '3px', borderRadius: '2px', background: i <= passwordStrength.level ? passwordStrength.color : '#DBE3E0', transition: 'background 0.3s' }} />
-                    ))}
-                  </div>
-                  <span style={{ fontSize: '11px', fontWeight: '600', color: passwordStrength.color }}>{passwordStrength.text}</span>
-                </div>
-              )}
-              <p style={{ fontSize: '11px', color: '#62726B', margin: '6px 0 0 0' }}>
-                Mín. 8 caracteres, mayúscula, minúscula, número y especial. Sin espacios.
-              </p>
             </div>
 
             <div style={{ display: 'flex', gap: '16px' }}>
@@ -551,13 +292,11 @@ export default function Register() {
                   name="fecha_nacimiento"
                   value={form.fecha_nacimiento}
                   onChange={handleChange}
-                  max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
                   style={inputStyle}
                   disabled={loading}
                   onFocus={handleFocus}
                   onBlur={handleBlur}
                 />
-                <p style={{ fontSize: '11px', color: '#62726B', margin: '4px 0 0 0' }}>Debes ser mayor de 18 años.</p>
               </div>
               <div style={{ flex: 1 }}>
                 <label style={labelStyle}>Rol del Sistema</label>
@@ -576,24 +315,7 @@ export default function Register() {
               </div>
             </div>
 
-<<<<<<< HEAD
-            {/* reCAPTCHA */}
-            {RECAPTCHA_SITE_KEY && (
-              <div style={{ display: 'flex', justifyContent: 'center', margin: '8px 0' }}>
-                <div
-                  className="g-recaptcha"
-                  data-sitekey={RECAPTCHA_SITE_KEY}
-                  data-callback="onRecaptchaSuccess"
-                  data-expired-callback="onRecaptchaExpired"
-                  ref={recaptchaRef}
-                ></div>
-              </div>
-            )}
-
-            {/* Botón Guardar / Enviar */}
-=======
             {/* Botón Principal Esmeralda */}
->>>>>>> origin/feature/programador_5
             <button
               type="submit"
               disabled={loading}
@@ -602,11 +324,7 @@ export default function Register() {
                 padding: '14px 16px',
                 borderRadius: '10px',
                 border: 'none',
-<<<<<<< HEAD
-                background: '#094E48',
-=======
                 background: colors.accentPrimary,
->>>>>>> origin/feature/programador_5
                 color: '#fff',
                 fontSize: '15px',
                 fontWeight: '600',
@@ -633,14 +351,6 @@ export default function Register() {
           </form>
 
           <div style={{ display: 'flex', alignItems: 'center', margin: '24px 0', gap: '12px' }}>
-<<<<<<< HEAD
-            <div style={{ flex: 1, height: '1px', background: '#DBE3E0' }} />
-          </div>
-
-          <div style={{ textAlign: 'center', fontSize: '14px', color: '#62726B' }}>
-            ¿Ya tienes una cuenta?{' '}
-            <Link to="/login" style={{ color: '#0F766E', fontWeight: '600', textDecoration: 'none' }}>
-=======
             <div style={{ flex: 1, height: '1px', background: colors.border }} />
           </div>
 
@@ -648,7 +358,6 @@ export default function Register() {
           <div style={{ textAlign: 'center', fontSize: '14px', color: colors.textMuted }}>
             ¿Ya tienes una cuenta?{' '}
             <Link to="/login" style={{ color: colors.accentPrimary, fontWeight: '600', textDecoration: 'none' }}>
->>>>>>> origin/feature/programador_5
               Inicia sesión aquí
             </Link>
           </div>
