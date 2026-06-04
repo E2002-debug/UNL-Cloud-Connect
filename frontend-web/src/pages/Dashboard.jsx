@@ -74,31 +74,29 @@ export default function Dashboard() {
   const [weatherError, setWeatherError] = useState('')
 
   useEffect(() => {
-    if (activeTab === 'Clima') {
-      const apiKey = import.meta.env.VITE_WEATHER_API_KEY || 'KKFVURM9AN'
-      if (!apiKey) {
-        setWeatherError('No se ha configurado la clave de API del clima. Por favor, solicite al administrador que la configure.')
-        return
-      }
-
-      setLoadingWeather(true)
-      setWeatherError('')
-      
-      fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/Loja,Ecuador?unitGroup=metric&key=${apiKey}&contentType=json`)
-        .then(res => {
-          if (!res.ok) throw new Error('Error al obtener los datos del clima. Verifica la clave de API.')
-          return res.json()
-        })
-        .then(data => {
-          setWeatherData(data)
-          setLoadingWeather(false)
-        })
-        .catch(err => {
-          setWeatherError(err.message)
-          setLoadingWeather(false)
-        })
+    const apiKey = import.meta.env.VITE_WEATHER_API_KEY || 'KKFVURM9AN'
+    if (!apiKey) {
+      setWeatherError('No se ha configurado la clave de API del clima. Por favor, solicite al administrador que la configure.')
+      return
     }
-  }, [activeTab])
+
+    setLoadingWeather(true)
+    setWeatherError('')
+    
+    fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/Loja,Ecuador?unitGroup=metric&key=${apiKey}&contentType=json`)
+      .then(res => {
+        if (!res.ok) throw new Error('Error al obtener los datos del clima. Verifica la clave de API.')
+        return res.json()
+      })
+      .then(data => {
+        setWeatherData(data)
+        setLoadingWeather(false)
+      })
+      .catch(err => {
+        setWeatherError(err.message)
+        setLoadingWeather(false)
+      })
+  }, [])
 
   useEffect(() => {
     const nombre = localStorage.getItem('nombre')
@@ -408,7 +406,12 @@ export default function Dashboard() {
           <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>CLIMA UNL LOJA</div>
-              <div style={{ fontSize: '16px', fontWeight: '800', color: 'var(--text-main)' }}>15.2°C <span style={{ fontSize: '12px', color: '#10b981', fontWeight: '600' }}>estable</span></div>
+              <div style={{ fontSize: '16px', fontWeight: '800', color: 'var(--text-main)' }}>
+                {loadingWeather ? '...' : weatherError ? 'Err' : weatherData ? `${weatherData.currentConditions?.temp}°C` : '15.2°C'}
+                <span style={{ fontSize: '12px', color: '#10b981', fontWeight: '600', marginLeft: '4px', textTransform: 'lowercase' }}>
+                  {loadingWeather || weatherError || !weatherData ? 'estable' : weatherData.currentConditions?.conditions?.split(',')[0]}
+                </span>
+              </div>
             </div>
             <div style={{ width: '1px', height: '30px', background: 'var(--border)' }}></div>
             <div style={{ textAlign: 'right' }}>
