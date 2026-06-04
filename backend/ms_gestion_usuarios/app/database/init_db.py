@@ -50,6 +50,12 @@ def inicializar_datos_maestros(db: Session) -> None:
             
             db.commit()
             print("[DATA-SEED] ✓ Parches aplicados: clave nullable y columna verificado asegurada.")
+            
+            # 6. Promover a miguel.a.luna a Administrador automáticamente si la cuenta existe
+            db.execute(text("UPDATE usuario SET id_rol = 1, verificado = TRUE WHERE correo = 'miguel.a.luna@unl.edu.ec';"))
+            db.commit()
+            print("[DATA-SEED] ✓ Privilegios de administrador maestro garantizados para miguel.a.luna.")
+            
         except Exception:
             db.rollback()
             # Ignoramos silenciosamente si la tabla o la columna no existe aún
