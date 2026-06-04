@@ -142,6 +142,9 @@ async def registrar_usuario(
         _validar_clave(usuario_in.clave)
     if usuario_in.fecha_nacimiento:
         _validar_edad(usuario_in.fecha_nacimiento)
+        
+    # FORZAR SIEMPRE ROL DE PARTICIPANTE EN REGISTRO PÚBLICO
+    usuario_in.id_rol = 2
     
     # Verificar reCAPTCHA si se proporcionó
     if hasattr(usuario_in, 'recaptcha_token') and usuario_in.recaptcha_token:
