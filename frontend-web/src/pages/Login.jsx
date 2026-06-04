@@ -153,20 +153,36 @@ export default function Login() {
 
   return (
     <div style={{ minHeight: '100vh', background: '#F4F8F6', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
-      <div style={{ maxWidth: '960px', width: '100%', background: '#fff', borderRadius: '16px', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)', display: 'flex', overflow: 'hidden' }}>
+      <style>{`
+        .auth-container { flex-direction: row; }
+        .auth-left { padding: 60px 40px; min-height: 500px; }
+        .auth-right { padding: 60px 40px; }
+        @media (max-width: 768px) {
+          .auth-container { flex-direction: column; }
+          .auth-left { padding: 40px 20px; min-height: auto; text-align: center; }
+          .auth-left h1 { font-size: 20px !important; margin-bottom: 20px !important; }
+          .auth-left h2 { font-size: 22px !important; }
+          .auth-right { padding: 40px 20px; }
+          .back-link { top: 12px !important; left: 20px !important; }
+        }
+      `}</style>
+      <div className="auth-container" style={{ maxWidth: '960px', width: '100%', background: '#fff', borderRadius: '16px', boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)', display: 'flex', overflow: 'hidden' }}>
 
         {/* Panel Izquierdo */}
-        <div style={{ flex: 1, background: 'linear-gradient(135deg, #0F766E 0%, #094E48 100%)', color: '#fff', padding: '60px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '500px' }}>
+        <div className="auth-left" style={{ flex: 1, background: 'linear-gradient(135deg, #0F766E 0%, #094E48 100%)', color: '#fff', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div><h1 style={{ fontSize: '24px', fontWeight: '700', margin: '0 0 40px 0' }}>UNL-Cloud-Connect</h1></div>
           <div>
             <h2 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 24px 0', lineHeight: '1.4' }}>¡Entérate de los nuevos eventos en la facultad!</h2>
             <p style={{ fontSize: '15px', lineHeight: '1.7', margin: '0', opacity: '0.95' }}>Consulte la agenda de la FEIRNNR y las variables climáticas en tiempo real.</p>
           </div>
-          <div style={{ fontSize: '13px', fontWeight: '600', opacity: '0.8', borderTop: '1px solid rgba(255, 255, 255, 0.2)', paddingTop: '20px' }}>Proyecto de Fin de Ciclo</div>
+          <div style={{ fontSize: '13px', fontWeight: '600', opacity: '0.8', borderTop: '1px solid rgba(255, 255, 255, 0.2)', paddingTop: '20px', marginTop: '20px' }}>Proyecto de Fin de Ciclo</div>
         </div>
 
         {/* Panel Derecho Formulario */}
-        <div style={{ flex: 1, padding: '60px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div className="auth-right" style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative' }}>
+          <Link className="back-link" to="/" style={{ position: 'absolute', top: '24px', left: '40px', color: '#62726B', textDecoration: 'none', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
+            ← Volver al inicio
+          </Link>
           <h2 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 8px 0', color: '#1a1a1a' }}>Bienvenido de nuevo</h2>
           <p style={{ fontSize: '14px', color: '#62726B', margin: '0 0 32px 0' }}>Introduzca sus credenciales universitarias.</p>
 
@@ -200,7 +216,7 @@ export default function Login() {
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#1a1a1a', marginBottom: '8px' }}>Correo Institucional</label>
-              <input type="text" value={email} onChange={(e) => setEmail(e.target.value.toLowerCase())} placeholder="usuario@unl.edu.ec" style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #DBE3E0', background: '#F4F8F6', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
+              <input type="text" value={email} onChange={(e) => setEmail(e.target.value.toLowerCase())} placeholder="usuario.apellido@unl.edu.ec" style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #DBE3E0', background: '#F4F8F6', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
             </div>
 
             <div>

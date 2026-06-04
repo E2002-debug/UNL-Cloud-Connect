@@ -329,8 +329,23 @@ export default function Register() {
       alignItems: 'center',
       padding: '20px'
     }}>
+      <style>{`
+        .auth-container { flex-direction: row; }
+        .auth-left { padding: 60px 40px; min-height: 550px; }
+        .auth-right { padding: 40px 40px; }
+        .input-row { flex-direction: row; }
+        @media (max-width: 768px) {
+          .auth-container { flex-direction: column; }
+          .auth-left { padding: 40px 20px; min-height: auto; text-align: center; }
+          .auth-left h1 { font-size: 20px !important; margin-bottom: 20px !important; }
+          .auth-left h2 { font-size: 22px !important; }
+          .auth-right { padding: 40px 20px; }
+          .back-link { top: 12px !important; left: 20px !important; }
+          .input-row { flex-direction: column; gap: 16px !important; }
+        }
+      `}</style>
       {/* Card Principal - Doble Columna Uniforme */}
-      <div style={{
+      <div className="auth-container" style={{
         maxWidth: '960px',
         width: '100%',
         background: '#fff',
@@ -341,15 +356,13 @@ export default function Register() {
       }}>
 
         {/* Columna Izquierda - Panel Azul Coherente */}
-        <div style={{
+        <div className="auth-left" style={{
           flex: 1,
           background: 'linear-gradient(135deg, #0F766E 0%, #094E48 100%)',
           color: '#fff',
-          padding: '60px 40px',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'space-between',
-          minHeight: '550px'
+          justifyContent: 'space-between'
         }}>
           <div>
             <h1 style={{ fontSize: '24px', fontWeight: '700', margin: '0 0 40px 0' }}>UNL-Cloud-Connect</h1>
@@ -369,20 +382,24 @@ export default function Register() {
             fontWeight: '600',
             opacity: '0.8',
             borderTop: '1px solid rgba(255, 255, 255, 0.2)',
-            paddingTop: '20px'
+            paddingTop: '20px',
+            marginTop: '20px'
           }}>
             Proyecto de Fin de Ciclo - Prototipo
           </div>
         </div>
 
         {/* Columna Derecha - Formulario Adaptado */}
-        <div style={{
+        <div className="auth-right" style={{
           flex: 1,
-          padding: '40px 40px',
           display: 'flex',
           flexDirection: 'column',
-          justifyContent: 'center'
+          justifyContent: 'center',
+          position: 'relative'
         }}>
+          <Link className="back-link" to="/login" style={{ position: 'absolute', top: '24px', left: '40px', color: '#62726B', textDecoration: 'none', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '4px', fontWeight: '600' }}>
+            ← Volver a Iniciar Sesión
+          </Link>
           <h2 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 8px 0', color: '#1a1a1a' }}>
             Registro de Usuario
           </h2>
@@ -407,7 +424,7 @@ export default function Register() {
           <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
 
             {/* Fila: Nombre y Apellido */}
-            <div style={{ display: 'flex', gap: '16px' }}>
+            <div className="input-row" style={{ display: 'flex', gap: '16px' }}>
               <div style={{ flex: 1 }}>
                 <label style={labelStyle}>Nombre</label>
                 <input
@@ -440,7 +457,7 @@ export default function Register() {
                 name="correo"
                 value={form.correo}
                 onChange={handleChange}
-                placeholder="usuario@unl.edu.ec"
+                placeholder="usuario.apellido@unl.edu.ec"
                 style={inputStyle}
               />
             </div>
