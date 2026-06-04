@@ -74,7 +74,7 @@ export default function Dashboard() {
   const [weatherError, setWeatherError] = useState('')
 
   useEffect(() => {
-    const apiKey = import.meta.env.VITE_WEATHER_API_KEY || 'KKFVURM9AN'
+    const apiKey = import.meta.env.VITE_WEATHER_API_KEY
     if (!apiKey) {
       setWeatherError('No se ha configurado la clave de API del clima. Por favor, solicite al administrador que la configure.')
       return
