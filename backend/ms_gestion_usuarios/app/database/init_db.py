@@ -50,29 +50,7 @@ def inicializar_datos_maestros(db: Session) -> None:
             
             db.commit()
             print("[DATA-SEED] ✓ Parches aplicados: clave nullable y columna verificado asegurada.")
-            # 6. Promover a miguel.a.luna a Administrador o crearlo si no existe
-            from app.models.usuario import Usuario
-            from app.core.security import obtener_hash_clave
-            
-            miguel = db.query(Usuario).filter(Usuario.correo == 'miguel.a.luna@unl.edu.ec').first()
-            if not miguel:
-                miguel_nuevo = Usuario(
-                    nombre="Miguel",
-                    apellido="Luna",
-                    correo="miguel.a.luna@unl.edu.ec",
-                    clave=obtener_hash_clave("Admin.12345*"),
-                    id_rol=1,
-                    verificado=True
-                )
-                db.add(miguel_nuevo)
-                db.commit()
-                print("[DATA-SEED] ✓ Cuenta miguel.a.luna creada como Administrador con clave: Admin.12345*")
-            else:
-                miguel.id_rol = 1
-                miguel.verificado = True
-                db.commit()
-                print("[DATA-SEED] ✓ Privilegios de administrador garantizados para miguel.a.luna.")
-            
+
         except Exception:
             db.rollback()
             # Ignoramos silenciosamente si la tabla o la columna no existe aún

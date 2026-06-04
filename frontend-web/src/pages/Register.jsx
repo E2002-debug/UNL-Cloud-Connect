@@ -105,7 +105,7 @@ export default function Register() {
       return
     }
 
-    // Validación: edad mínima 18 años
+    // Validación: edad entre 17 y 60 años
     const fechaNac = new Date(form.fecha_nacimiento)
     const hoy = new Date()
     let edad = hoy.getFullYear() - fechaNac.getFullYear()
@@ -113,8 +113,8 @@ export default function Register() {
     if (mesDiff < 0 || (mesDiff === 0 && hoy.getDate() < fechaNac.getDate())) {
       edad--
     }
-    if (edad < 18) {
-      const msg = 'Debes tener al menos 18 años para crear una cuenta.'
+    if (edad < 17 || edad > 60) {
+      const msg = 'Debes tener entre 17 y 60 años para crear una cuenta.'
       setError(msg)
       toast.error(msg)
       return
@@ -476,7 +476,7 @@ export default function Register() {
                 max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
                 style={inputStyle}
               />
-              <p style={{ fontSize: '11px', color: '#62726B', margin: '4px 0 0 0' }}>Debes ser mayor de 18 años.</p>
+              <p style={{ fontSize: '11px', color: '#62726B', margin: '4px 0 0 0' }}>Debes tener entre 17 y 60 años.</p>
             </div>
 
             {/* reCAPTCHA */}

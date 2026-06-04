@@ -81,15 +81,16 @@ def _validar_clave(clave: str):
         )
 
 def _validar_edad(fecha_nacimiento):
-    """Valida que el usuario tenga al menos 18 años."""
+    """Valida que el usuario tenga entre 17 y 60 años."""
     if fecha_nacimiento:
         from datetime import date
         hoy = date.today()
         edad = hoy.year - fecha_nacimiento.year - ((hoy.month, hoy.day) < (fecha_nacimiento.month, fecha_nacimiento.day))
-        if edad < 18:
+        
+        if edad < 17 or edad > 60:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Debes tener al menos 18 años para registrarte."
+                detail="Debes tener entre 17 y 60 años para registrarte."
             )
 
 async def _verificar_recaptcha(token: str):
