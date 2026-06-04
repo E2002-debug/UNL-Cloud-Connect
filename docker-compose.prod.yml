@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  # Sobrescribir la configuración del Frontend para producción HTTPS
+  frontend-web:
+    build:
+      context: ./frontend-web
+      dockerfile: Dockerfile.prod
+      args:
+        VITE_API_BASE: /api
+        VITE_GOOGLE_CLIENT_ID: 883175682519-tv0t5ndf3185sdimdjd6ro9hack12m7r.apps.googleusercontent.com
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      # Montar los certificados generados por Certbot en la VM hacia el contenedor
+      - /etc/letsencrypt:/etc/letsencrypt:ro
