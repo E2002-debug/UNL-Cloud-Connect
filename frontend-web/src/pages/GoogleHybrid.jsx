@@ -38,7 +38,7 @@ export default function GoogleHybrid({ mode = 'google-register' }) {
 
     // Solo validamos la clave si estamos en registro-hibrido o si el usuario ingresó una
     if (form.clave) {
-      if (form.clave.length < 8) return setError('La contraseña debe tener al menos 8 caracteres.')
+      if (form.clave.length < 8 || form.clave.length > 12) return setError('La contraseña debe tener entre 8 y 12 caracteres.')
       if (/\s/.test(form.clave)) return setError('La contraseña no puede contener espacios.')
       if (!/[A-Z]/.test(form.clave)) return setError('La contraseña debe contener al menos una letra mayúscula.')
       if (!/[a-z]/.test(form.clave)) return setError('La contraseña debe contener al menos una letra minúscula.')
@@ -70,7 +70,7 @@ export default function GoogleHybrid({ mode = 'google-register' }) {
         <Input label="Nombre" name="nombre" value={form.nombre} onChange={handleChange} readOnly={readOnly} />
         <Input label="Apellido" name="apellido" value={form.apellido} onChange={handleChange} readOnly={readOnly} />
         <Input label="Correo" name="correo" value={form.correo} onChange={handleChange} readOnly={readOnly} />
-        <Input label="Clave" type="password" name="clave" value={form.clave} onChange={handleChange} />
+        <Input label="Clave" type="password" name="clave" value={form.clave} onChange={handleChange} maxLength={12} />
         <Input label="Fecha de nacimiento" type="date" name="fecha_nacimiento" value={form.fecha_nacimiento} onChange={handleChange} />
 
         <div className="flex justify-end mt-4">

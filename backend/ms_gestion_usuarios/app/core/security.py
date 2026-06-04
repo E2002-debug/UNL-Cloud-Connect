@@ -158,3 +158,29 @@ def verificar_token_verificacion(token: str) -> str | None:
         return payload.get("sub")
     except JWTError:
         return None
+
+def crear_token_verificacion_datos(user_data: dict) -> str:
+    """
+    Genera un JWT de verificación que contiene los datos completos de registro.
+    Así no se guarda el usuario en BD hasta verificar el correo.
+    """
+    expire = datetime.now(timezone.utc) + timedelta(minutes=VERIFICATION_TOKEN_EXPIRE_MINUTES)
+    to_encode = {
+        "sub": user_data["correo"],
+        "user_data": user_data,
+        "type": "verify_and_create",
+        "exp": expire
+    }
+    return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)
+
+def verificar_token_verificacion_datos(token: str) -> dict | None:
+    """
+    Desencripta el token y extrae los datos de registro del usuario.
+    """
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        if payload.get("type") != "verify_and_create":
+            return None
+        return payload.get("user_data")
+    except JWTError:
+        return None

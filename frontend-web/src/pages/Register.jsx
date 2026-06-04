@@ -121,8 +121,8 @@ export default function Register() {
     }
 
     // Validación: contraseña segura
-    if (form.clave.length < 8) {
-      const msg = 'La contraseña debe tener al menos 8 caracteres.'
+    if (form.clave.length < 8 || form.clave.length > 12) {
+      const msg = 'La contraseña debe tener entre 8 y 12 caracteres.'
       setError(msg)
       toast.error(msg)
       return
@@ -438,6 +438,7 @@ export default function Register() {
                   value={form.clave}
                   onChange={handleChange}
                   placeholder="••••••••"
+                  maxLength={12}
                   style={{ ...inputStyle, paddingRight: '40px' }}
                 />
                 <button type="button" onClick={() => setShowPassword(!showPassword)} style={{ position: 'absolute', right: '12px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#62726B', display: 'flex', alignItems: 'center', padding: 0 }}>
@@ -460,7 +461,7 @@ export default function Register() {
                 </div>
               )}
               <p style={{ fontSize: '11px', color: '#62726B', margin: '6px 0 0 0' }}>
-                Mín. 8 caracteres, mayúscula, minúscula, número y especial. Sin espacios.
+                Entre 8 y 12 caracteres, mayúscula, minúscula, número y especial. Sin espacios.
               </p>
             </div>
 

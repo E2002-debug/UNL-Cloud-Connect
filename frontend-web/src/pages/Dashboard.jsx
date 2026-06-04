@@ -56,6 +56,7 @@ export default function Dashboard() {
   const [profileEditMode, setProfileEditMode] = useState(false)
   const [profileData, setProfileData] = useState({ nombre: '', apellido: '', clave: '' })
   const [profileSaving, setProfileSaving] = useState(false)
+  const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, type: '', payload: null, message: '' })
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -117,8 +118,29 @@ export default function Dashboard() {
     window.location.href = '/login?logout=true'
   }
 
-  const handleDeleteUser = async (id) => {
-    if (window.confirm('¿Estás seguro de que deseas eliminar este usuario de forma permanente?')) {
+  const handleDeleteUser = (id) => {
+    setConfirmDialog({
+      isOpen: true,
+      type: 'DELETE',
+      payload: id,
+      message: '¿Estás seguro de que deseas eliminar este usuario de forma permanente?'
+    })
+  }
+
+  const handleToggleRole = (u) => {
+    const newRole = u.id_rol === 1 ? 2 : 1
+    const roleName = newRole === 1 ? 'Administrador' : 'Participante'
+    setConfirmDialog({
+      isOpen: true,
+      type: 'ROLE',
+      payload: { user: u, newRole, roleName },
+      message: `¿Cambiar rol de ${u.nombre} a ${roleName}?`
+    })
+  }
+
+  const executeConfirmAction = async () => {
+    if (confirmDialog.type === 'DELETE') {
+      const id = confirmDialog.payload
       try {
         await deleteUser(id)
         setUsuarios(usuarios.filter(u => u.id_usuario !== id))
@@ -126,21 +148,17 @@ export default function Dashboard() {
       } catch (err) {
         addNotification('error', 'ERROR AL ELIMINAR', err.response?.data?.detail || err.message)
       }
-    }
-  }
-
-  const handleToggleRole = async (u) => {
-    const newRole = u.id_rol === 1 ? 2 : 1
-    const roleName = newRole === 1 ? 'Administrador' : 'Participante'
-    if (window.confirm(`¿Cambiar rol de ${u.nombre} a ${roleName}?`)) {
+    } else if (confirmDialog.type === 'ROLE') {
+      const { user, newRole, roleName } = confirmDialog.payload
       try {
-        const res = await updateUser(u.id_usuario, { id_rol: newRole })
-        setUsuarios(usuarios.map(user => user.id_usuario === u.id_usuario ? res.data : user))
-        addNotification('info', 'ROL ACTUALIZADO', `Ahora ${u.nombre} es ${roleName}.`)
+        const res = await updateUser(user.id_usuario, { id_rol: newRole })
+        setUsuarios(usuarios.map(u => u.id_usuario === user.id_usuario ? res.data : u))
+        addNotification('info', 'ROL ACTUALIZADO', `Ahora ${user.nombre} es ${roleName}.`)
       } catch (err) {
         addNotification('error', 'ERROR AL ACTUALIZAR', err.response?.data?.detail || err.message)
       }
     }
+    setConfirmDialog({ isOpen: false, type: '', payload: null, message: '' })
   }
 
   // ---- Funciones del Modal CRUD ----
@@ -804,7 +822,7 @@ export default function Dashboard() {
                 {profileEditMode && (
                   <div>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>Nueva Contraseña (Opcional)</label>
-                    <input type="password" value={profileData.clave} onChange={e => setProfileData({ ...profileData, clave: e.target.value })} placeholder="Ingresa una nueva contraseña si deseas cambiarla" minLength={8} style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid var(--primary)', background: 'var(--bg-card)', color: 'var(--text-main)', fontSize: '14px', boxSizing: 'border-box' }} />
+                    <input type="password" value={profileData.clave} onChange={e => setProfileData({ ...profileData, clave: e.target.value })} placeholder="Ingresa una nueva contraseña si deseas cambiarla" minLength={8} maxLength={12} style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid var(--primary)', background: 'var(--bg-card)', color: 'var(--text-main)', fontSize: '14px', boxSizing: 'border-box' }} />
                   </div>
                 )}
 
@@ -894,7 +912,7 @@ export default function Dashboard() {
                 {modalMode === 'create' && (
                   <div style={{ marginBottom: '16px' }}>
                     <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)', marginBottom: '6px' }}>Contraseña</label>
-                    <input required minLength={8} type="password" value={formData.clave} onChange={e => setFormData({ ...formData, clave: e.target.value })} placeholder="Mínimo 8 caracteres" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }} />
+                    <input required minLength={8} maxLength={12} type="password" value={formData.clave} onChange={e => setFormData({ ...formData, clave: e.target.value })} placeholder="Entre 8 y 12 caracteres" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box' }} />
                   </div>
                 )}
 
@@ -917,6 +935,28 @@ export default function Dashboard() {
               </form>
             </div>
 
+          </div>
+        </div>
+      )}
+
+      {/* CONFIRM DIALOG */}
+      {confirmDialog.isOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(15, 23, 42, 0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--text-inverse)', width: '100%', maxWidth: '400px', borderRadius: '12px', overflow: 'hidden', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }}>
+            <div style={{ background: 'var(--bg-app)', padding: '16px 24px', borderBottom: '1px solid #DBE3E0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '700', color: 'var(--text-main)' }}>Confirmar Acción</h3>
+            </div>
+            <div style={{ padding: '24px' }}>
+              <p style={{ margin: '0 0 24px 0', fontSize: '14px', color: 'var(--text-muted)' }}>{confirmDialog.message}</p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+                <button onClick={() => setConfirmDialog({ isOpen: false, type: '', payload: null, message: '' })} style={{ padding: '10px 16px', background: 'var(--bg-app)', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', fontWeight: '600', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                  Cancelar
+                </button>
+                <button onClick={executeConfirmAction} style={{ padding: '10px 16px', background: confirmDialog.type === 'DELETE' ? '#ef4444' : '#0F766E', border: 'none', borderRadius: '6px', fontSize: '13px', fontWeight: '600', color: 'var(--text-inverse)', cursor: 'pointer' }}>
+                  Aceptar
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
