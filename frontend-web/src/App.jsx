@@ -1,5 +1,6 @@
 import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import GoogleHybrid from './pages/GoogleHybrid'
@@ -38,6 +39,7 @@ export default function App() {
   const isUserValid = token && (String(idRol) === '1' || String(idRol) === '2')
 
   return (
+    <>
     <Routes>
       {/* Ruta raíz: Redirige al Dashboard si está validado, o al Login si no */}
       <Route
@@ -63,5 +65,7 @@ export default function App() {
       {/* Redirección por si escriben cualquier otra ruta inexistente */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    <Toaster position="top-right" reverseOrder={false} />
+    </>
   )
 }

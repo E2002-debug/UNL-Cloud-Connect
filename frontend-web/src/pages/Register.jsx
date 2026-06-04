@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { register, reenviarVerificacion } from '../services/api'
 
 // Clave pública de reCAPTCHA v2 (se carga desde variables de entorno de Vite)
@@ -78,8 +79,9 @@ export default function Register() {
     setReenviando(true)
     try {
       await reenviarVerificacion({ email: correoRegistrado })
+      toast.success('Correo de verificación reenviado')
     } catch (err) {
-      // silencioso
+      toast.error('No se pudo reenviar el correo de verificación')
     }
     setTimeout(() => setReenviando(false), 3000)
   }
@@ -89,13 +91,17 @@ export default function Register() {
     setError(null)
 
     if (!form.nombre || !form.apellido || !form.correo || !form.clave || !form.fecha_nacimiento) {
-      setError('Por favor, completa todos los campos requeridos.')
+      const msg = 'Por favor, completa todos los campos requeridos.'
+      setError(msg)
+      toast.error(msg)
       return
     }
 
     // Validación: no permitir números en nombre y apellido
     if (/\d/.test(form.nombre) || /\d/.test(form.apellido)) {
-      setError('El nombre y apellido no pueden contener números.')
+      const msg = 'El nombre y apellido no pueden contener números.'
+      setError(msg)
+      toast.error(msg)
       return
     }
 
@@ -108,49 +114,69 @@ export default function Register() {
       edad--
     }
     if (edad < 18) {
-      setError('Debes tener al menos 18 años para crear una cuenta.')
+      const msg = 'Debes tener al menos 18 años para crear una cuenta.'
+      setError(msg)
+      toast.error(msg)
       return
     }
 
     // Validación: contraseña segura
     if (form.clave.length < 8) {
-      setError('La contraseña debe tener al menos 8 caracteres.')
+      const msg = 'La contraseña debe tener al menos 8 caracteres.'
+      setError(msg)
+      toast.error(msg)
       return
     }
     if (/\s/.test(form.clave)) {
-      setError('La contraseña no puede contener espacios.')
+      const msg = 'La contraseña no puede contener espacios.'
+      setError(msg)
+      toast.error(msg)
       return
     }
     if (!/[A-Z]/.test(form.clave)) {
-      setError('La contraseña debe contener al menos una letra mayúscula.')
+      const msg = 'La contraseña debe contener al menos una letra mayúscula.'
+      setError(msg)
+      toast.error(msg)
       return
     }
     if (!/[a-z]/.test(form.clave)) {
-      setError('La contraseña debe contener al menos una letra minúscula.')
+      const msg = 'La contraseña debe contener al menos una letra minúscula.'
+      setError(msg)
+      toast.error(msg)
       return
     }
     if (!/\d/.test(form.clave)) {
-      setError('La contraseña debe contener al menos un número.')
+      const msg = 'La contraseña debe contener al menos un número.'
+      setError(msg)
+      toast.error(msg)
       return
     }
     if (!/[^a-zA-Z0-9]/.test(form.clave)) {
-      setError('La contraseña debe contener al menos un carácter especial.')
+      const msg = 'La contraseña debe contener al menos un carácter especial.'
+      setError(msg)
+      toast.error(msg)
       return
     }
     if (form.clave.toLowerCase().includes('usuario')) {
-      setError("La contraseña no puede contener la palabra 'usuario'.")
+      const msg = "La contraseña no puede contener la palabra 'usuario'."
+      setError(msg)
+      toast.error(msg)
       return
     }
 
     const cleanEmail = form.correo.trim().toLowerCase()
     if (!cleanEmail.endsWith('@unl.edu.ec')) {
-      setError('El correo debe pertenecer al dominio @unl.edu.ec')
+      const msg = 'El correo debe pertenecer al dominio @unl.edu.ec'
+      setError(msg)
+      toast.error(msg)
       return
     }
 
     // Validar reCAPTCHA si está configurado
     if (RECAPTCHA_SITE_KEY && !recaptchaToken) {
-      setError('Por favor, completa el captcha de seguridad.')
+      const msg = 'Por favor, completa el captcha de seguridad.'
+      setError(msg)
+      toast.error(msg)
       return
     }
 
@@ -164,8 +190,11 @@ export default function Register() {
       const oculto = partes[0].substring(0, 2) + '***@' + partes[1]
       setCorreoRegistrado(oculto)
       setRegistroExitoso(true)
+      toast.success('Cuenta creada exitosamente. Verifica tu correo.')
     } catch (err) {
-      setError(err.response?.data?.detail || err.message || 'Error en el registro')
+      const msg = err.response?.data?.detail || err.message || 'Error en el registro'
+      setError(msg)
+      toast.error(msg)
       setLoading(false)
       // Reset reCAPTCHA
       if (window.grecaptcha) {

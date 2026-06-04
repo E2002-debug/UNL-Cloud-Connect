@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getUsers, updateUser, deleteUser, register, updateMe } from '../services/api'
+import toast from 'react-hot-toast'
 
 // --- Iconos SVG Básicos ---
 const IconDashboard = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
@@ -30,14 +31,11 @@ export default function Dashboard() {
   const [errorMsg, setErrorMsg] = useState('')
 
   // Notifications State
-  const [notifications, setNotifications] = useState([])
-
   const addNotification = (type, title, message) => {
-    const id = Date.now() + Math.random()
-    setNotifications(prev => [...prev, { id, type, title, message }])
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== id))
-    }, 5000)
+    const text = `${title}: ${message}`
+    if (type === 'success') toast.success(text)
+    else if (type === 'error') toast.error(text)
+    else toast(text, { icon: 'ℹ️' })
   }
 
   // Modal State
@@ -250,35 +248,6 @@ export default function Dashboard() {
 
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-app)', fontFamily: "'Inter', sans-serif" }}>
-
-      {/* NOTIFICACIONES TOAST */}
-      <div style={{ position: 'fixed', right: '32px', bottom: '32px', display: 'flex', flexDirection: 'column', gap: '12px', zIndex: 9999 }}>
-        {notifications.map(n => (
-          <div key={n.id} style={{
-            background: 'var(--bg-card)',
-            borderLeft: `4px solid ${n.type === 'success' ? '#10b981' : n.type === 'error' ? '#ef4444' : '#10B981'}`,
-            boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1)',
-            borderRadius: '4px',
-            padding: '16px 20px',
-            width: '340px',
-            display: 'flex',
-            alignItems: 'flex-start',
-            gap: '12px',
-            transition: 'all 0.3s'
-          }}>
-            <div style={{ color: n.type === 'success' ? '#10b981' : n.type === 'error' ? '#ef4444' : '#10B981', marginTop: '2px' }}>
-              {n.type === 'success' ? <IconCheck /> : n.type === 'error' ? <IconError /> : <IconInfo />}
-            </div>
-            <div style={{ flex: 1 }}>
-              <h4 style={{ margin: '0 0 4px 0', fontSize: '11px', fontWeight: '800', letterSpacing: '0.5px', color: n.type === 'success' ? '#10b981' : n.type === 'error' ? '#ef4444' : '#10B981', textTransform: 'uppercase' }}>
-                {n.title}
-              </h4>
-              <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-main)', fontWeight: '600' }}>{n.message}</p>
-            </div>
-            <button onClick={() => setNotifications(prev => prev.filter(nt => nt.id !== n.id))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '16px', lineHeight: 1 }}>&times;</button>
-          </div>
-        ))}
-      </div>
 
       {/* SIDEBAR IZQUIERDO */}
       <aside style={{ width: '280px', background: 'var(--bg-card)', borderRight: '1px solid #DBE3E0', display: 'flex', flexDirection: 'column' }}>

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
 import { GoogleLogin } from '@react-oauth/google'
+import toast from 'react-hot-toast'
 import { login as apiLogin, loginGoogle as apiLoginGoogle, reenviarVerificacion } from '../services/api'
 
 const extractErrorMessage = (error) => {
@@ -45,6 +46,7 @@ export default function Login() {
       setEmail('')
       setPassword('')
       setLoading(false)
+      toast.success('Sesión cerrada correctamente')
     }
   }, [searchParams])
 
@@ -57,7 +59,9 @@ export default function Login() {
     const correo = data.correo || data.user?.correo || data.usuario?.correo || email.trim().toLowerCase()
 
     if (!tokenFinal) {
-      setError('El servidor no retornó un token válido.')
+      const msg = 'El servidor no retornó un token válido.'
+      setError(msg)
+      toast.error(msg)
       setLoading(false)
       return
     }
@@ -69,8 +73,12 @@ export default function Login() {
     localStorage.setItem('apellido', String(apellido))
     localStorage.setItem('correo', String(correo))
 
+    toast.success(`Bienvenido de nuevo, ${nombre}`)
+
     // Forzar el cambio de ciclo de vida del DOM e ir al Dashboard de raíz
-    window.location.replace('/dashboard')
+    setTimeout(() => {
+        window.location.replace('/dashboard')
+    }, 500)
   }
 
   // Login con Google
@@ -87,7 +95,9 @@ export default function Login() {
       if (status === 403) {
         setVerificacionPendiente(true)
       }
-      setError('Error en autenticación Google: ' + extractErrorMessage(err))
+      const msg = 'Error en autenticación Google: ' + extractErrorMessage(err)
+      setError(msg)
+      toast.error(msg)
       setLoading(false)
     }
   }
@@ -100,12 +110,16 @@ export default function Login() {
     const cleanEmail = email.trim().toLowerCase()
 
     if (!cleanEmail || !password) {
-      setError('Por favor, complete todos los campos.')
+      const msg = 'Por favor, complete todos los campos.'
+      setError(msg)
+      toast.error(msg)
       return
     }
 
     if (!cleanEmail.endsWith('@unl.edu.ec')) {
-      setError('El correo debe pertenecer al dominio @unl.edu.ec')
+      const msg = 'El correo debe pertenecer al dominio @unl.edu.ec'
+      setError(msg)
+      toast.error(msg)
       return
     }
 
@@ -119,7 +133,13 @@ export default function Login() {
       if (status === 403) {
         setVerificacionPendiente(true)
       }
-      setError(extractErrorMessage(err))
+      const msg = extractErrorMessage(err)
+      if (status === 401 || status === 404) {
+          toast.error("Contraseña incorrecta o el usuario no existe.")
+      } else {
+          toast.error(msg)
+      }
+      setError(msg)
       setLoading(false)
     }
   }

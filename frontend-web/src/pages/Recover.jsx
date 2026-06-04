@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { sendRecovery } from '../services/api'
 
 export default function Recover() {
@@ -15,21 +16,29 @@ export default function Recover() {
 
     const cleanEmail = email.trim().toLowerCase()
     if (!cleanEmail) {
-      setError('Por favor, ingresa tu correo institucional.')
+      const msj = 'Por favor, ingresa tu correo institucional.'
+      setError(msj)
+      toast.error(msj)
       return
     }
 
     if (!cleanEmail.endsWith('@unl.edu.ec')) {
-      setError('El correo debe pertenecer al dominio @unl.edu.ec')
+      const msj = 'El correo debe pertenecer al dominio @unl.edu.ec'
+      setError(msj)
+      toast.error(msj)
       return
     }
 
     setLoading(true)
     try {
       await sendRecovery({ email: cleanEmail })
-      setMsg('Correo enviado exitosamente. Revisa tu bandeja de entrada o carpeta de spam.')
+      const msj = 'Correo enviado exitosamente. Revisa tu bandeja de entrada o carpeta de spam.'
+      setMsg(msj)
+      toast.success(msj)
     } catch (err) {
-      setError(err.response?.data?.detail || 'Error al procesar la solicitud de recuperación.')
+      const msj = err.response?.data?.detail || 'Error al procesar la solicitud de recuperación.'
+      setError(msj)
+      toast.error(msj)
     } finally {
       setLoading(false)
     }
