@@ -55,6 +55,10 @@ export default function Register() {
     if (name === 'clave' && /\s/.test(value)) {
       return // Bloquea espacios físicamente al escribir
     }
+    if (name === 'correo') {
+      setForm({ ...form, [name]: value.toLowerCase() })
+      return
+    }
     setForm({ ...form, [name]: value })
   }
 
@@ -171,6 +175,13 @@ export default function Register() {
       toast.error(msg)
       return
     }
+    
+    if (!/^[a-zA-Z0-9_.-]+\.[a-zA-Z0-9_.-]+@unl\.edu\.ec$/.test(cleanEmail)) {
+      const msg = 'El correo institucional debe tener el formato nombre.apellido@unl.edu.ec'
+      setError(msg)
+      toast.error(msg)
+      return
+    }
 
     // Validar reCAPTCHA si está configurado
     if (RECAPTCHA_SITE_KEY && !recaptchaToken) {
@@ -190,9 +201,15 @@ export default function Register() {
       const oculto = partes[0].substring(0, 2) + '***@' + partes[1]
       setCorreoRegistrado(oculto)
       setRegistroExitoso(true)
-      toast.success('Cuenta creada exitosamente. Verifica tu correo.')
+      toast.success('Cuenta por verificar. Revisa tu bandeja de entrada.', { duration: 8000 })
     } catch (err) {
-      const msg = err.response?.data?.detail || err.message || 'Error en el registro'
+      let msg = err.response?.data?.detail || err.message || 'Error en el registro'
+      if (Array.isArray(msg)) {
+        msg = msg.map(e => e.msg || e.detail || JSON.stringify(e)).join(', ')
+      }
+      if (typeof msg === 'object' && msg !== null) {
+        msg = JSON.stringify(msg)
+      }
       setError(msg)
       toast.error(msg)
       setLoading(false)

@@ -123,6 +123,13 @@ export default function Login() {
       return
     }
 
+    if (!/^[a-zA-Z0-9_.-]+\.[a-zA-Z0-9_.-]+@unl\.edu\.ec$/.test(cleanEmail)) {
+      const msg = 'El correo institucional debe tener el formato nombre.apellido@unl.edu.ec'
+      setError(msg)
+      toast.error(msg)
+      return
+    }
+
     setLoading(true)
     try {
       const response = await apiLogin({ username: cleanEmail, password })
@@ -193,7 +200,7 @@ export default function Login() {
           <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#1a1a1a', marginBottom: '8px' }}>Correo Institucional</label>
-              <input type="text" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="usuario@unl.edu.ec" style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #DBE3E0', background: '#F4F8F6', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
+              <input type="text" value={email} onChange={(e) => setEmail(e.target.value.toLowerCase())} placeholder="usuario@unl.edu.ec" style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid #DBE3E0', background: '#F4F8F6', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
             </div>
 
             <div>

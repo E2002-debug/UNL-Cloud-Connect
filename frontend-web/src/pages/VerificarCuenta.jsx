@@ -54,7 +54,7 @@ export default function VerificarCuenta() {
               </svg>
             </div>
             <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#1a1a1a', margin: '0 0 12px 0' }}>
-              ¡Cuenta verificada!
+              ¡Cuenta Creada Exitosamente!
             </h2>
             <p style={{ fontSize: '14px', color: '#62726B', lineHeight: '1.6', marginBottom: '32px' }}>
               {message}
