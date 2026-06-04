@@ -715,9 +715,9 @@ export default function Dashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {usuarios.map((u) => (
+                      {usuarios.map((u, index) => (
                         <tr key={u.id_usuario} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'var(--bg-app)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
-                          <td style={{ padding: '16px 24px', fontSize: '13px', fontWeight: '600', color: 'var(--text-muted)' }}>#{u.id_usuario}</td>
+                          <td style={{ padding: '16px 24px', fontSize: '13px', fontWeight: '600', color: 'var(--text-muted)' }}>#{index + 1}</td>
                           <td style={{ padding: '16px 24px' }}>
                             <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-main)' }}>{u.nombre} {u.apellido}</div>
                           </td>
