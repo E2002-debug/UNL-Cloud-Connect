@@ -15,3 +15,8 @@ services:
     volumes:
       # Montar los certificados generados por Certbot en la VM hacia el contenedor
       - /etc/letsencrypt:/etc/letsencrypt:ro
+
+  # Inyectar la URL del nuevo dominio al backend para que la use en los correos
+  ms-gestion-usuarios:
+    environment:
+      - FRONTEND_URL=https://unl-cloud-connect.me
