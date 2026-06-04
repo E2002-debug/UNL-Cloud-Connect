@@ -407,9 +407,9 @@ export default function Dashboard() {
             <div style={{ textAlign: 'right' }}>
               <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>CLIMA UNL LOJA</div>
               <div style={{ fontSize: '16px', fontWeight: '800', color: 'var(--text-main)' }}>
-                {loadingWeather ? '...' : weatherError ? 'Err' : weatherData ? `${weatherData.currentConditions?.temp}°C` : '15.2°C'}
+                {loadingWeather ? '...' : weatherError ? '--°C' : weatherData ? `${weatherData.currentConditions?.temp}°C` : '15.2°C'}
                 <span style={{ fontSize: '12px', color: '#10b981', fontWeight: '600', marginLeft: '4px', textTransform: 'lowercase' }}>
-                  {loadingWeather || weatherError || !weatherData ? 'estable' : weatherData.currentConditions?.conditions?.split(',')[0]}
+                  {loadingWeather ? '' : weatherError ? 'Sin datos' : weatherData ? weatherData.currentConditions?.conditions?.split(',')[0] : 'estable'}
                 </span>
               </div>
             </div>
