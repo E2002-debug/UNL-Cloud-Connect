@@ -18,7 +18,7 @@ from app.database.session import get_db
 from app.schemas.usuario import EmailRequest, UsuarioCreate, UsuarioResponse, Token, UsuarioRegistroHibrido, TokenGoogleLogin, ResetPasswordRequest, UsuarioGoogleData, LoginRequest
 from app.crud import crud_usuario
 from app.core import security
-from app.core.security import crear_token_recuperacion, verificar_token_recuperacion, obtener_hash_clave, crear_token_verificacion, verificar_token_verificacion
+from app.core.security import crear_token_recuperacion, verificar_token_recuperacion, obtener_hash_clave, crear_token_verificacion, verificar_token_verificacion, crear_token_verificacion_datos, verificar_token_verificacion_datos
 from app.core.email import enviar_correo_recuperacion, enviar_correo_verificacion
 from app.core.config import settings
 
@@ -125,7 +125,7 @@ async def _verificar_recaptcha(token: str):
 
 # ============ ENDPOINTS DE REGISTRO ============
 
-@router.post("/registro", response_model=UsuarioResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/registro", response_model=Any, status_code=status.HTTP_201_CREATED)
 async def registrar_usuario(
     usuario_in: UsuarioCreate, 
     background_tasks: BackgroundTasks,
@@ -134,7 +134,7 @@ async def registrar_usuario(
     """
     Registra un nuevo usuario institucional (HU_01).
     Valida internamente que no existan correos duplicados.
-    Envía correo de verificación al registrarse.
+    Envía correo de verificación al registrarse. La cuenta no se crea hasta verificar.
     """
     # Validaciones de seguridad
     _validar_nombre_apellido(usuario_in.nombre, usuario_in.apellido)
@@ -155,38 +155,50 @@ async def registrar_usuario(
             detail="Esta cuenta ya está registrada en UNL-Cloud-Connect. Por favor, inicie sesión."
         )
     
-    nuevo_usuario = crud_usuario.crear_usuario(db, usuario=usuario_in)
-    
-    # Enviar correo de verificación en segundo plano
-    token_verificacion = crear_token_verificacion(usuario_in.correo)
+    user_data = usuario_in.model_dump()
+    if user_data.get('fecha_nacimiento'):
+        user_data['fecha_nacimiento'] = user_data['fecha_nacimiento'].isoformat()
+        
+    token_verificacion = crear_token_verificacion_datos(user_data)
     background_tasks.add_task(enviar_correo_verificacion, usuario_in.correo, token_verificacion)
     
-    return nuevo_usuario
+    return {"mensaje": "Revisa tu correo electrónico para completar la creación de tu cuenta. El enlace expira en 24 horas."}
 
 
 @router.post("/verificar-cuenta")
 def verificar_cuenta(token: str, db: Session = Depends(get_db)):
     """
-    Verifica el correo electrónico del usuario usando el token enviado por email.
+    Verifica el correo electrónico del usuario y lo crea en la base de datos si es válido.
     """
-    email = verificar_token_verificacion(token)
-    if not email:
+    user_data = verificar_token_verificacion_datos(token)
+    if not user_data:
+        # Fallback para tokens antiguos que solo tenían el correo
+        email = verificar_token_verificacion(token)
+        if email:
+            usuario = crud_usuario.obtener_usuario_por_correo(db, correo=email)
+            if usuario:
+                usuario.verificado = True
+                db.commit()
+                return {"mensaje": "¡Cuenta verificada exitosamente! Ya puedes iniciar sesión."}
+        
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El enlace de verificación es inválido o ha expirado. Solicita uno nuevo."
+            detail="El enlace de verificación es inválido o ha expirado. Debes registrarte nuevamente."
         )
     
-    usuario = crud_usuario.obtener_usuario_por_correo(db, correo=email)
-    if not usuario:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado.")
-    
-    if usuario.verificado:
+    # Verificamos si ya existe (por si hace clic dos veces)
+    usuario = crud_usuario.obtener_usuario_por_correo(db, correo=user_data['correo'])
+    if usuario:
+        if not usuario.verificado:
+            usuario.verificado = True
+            db.commit()
         return {"mensaje": "Tu cuenta ya estaba verificada. Puedes iniciar sesión."}
     
-    usuario.verificado = True
-    db.commit()
+    # Crear el usuario en este momento
+    usuario_create = UsuarioCreate(**user_data)
+    crud_usuario.crear_usuario(db, usuario=usuario_create, verificado=True)
     
-    return {"mensaje": "¡Cuenta verificada exitosamente! Ya puedes iniciar sesión."}
+    return {"mensaje": "¡Cuenta creada y verificada exitosamente! Ya puedes iniciar sesión."}
 
 
 @router.post("/reenviar-verificacion")
