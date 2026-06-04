@@ -1,6 +1,7 @@
 import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
+import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import GoogleHybrid from './pages/GoogleHybrid'
@@ -41,10 +42,10 @@ export default function App() {
   return (
     <>
     <Routes>
-      {/* Ruta raíz: Redirige al Dashboard si está validado, o al Login si no */}
+      {/* Ruta raíz: Redirige al Dashboard si está validado, o muestra el Home (Landing Page) si no */}
       <Route
         path="/"
-        element={isUserValid ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />}
+        element={isUserValid ? <Navigate to="/dashboard" replace /> : <Home />}
       />
 
       {/* Rutas Públicas de Autenticación */}
