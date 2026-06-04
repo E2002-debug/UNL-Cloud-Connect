@@ -58,10 +58,49 @@ export default function Dashboard() {
   const [profileSaving, setProfileSaving] = useState(false)
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, type: '', payload: null, message: '' })
 
+  // Configuración State
+  const [weatherApiKey, setWeatherApiKey] = useState(localStorage.getItem('weather_api_key') || import.meta.env.VITE_WEATHER_API_KEY || 'KKFVURM9AN')
+  const handleSaveConfig = () => {
+    localStorage.setItem('weather_api_key', weatherApiKey)
+    toast.success('Configuración guardada exitosamente')
+  }
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('theme', theme)
   }, [theme])
+
+  // Weather API State
+  const [weatherData, setWeatherData] = useState(null)
+  const [loadingWeather, setLoadingWeather] = useState(false)
+  const [weatherError, setWeatherError] = useState('')
+
+  useEffect(() => {
+    if (activeTab === 'Clima') {
+      const apiKey = localStorage.getItem('weather_api_key') || import.meta.env.VITE_WEATHER_API_KEY || 'KKFVURM9AN'
+      if (!apiKey) {
+        setWeatherError('No se ha configurado la clave de API del clima. Por favor, solicite al administrador que la configure.')
+        return
+      }
+
+      setLoadingWeather(true)
+      setWeatherError('')
+      
+      fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/Loja,Ecuador?unitGroup=metric&key=${apiKey}&contentType=json`)
+        .then(res => {
+          if (!res.ok) throw new Error('Error al obtener los datos del clima. Verifica la clave de API.')
+          return res.json()
+        })
+        .then(data => {
+          setWeatherData(data)
+          setLoadingWeather(false)
+        })
+        .catch(err => {
+          setWeatherError(err.message)
+          setLoadingWeather(false)
+        })
+    }
+  }, [activeTab])
 
   useEffect(() => {
     const nombre = localStorage.getItem('nombre')
@@ -725,7 +764,6 @@ export default function Dashboard() {
                   <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                     <thead>
                       <tr style={{ background: 'var(--bg-app)', borderBottom: '1px solid #DBE3E0' }}>
-                        <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>ID</th>
                         <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>USUARIO</th>
                         <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>CORREO INSTITUCIONAL</th>
                         <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>ROL ASIGNADO</th>
@@ -735,7 +773,6 @@ export default function Dashboard() {
                     <tbody>
                       {usuarios.map((u, index) => (
                         <tr key={u.id_usuario} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'var(--bg-app)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
-                          <td style={{ padding: '16px 24px', fontSize: '13px', fontWeight: '600', color: 'var(--text-muted)' }}>#{index + 1}</td>
                           <td style={{ padding: '16px 24px' }}>
                             <div style={{ fontSize: '14px', fontWeight: '700', color: 'var(--text-main)' }}>{u.nombre} {u.apellido}</div>
                           </td>
@@ -847,8 +884,123 @@ export default function Dashboard() {
             </div>
           )}
 
+          {/* MÓDULO CLIMA */}
+          {activeTab === 'Clima' && (
+            <div style={{ background: 'var(--bg-card)', padding: '40px', borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '32px' }}>
+                <div style={{ width: '48px', height: '48px', background: 'var(--primary-light)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--primary)' }}>
+                  <IconSettings />
+                </div>
+                <div>
+                  <h2 style={{ margin: '0 0 4px 0', fontSize: '24px', fontWeight: '800', color: 'var(--text-main)' }}>Métricas del Clima (Loja, EC)</h2>
+                  <span style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-muted)' }}>Datos en tiempo real mediante Visual Crossing API</span>
+                </div>
+              </div>
+
+              {loadingWeather ? (
+                <div style={{ padding: '60px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: '600' }}>Cargando datos climáticos...</div>
+              ) : weatherError ? (
+                <div style={{ padding: '40px', background: '#fee2e2', border: '1px solid #fca5a5', borderRadius: '8px', color: '#ef4444', textAlign: 'center', fontWeight: '600' }}>
+                  {weatherError}
+                </div>
+              ) : weatherData ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px' }}>
+                  <div style={{ background: 'var(--bg-app)', padding: '32px 24px', borderRadius: '12px', border: '1px solid var(--border)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px' }}>Temperatura Actual</div>
+                    <div style={{ fontSize: '42px', fontWeight: '800', color: 'var(--text-main)' }}>{weatherData.currentConditions?.temp}°C</div>
+                    <div style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: '8px', fontWeight: '600' }}>Sensación: {weatherData.currentConditions?.feelslike}°C</div>
+                  </div>
+                  <div style={{ background: 'var(--bg-app)', padding: '32px 24px', borderRadius: '12px', border: '1px solid var(--border)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px' }}>Condición</div>
+                    <div style={{ fontSize: '24px', fontWeight: '800', color: 'var(--primary)', marginTop: '20px' }}>{weatherData.currentConditions?.conditions}</div>
+                  </div>
+                  <div style={{ background: 'var(--bg-app)', padding: '32px 24px', borderRadius: '12px', border: '1px solid var(--border)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px' }}>Humedad</div>
+                    <div style={{ fontSize: '42px', fontWeight: '800', color: 'var(--text-main)' }}>{weatherData.currentConditions?.humidity}%</div>
+                  </div>
+                  <div style={{ background: 'var(--bg-app)', padding: '32px 24px', borderRadius: '12px', border: '1px solid var(--border)', textAlign: 'center' }}>
+                    <div style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '12px' }}>Viento</div>
+                    <div style={{ fontSize: '42px', fontWeight: '800', color: 'var(--text-main)' }}>{weatherData.currentConditions?.windspeed} <span style={{ fontSize: '16px' }}>km/h</span></div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          )}
+
+          {/* MÓDULO DE CONFIGURACIÓN ADMIN */}
+          {activeTab === 'Configuracion' && isAdmin && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div style={{ background: 'var(--bg-card)', padding: '40px', borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
+                <h2 style={{ margin: '0 0 24px 0', fontSize: '24px', fontWeight: '800', color: 'var(--text-main)' }}>Configuración Global del Sistema</h2>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+                  {/* Tarjeta de Seguridad */}
+                  <div style={{ padding: '24px', border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--bg-app)' }}>
+                    <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <IconSettings /> Seguridad y Acceso
+                    </h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '600' }}>Registro de nuevos participantes</span>
+                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                          <input type="checkbox" defaultChecked style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }} />
+                        </label>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '600' }}>Requerir verificación de correo</span>
+                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                          <input type="checkbox" defaultChecked style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }} />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Preferencias de la Interfaz */}
+                  <div style={{ padding: '24px', border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--bg-app)' }}>
+                     <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <IconEvents /> Preferencias
+                    </h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '600' }}>Modo de mantenimiento</span>
+                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                          <input type="checkbox" style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }} />
+                        </label>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '600' }}>Alertas de sensores por email</span>
+                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                          <input type="checkbox" defaultChecked style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }} />
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                  {/* APIs de Servicios Externos */}
+                  <div style={{ padding: '24px', border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--bg-app)', gridColumn: '1 / -1' }}>
+                    <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <IconSettings /> APIs de Servicios Externos
+                    </h3>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '600' }}>Weather API Key (Visual Crossing)</span>
+                        <input type="text" value={weatherApiKey} onChange={e => setWeatherApiKey(e.target.value)} placeholder="Ingresa aquí tu clave de API (Ej. XXXXXXXXXXXXXXXXXXXXXXXX)" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-main)', fontSize: '14px', outline: 'none' }} />
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Obtén tu clave gratuita en: <a href="https://www.visualcrossing.com/weather-api" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: '600' }}>visualcrossing.com/weather-api</a></span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
+                  <button onClick={handleSaveConfig} style={{ padding: '12px 24px', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>
+                    Guardar Configuración
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* FALLBACK FOR OTHER TABS */}
-          {((isAdmin && activeTab !== 'Usuarios') || (!isAdmin && activeTab !== 'Dashboard' && activeTab !== 'Perfil')) && (
+          {((isAdmin && activeTab !== 'Usuarios' && activeTab !== 'Configuracion') || (!isAdmin && activeTab !== 'Dashboard' && activeTab !== 'Perfil' && activeTab !== 'Clima')) && (
             <div style={{ background: 'var(--bg-card)', padding: '60px', borderRadius: '12px', border: '1px solid #DBE3E0', textAlign: 'center' }}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>🚧</div>
               <h2 style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: '800', color: 'var(--text-main)' }}>Módulo en Construcción</h2>
