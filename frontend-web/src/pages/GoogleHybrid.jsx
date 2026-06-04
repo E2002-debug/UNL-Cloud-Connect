@@ -7,7 +7,7 @@ import { useNavigate, useLocation } from 'react-router-dom'
 
 export default function GoogleHybrid({ mode = 'google-register' }) {
   const nav = useNavigate()
-  const [form, setForm] = useState({ nombre: '', apellido: '', correo: '', clave: '', fecha_nacimiento: '', id_rol: '' })
+  const [form, setForm] = useState({ nombre: '', apellido: '', correo: '', clave: '', fecha_nacimiento: '', id_rol: '2' })
   const [readOnly, setReadOnly] = useState(false)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -72,7 +72,6 @@ export default function GoogleHybrid({ mode = 'google-register' }) {
         <Input label="Correo" name="correo" value={form.correo} onChange={handleChange} readOnly={readOnly} />
         <Input label="Clave" type="password" name="clave" value={form.clave} onChange={handleChange} />
         <Input label="Fecha de nacimiento" type="date" name="fecha_nacimiento" value={form.fecha_nacimiento} onChange={handleChange} />
-        <Input label="id_rol" name="id_rol" value={form.id_rol} onChange={handleChange} />
 
         <div className="flex justify-end mt-4">
           <Button type="submit" disabled={loading}>

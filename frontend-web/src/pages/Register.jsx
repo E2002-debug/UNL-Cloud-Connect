@@ -464,32 +464,18 @@ export default function Register() {
               </p>
             </div>
 
-            {/* Fila: Fecha Nacimiento y Rol */}
-            <div style={{ display: 'flex', gap: '16px' }}>
-              <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Fecha de Nacimiento</label>
-                <input
-                  type="date"
-                  name="fecha_nacimiento"
-                  value={form.fecha_nacimiento}
-                  onChange={handleChange}
-                  max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
-                  style={inputStyle}
-                />
-                <p style={{ fontSize: '11px', color: '#62726B', margin: '4px 0 0 0' }}>Debes ser mayor de 18 años.</p>
-              </div>
-              <div style={{ flex: 1 }}>
-                <label style={labelStyle}>Rol del Sistema</label>
-                <select
-                  name="id_rol"
-                  value={form.id_rol}
-                  onChange={handleChange}
-                  style={{ ...inputStyle, cursor: 'pointer' }}
-                >
-                  <option value="2">Participante</option>
-                  <option value="1">Administrador</option>
-                </select>
-              </div>
+            {/* Fecha Nacimiento */}
+            <div>
+              <label style={labelStyle}>Fecha de Nacimiento</label>
+              <input
+                type="date"
+                name="fecha_nacimiento"
+                value={form.fecha_nacimiento}
+                onChange={handleChange}
+                max={new Date(new Date().setFullYear(new Date().getFullYear() - 18)).toISOString().split('T')[0]}
+                style={inputStyle}
+              />
+              <p style={{ fontSize: '11px', color: '#62726B', margin: '4px 0 0 0' }}>Debes ser mayor de 18 años.</p>
             </div>
 
             {/* reCAPTCHA */}
