@@ -106,6 +106,7 @@ services:
       args:
         VITE_API_BASE: /api
         VITE_GOOGLE_CLIENT_ID: 883175682519-tv0t5ndf3185sdimdjd6ro9hack12m7r.apps.googleusercontent.com
+        VITE_WEATHER_API_KEY: KKFVURM9AN
     container_name: unl_frontend_web
     restart: always
     ports:

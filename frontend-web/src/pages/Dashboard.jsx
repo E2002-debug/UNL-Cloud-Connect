@@ -59,9 +59,7 @@ export default function Dashboard() {
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, type: '', payload: null, message: '' })
 
   // Configuración State
-  const [weatherApiKey, setWeatherApiKey] = useState(localStorage.getItem('weather_api_key') || import.meta.env.VITE_WEATHER_API_KEY || 'KKFVURM9AN')
   const handleSaveConfig = () => {
-    localStorage.setItem('weather_api_key', weatherApiKey)
     toast.success('Configuración guardada exitosamente')
   }
 
@@ -77,7 +75,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (activeTab === 'Clima') {
-      const apiKey = localStorage.getItem('weather_api_key') || import.meta.env.VITE_WEATHER_API_KEY || 'KKFVURM9AN'
+      const apiKey = import.meta.env.VITE_WEATHER_API_KEY || 'KKFVURM9AN'
       if (!apiKey) {
         setWeatherError('No se ha configurado la clave de API del clima. Por favor, solicite al administrador que la configure.')
         return
@@ -295,6 +293,7 @@ export default function Dashboard() {
     { id: 'Eventos', icon: <IconEvents />, label: 'EVENTOS UNL', badge: 3 },
     { id: 'Sensores', icon: <IconSensors />, label: 'SENSORES IOT', labelRight: 'ESTABLE' },
     { id: 'Configuracion', icon: <IconSettings />, label: 'CONFIGURACIÓN' },
+    { id: 'Perfil', icon: <IconUsers />, label: 'MI PERFIL' },
   ] : [
     { id: 'Dashboard', icon: <IconDashboard />, label: 'MI DASHBOARD', badge: 'PIONERO' },
     { id: 'Eventos', icon: <IconEvents />, label: 'MIS EVENTOS', badge: 2 },
@@ -975,19 +974,7 @@ export default function Dashboard() {
                       </div>
                     </div>
                   </div>
-                  {/* APIs de Servicios Externos */}
-                  <div style={{ padding: '24px', border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--bg-app)', gridColumn: '1 / -1' }}>
-                    <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <IconSettings /> APIs de Servicios Externos
-                    </h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '600' }}>Weather API Key (Visual Crossing)</span>
-                        <input type="text" value={weatherApiKey} onChange={e => setWeatherApiKey(e.target.value)} placeholder="Ingresa aquí tu clave de API (Ej. XXXXXXXXXXXXXXXXXXXXXXXX)" style={{ width: '100%', padding: '10px 14px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--text-main)', fontSize: '14px', outline: 'none' }} />
-                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Obtén tu clave gratuita en: <a href="https://www.visualcrossing.com/weather-api" target="_blank" rel="noreferrer" style={{ color: 'var(--primary)', textDecoration: 'none', fontWeight: '600' }}>visualcrossing.com/weather-api</a></span>
-                      </div>
-                    </div>
-                  </div>
+
                 </div>
 
                 <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
@@ -1000,7 +987,7 @@ export default function Dashboard() {
           )}
 
           {/* FALLBACK FOR OTHER TABS */}
-          {((isAdmin && activeTab !== 'Usuarios' && activeTab !== 'Configuracion') || (!isAdmin && activeTab !== 'Dashboard' && activeTab !== 'Perfil' && activeTab !== 'Clima')) && (
+          {((isAdmin && activeTab !== 'Usuarios' && activeTab !== 'Configuracion' && activeTab !== 'Perfil') || (!isAdmin && activeTab !== 'Dashboard' && activeTab !== 'Perfil' && activeTab !== 'Clima')) && (
             <div style={{ background: 'var(--bg-card)', padding: '60px', borderRadius: '12px', border: '1px solid #DBE3E0', textAlign: 'center' }}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>🚧</div>
               <h2 style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: '800', color: 'var(--text-main)' }}>Módulo en Construcción</h2>
