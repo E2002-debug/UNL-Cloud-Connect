@@ -24,6 +24,15 @@ services:
           - /api/clima
         strip_path: false
 
+  # 3. Servicio de Eventos 
+  - name: servicio-eventos
+    url: http://unl_ms_eventos:8000 # Nombre del contenedor en docker-compose
+    routes:
+      - name: ruta-eventos
+        paths:
+          - /api/eventos  
+        strip_path: false
+
 # ==========================================
 # PLUGINS GLOBALES
 # ==========================================

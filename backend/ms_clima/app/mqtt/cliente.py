@@ -44,9 +44,10 @@ def on_message(client, topic, payload, qos, properties):
                 humedad=datos_validados.humedad,
                 fuente="ESP32",
                 alerta=datos_validados.alerta,
-                detalles_alerta=datos_validados.detalles_alerta
+                detalles_alerta=datos_validados.detalles_alerta,
+                id_ubicacion=datos_validados.id_ubicacion
             )
-            print(f"[MQTT] Clima guardado OK: T={datos_validados.temperatura}°C, H={datos_validados.humedad}%")
+            print(f"[MQTT] Clima guardado OK: T={datos_validados.temperatura}°C, H={datos_validados.humedad}%, Ubicacion={datos_validados.id_ubicacion}")
         finally:
             db.close() # Es vital cerrar la sesión para no agotar el pool de conexiones
 
