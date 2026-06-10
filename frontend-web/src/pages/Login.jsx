@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
-import { GoogleLogin } from '@react-oauth/google'
+import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google'
 import toast from 'react-hot-toast'
 import { login as apiLogin, loginGoogle as apiLoginGoogle, reenviarVerificacion } from '../services/api'
 
@@ -152,7 +152,8 @@ export default function Login() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F4F8F6', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <div style={{ minHeight: '100vh', background: '#F4F8F6', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
       <style>{`
         .auth-container { flex-direction: row; }
         .auth-left { padding: 60px 40px; min-height: 500px; }
@@ -264,5 +265,6 @@ export default function Login() {
 
       </div>
     </div>
+    </GoogleOAuthProvider>
   )
 }
