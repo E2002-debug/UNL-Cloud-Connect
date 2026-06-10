@@ -1,11 +1,14 @@
 import React from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
+import Home from './pages/Home'
 import Login from './pages/Login'
 import Register from './pages/Register'
 import GoogleHybrid from './pages/GoogleHybrid'
 import Recover from './pages/Recover'
 import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
+import VerificarCuenta from './pages/VerificarCuenta'
 
 /**
  * Componente de protección de ruta por Rol (Permite Admin '1' y Usuario '2')
@@ -32,18 +35,19 @@ const GuardedRoute = ({ element: Element }) => {
 export default function App() {
   const token = localStorage.getItem('access_token')
   const idRol = localStorage.getItem('id_rol')
-  
+
   // El usuario puede ir al dashboard desde la raíz si tiene token y rol válido
   const isUserValid = token && (String(idRol) === '1' || String(idRol) === '2')
 
   return (
+    <>
     <Routes>
-      {/* Ruta raíz: Redirige al Dashboard si está validado, o al Login si no */}
-      <Route 
-        path="/" 
-        element={isUserValid ? <Navigate to="/dashboard" replace /> : <Navigate to="/login" replace />} 
+      {/* Ruta raíz: Redirige al Dashboard si está validado, o muestra el Home (Landing Page) si no */}
+      <Route
+        path="/"
+        element={isUserValid ? <Navigate to="/dashboard" replace /> : <Home />}
       />
-      
+
       {/* Rutas Públicas de Autenticación */}
       <Route path="/login" element={<Login />} />
       <Route path="/register" element={<Register />} />
@@ -51,15 +55,18 @@ export default function App() {
       <Route path="/registro-hibrido" element={<GoogleHybrid mode="registro-hibrido" />} />
       <Route path="/recover" element={<Recover />} />
       <Route path="/reset-password" element={<ResetPassword />} />
-      
+      <Route path="/verificar-cuenta" element={<VerificarCuenta />} />
+
       {/* Ruta Privada Protegida y Controlada por Rol */}
-      <Route 
-        path="/dashboard" 
-        element={<GuardedRoute element={Dashboard} />} 
+      <Route
+        path="/dashboard"
+        element={<GuardedRoute element={Dashboard} />}
       />
-      
+
       {/* Redirección por si escriben cualquier otra ruta inexistente */}
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    <Toaster position="top-right" reverseOrder={false} />
+    </>
   )
 }

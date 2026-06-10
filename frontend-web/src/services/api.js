@@ -31,10 +31,14 @@ export const googleRegister = (payload) => api.post('/auth/google-register', pay
 export const registroHibrido = (payload) => api.post('/auth/registro-hibrido', payload)
 export const sendRecovery = (payload) => api.post('/auth/solicitar-recuperacion', payload)
 export const resetPassword = (payload) => api.post('/auth/restablecer-clave', payload)
+export const verificarCuenta = (token) => api.post(`/auth/verificar-cuenta?token=${encodeURIComponent(token)}`)
+export const reenviarVerificacion = (payload) => api.post('/auth/reenviar-verificacion', payload)
 
 // Endpoints de Gestión de Usuarios (Requieren Rol Administrador)
 export const getUsers = () => api.get('/usuarios/')
 export const updateUser = (id, payload) => api.put(`/usuarios/${id}`, payload)
 export const deleteUser = (id) => api.delete(`/usuarios/${id}`)
+
+export const updateMe = (payload) => api.put('/usuarios/me', payload)
 
 export default api

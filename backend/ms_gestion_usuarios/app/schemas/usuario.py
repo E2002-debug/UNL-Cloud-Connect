@@ -8,7 +8,23 @@
 from pydantic import BaseModel, EmailStr, field_validator, Field
 from typing import Optional
 from datetime import date
-from pydantic import BaseModel
+import re
+
+def validar_clave_fuerte(v: Optional[str]) -> Optional[str]:
+    if v is not None:
+        if len(v) < 8 or len(v) > 12:
+            raise ValueError('La contraseña debe tener entre 8 y 12 caracteres')
+        if not any(char.isupper() for char in v):
+            raise ValueError('La contraseña debe contener al menos una letra mayúscula')
+        if not any(char.islower() for char in v):
+            raise ValueError('La contraseña debe contener al menos una letra minúscula')
+        if not any(char.isdigit() for char in v):
+            raise ValueError('La contraseña debe contener al menos un número')
+        if not re.search(r'[^a-zA-Z0-9]', v):
+            raise ValueError('La contraseña debe contener al menos un carácter especial')
+        if ' ' in v:
+            raise ValueError('La contraseña no puede contener espacios')
+    return v
 
 # Esquema base con los datos comunes
 class UsuarioBase(BaseModel):
@@ -19,14 +35,21 @@ class UsuarioBase(BaseModel):
 
 # Esquema para cuando el usuario envía datos para registrarse
 class UsuarioCreate(UsuarioBase):
-    clave: Optional[str] = None # Opcional por el flujo híbrido de Google
+    clave: Optional[str] = Field(default=None, min_length=8, max_length=12) # Opcional por el flujo híbrido de Google
     id_rol: int
+
+    @field_validator('clave')
+    @classmethod
+    def validar_clave(cls, v: Optional[str]) -> Optional[str]:
+        return validar_clave_fuerte(v)
 
     @field_validator('correo')
     @classmethod
     def validar_correo_unl(cls, v: str) -> str:
         if not v.endswith('@unl.edu.ec'):
             raise ValueError('El correo debe pertenecer al dominio institucional @unl.edu.ec')
+        if not re.match(r'^[a-zA-Z0-9_.-]+\.[a-zA-Z0-9_.-]+@unl\.edu\.ec$', v):
+            raise ValueError('El correo debe tener el formato nombre.apellido@unl.edu.ec')
         return v
 
     @field_validator('id_rol')
@@ -48,8 +71,14 @@ class UsuarioResponse(UsuarioBase):
 class UsuarioRegistroHibrido(BaseModel):
     google_token: str       # Token que React/React Native obtienen de Google
     fecha_nacimiento: date  # Campo manual obligatorio
-    clave: str = Field(..., min_length=8, description="Debe tener al menos 8 caracteres")
+    clave: str = Field(..., min_length=8, max_length=12, description="Debe tener entre 8 y 12 caracteres")
     id_rol: int             # Rol seleccionado (1: Administrador, 2: Participante)
+
+    @field_validator('clave')
+    @classmethod
+    def validar_clave(cls, v: str) -> str:
+        validar_clave_fuerte(v)
+        return v
 
     @field_validator('id_rol')
     @classmethod
@@ -78,7 +107,13 @@ class EmailRequest(BaseModel):
 
 class ResetPasswordRequest(BaseModel):
     token: str
-    nueva_password: str
+    nueva_password: str = Field(..., min_length=8, max_length=12)
+
+    @field_validator('nueva_password')
+    @classmethod
+    def validar_clave(cls, v: str) -> str:
+        validar_clave_fuerte(v)
+        return v
 
 class LoginRequest(BaseModel):
     """Esquema para request de login (desde JSON, no form-data)"""
@@ -96,3 +131,13 @@ class UsuarioUpdate(BaseModel):
         if v is not None and v not in [1, 2]:
             raise ValueError('El rol debe ser 1 (Administrador) o 2 (Participante)')
         return v
+
+class UsuarioUpdateMe(BaseModel):
+    nombre: Optional[str] = None
+    apellido: Optional[str] = None
+    clave: Optional[str] = Field(default=None, min_length=8, max_length=12)
+
+    @field_validator('clave')
+    @classmethod
+    def validar_clave(cls, v: Optional[str]) -> Optional[str]:
+        return validar_clave_fuerte(v)

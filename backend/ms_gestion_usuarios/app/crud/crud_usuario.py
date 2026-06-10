@@ -17,11 +17,12 @@ def obtener_usuario_por_correo(db: Session, correo: str):
     """
     return db.query(Usuario).filter(Usuario.correo == correo).first()
 
-def crear_usuario(db: Session, usuario: UsuarioCreate):
+def crear_usuario(db: Session, usuario: UsuarioCreate, verificado: bool = False):
     """
     Crea un nuevo usuario en la base de datos.
     Aplica el hash a la contraseña antes de persistir los datos por seguridad.
     Valida que el rol sea uno de los roles válidos (1: Administrador, 2: Participante).
+    El parámetro verificado permite marcar usuarios de Google como verificados automáticamente.
     """
     # Validar que el id_rol sea válido (solo 1: Administrador o 2: Participante)
     if usuario.id_rol not in [1, 2]:
@@ -41,7 +42,8 @@ def crear_usuario(db: Session, usuario: UsuarioCreate):
         correo=usuario.correo,
         clave=clave_encriptada,
         fecha_nacimiento=usuario.fecha_nacimiento,
-        id_rol=usuario.id_rol
+        id_rol=usuario.id_rol,
+        verificado=verificado
     )
     
     # Persistir en la base de datos

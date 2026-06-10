@@ -1,8 +1,8 @@
-# Autor: David Guamán
-# Fecha: 29/05/2026
-# Version: 1.0 (Refactorización a Microservicio de Identidad)
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
+import logging
+
+logger = logging.getLogger(__name__)
 
 from app.database.session import engine, Base, SessionLocal
 from app.core.config import settings
@@ -18,11 +18,11 @@ from app.database.init_db import inicializar_datos_maestros
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 1. Preparar la Base de Datos de Usuarios
-    print("[STARTUP] Verificando e inicializando tablas de Identidad en PostgreSQL...")
+    logger.info("Verificando e inicializando tablas de Identidad en PostgreSQL...")
     Base.metadata.create_all(bind=engine)
 
     # 2. Sembrado de Datos Maestos (Roles)
-    print("[STARTUP] Abriendo sesión temporal para verificar datos maestros de usuarios...")
+    logger.info("Verificando datos maestros de usuarios...")
     db = SessionLocal()
     try:
         inicializar_datos_maestros(db)
@@ -31,7 +31,9 @@ async def lifespan(app: FastAPI):
     
     yield 
     
-    print("[SHUTDOWN] Deteniendo MS-Usuarios...")
+    logger.info("Deteniendo MS-Usuarios...")
+
+from app.core.middleware import IPRateLimitMiddleware
 
 app = FastAPI(
     title=f"{settings.PROJECT_NAME} - MS Usuarios", 
@@ -45,6 +47,14 @@ app = FastAPI(
 
 # Inyección modular de CORS desde la configuración centralizada
 setup_cors(app)
+
+# Protección CSRF: Al utilizar autenticación basada en Tokens Bearer a través de 
+# cabeceras (header Authorization) en lugar de Cookies de sesión, la API ya es 
+# inmune por naturaleza a los ataques CSRF (Cross-Site Request Forgery).
+
+# Inyección del middleware de protección contra ataques de fuerza bruta (Bloqueo por IP)
+# Bloquea una IP por 5 minutos (300s) si hace más de 50 peticiones en 1 minuto (60s)
+app.add_middleware(IPRateLimitMiddleware, max_requests=50, window_seconds=60, block_seconds=300)
 
 # Incluimos solo los endpoints de identidad
 app.include_router(auth.router)

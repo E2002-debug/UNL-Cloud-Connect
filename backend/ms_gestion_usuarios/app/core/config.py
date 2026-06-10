@@ -37,6 +37,9 @@ class Settings(BaseSettings):
     # URL del frontend (para enlaces en correos de recuperación, etc.)
     FRONTEND_URL: str = "http://localhost:5173"
 
+    # Clave secreta de reCAPTCHA v2 (se obtiene de Google reCAPTCHA Admin Console)
+    RECAPTCHA_SECRET_KEY: str = ""
+
     # ==========================================
     # CONFIGURACIÓN DE CORREO - Pydantic Autoload
     # ==========================================
