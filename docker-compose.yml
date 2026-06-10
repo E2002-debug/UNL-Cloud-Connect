@@ -9,7 +9,6 @@ services:
       POSTGRES_PASSWORD: postgres123456
     ports:
       - "5433:5432"
-     
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infraestructura/postgres/init.sh:/docker-entrypoint-initdb.d/init.sh
@@ -21,7 +20,7 @@ services:
     restart: always
     ports:
       - "1884:1883"     # Puerto para la comunicación del ESP32
-      - "9003:9001"     # Puerto para WebSockets (futuro)
+      - "9003:9001"     # Puerto para WebSockets
     volumes:
       - ./infraestructura/mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
       - ./infraestructura/mosquitto/data:/mosquitto/data
@@ -42,22 +41,25 @@ services:
     volumes:
       - minio_data:/data
 
- # 4. Microservicio de Identidad (Login, Registro, Roles)
+  # 4. Microservicio de Identidad (Login, Registro, Roles)
   ms-gestion-usuarios:
     build:
       context: ./backend/ms_gestion_usuarios
       dockerfile: Dockerfile
     container_name: unl_ms_gestion_usuarios
     restart: always
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    # Se agrega asyncpg a las instalaciones en caliente para conectar con PostgreSQL de forma asíncrona
+    command: >
+      sh -c "pip install --no-cache-dir --break-system-packages --upgrade email-validator==2.1.1 fastapi-mail==1.4.1 dnspython==2.6.1 asyncpg && 
+      uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     volumes:
       - ./backend/ms_gestion_usuarios/app:/app/app
     env_file:
-      - ./backend/ms_gestion_usuarios/.env   # Carga segura de variables de entorno
+      - ./backend/ms_gestion_usuarios/.env
     depends_on:
       - db
 
-# 5. Microservicio de Telemetría (ESP32-CAM, IoT)
+  # 5. Microservicio de Telemetría (ESP32-CAM, IoT)
   ms-clima:
     build:
       context: ./backend/ms_clima
@@ -68,16 +70,31 @@ services:
     volumes:
       - ./backend/ms_clima/app:/app/app
     env_file:
-      - ./backend/ms_clima/.env      # Carga segura de variables de entorno
+      - ./backend/ms_clima/.env
     environment:
-      - MQTT_BROKER_HOST=mqtt-broker # Le indicamos por qué red interna llegar a Mosquitto
+      - MQTT_BROKER_HOST=mqtt-broker
     depends_on:
       - db
       - mqtt-broker
 
+  # 6. Microservicio de Eventos (Gestión de Eventos y Notificaciones)
+  ms-eventos:
+    build: 
+      context: ./backend/ms_eventos 
+      dockerfile: Dockerfile
+    container_name: unl_ms_eventos
+    restart: always
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8002:8000" # Exposición directa para pruebas puenteando a Kong
+    volumes:
+      - ./backend/ms_eventos/app:/app/app 
+    environment:
+      - DATABASE_URL=postgresql://postgres_admin:postgres123456@db:5432/db_eventos
+    depends_on:
+      - db 
 
-  #6. API Gateway (Kong)
-
+  # 7. API Gateway (Kong)
   api-gateway:
     image: kong:3.4-ubuntu
     container_name: unl_api_gateway
@@ -90,13 +107,30 @@ services:
       KONG_PROXY_LISTEN: 0.0.0.0:8000
       KONG_ADMIN_LISTEN: 0.0.0.0:8001
     ports:
-      - "8000:8000"  # ¡ESTE ES EL ÚNICO PUERTO QUE VERÁ EL FRONTEND!
-      - "8001:8001"  # Puerto de administración local
+      - "8000:8000"  # Puerto expuesto para el Frontend
+      - "8001:8001"  # Puerto de administración de Kong
     volumes:
       - ./infraestructura/kong/kong.yml:/kong/declarative/kong.yml
     depends_on:
       - ms-gestion-usuarios
       - ms-clima
+      - ms-eventos
+
+  # 8. Frontend Web (React + Nginx)
+  frontend-web:
+    build:
+      context: ./frontend-web
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE: /api
+        VITE_GOOGLE_CLIENT_ID: 883175682519-tv0t5ndf3185sdimdjd6ro9hack12m7r.apps.googleusercontent.com
+        VITE_WEATHER_API_KEY: 55XRUAGTP4TFSKN476BELXZDD
+    container_name: unl_frontend_web
+    restart: always
+    ports:
+      - "80:80"
+    depends_on:
+      - api-gateway
 
 volumes:
   postgres_data:

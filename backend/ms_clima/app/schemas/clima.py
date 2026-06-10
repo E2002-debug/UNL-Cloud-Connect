@@ -17,6 +17,9 @@ class ClimaPayload(BaseModel):
     humedad: float = Field(..., ge=0.0, le=100.0, description="Humedad relativa en porcentaje")  
     alerta: bool
     detalles_alerta: str
+    id_ubicacion: int # Necesario para saber a dónde asignar el dato
+    fuente: str = "ESP32" # Valor por defecto importante
+
 class ClimaResponse(BaseModel):
     """
     Esquema para enviar la información climática actual al Frontend.
@@ -27,6 +30,7 @@ class ClimaResponse(BaseModel):
     fecha_captura: datetime
     fuente: str
     alerta: bool
-    detalles_alerta: str
+    detalles_alerta: Optional[str] = None
+    id_ubicacion: int # Importante para que el front sepa a qué sitio mostrar el clima
 
     model_config = ConfigDict(from_attributes=True)

@@ -12,7 +12,8 @@ services:
       - name: ruta-usuarios
         paths:
           - /api/auth
-        strip_path: true 
+          - /api/usuarios
+        strip_path: false
 
   # 2. Servicio de Clima/Telemetría
   - name: servicio-clima
@@ -21,7 +22,16 @@ services:
       - name: ruta-clima
         paths:
           - /api/clima
-        strip_path: true
+        strip_path: false
+
+  # 3. Servicio de Eventos 
+  - name: servicio-eventos
+    url: http://unl_ms_eventos:8000 # Nombre del contenedor en docker-compose
+    routes:
+      - name: ruta-eventos
+        paths:
+          - /api/eventos  
+        strip_path: false
 
 # ==========================================
 # PLUGINS GLOBALES
