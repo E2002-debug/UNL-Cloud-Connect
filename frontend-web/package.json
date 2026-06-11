@@ -10,9 +10,13 @@
   "dependencies": {
     "@react-oauth/google": "^0.11.1",
     "axios": "^1.16.1",
+    "chart.js": "^4.5.1",
+    "leaflet": "^1.9.4",
     "react": "^18.2.0",
+    "react-chartjs-2": "^5.3.1",
     "react-dom": "^18.2.0",
     "react-hot-toast": "^2.6.0",
+    "react-leaflet": "^4.2.1",
     "react-router-dom": "^6.30.4"
   },
   "devDependencies": {
