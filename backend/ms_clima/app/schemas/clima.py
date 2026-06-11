@@ -16,8 +16,7 @@ class ClimaPayload(BaseModel):
     temperatura: float = Field(..., ge=-50.0, le=100.0, description="Temperatura en grados centígrados")
     humedad: float = Field(..., ge=0.0, le=100.0, description="Humedad relativa en porcentaje")  
     alerta: bool
-    detalles_alerta: str
-    id_ubicacion: int # Necesario para saber a dónde asignar el dato
+    detalles_alerta: Optional[str] = None
     fuente: str = "ESP32" # Valor por defecto importante
 
 class ClimaResponse(BaseModel):

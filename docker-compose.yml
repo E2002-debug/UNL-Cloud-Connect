@@ -34,13 +34,29 @@ services:
     ports:
       - "9005:9000"     # Puerto de la API de MinIO
       - "9002:9001"     # Consola Web de administración
-    environment:
-      MINIO_ROOT_USER: minio_admin
-      MINIO_ROOT_PASSWORD: minio123456
+    env_file:
+      - ./backend/ms_eventos/.env
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
 
+
+  # Nuevo contenedor que crea el bucket y le da permisos públicos, luego se apaga
+  minio-init:
+    image: minio/mc
+    container_name: unl_minio_init
+    depends_on:
+      - minio
+    env_file:
+      - ./backend/ms_eventos/.env    # <-- También inyectamos las variables aquí
+    entrypoint: >
+      /bin/sh -c "
+      sleep 5;
+      mc alias set myminio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD;
+      mc mb myminio/$$MINIO_BUCKET_NAME --ignore-existing;
+      mc anonymous set download myminio/$$MINIO_BUCKET_NAME;
+      exit 0;
+      "
   # 4. Microservicio de Identidad (Login, Registro, Roles)
   ms-gestion-usuarios:
     build:
@@ -89,8 +105,8 @@ services:
       - "8002:8000" # Exposición directa para pruebas puenteando a Kong
     volumes:
       - ./backend/ms_eventos/app:/app/app 
-    environment:
-      - DATABASE_URL=postgresql://postgres_admin:postgres123456@db:5432/db_eventos
+    env_file:
+      - ./backend/ms_eventos/.env    # <-- Apuntamos a tu nuevo archivo seguro
     depends_on:
       - db 
 
@@ -106,6 +122,7 @@ services:
       KONG_PROXY_ERROR_LOG: /dev/stderr
       KONG_PROXY_LISTEN: 0.0.0.0:8000
       KONG_ADMIN_LISTEN: 0.0.0.0:8001
+      KONG_CLIENT_MAX_BODY_SIZE: 5m
     ports:
       - "8000:8000"  # Puerto expuesto para el Frontend
       - "8001:8001"  # Puerto de administración de Kong

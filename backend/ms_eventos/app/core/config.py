@@ -7,13 +7,20 @@ class Settings(BaseSettings):
     VERSION: str = "1.0"
     DESCRIPTION: str = "Microservicio encargado de la gestión y visualización de actividades académicas."
     
-    # En el futuro, aquí puedes agregar variables de entorno puras:
-    # DATABASE_URL: str
-    # SECRET_KEY: str
+    # Base de Datos
+    DATABASE_URL: str
+
+    # ==========================================
+    # CONFIGURACIÓN DE MINIO (OBJECT STORAGE)
+    # ==========================================
+    MINIO_SERVER: str              
+    MINIO_ROOT_USER: str          
+    MINIO_ROOT_PASSWORD: str      
+    MINIO_BUCKET_NAME: str  
 
     class Config:
         case_sensitive = True
-        # env_file = ".env"  # Descomenta esto cuando uses variables de entorno
+        env_file = ".env"  # Activado para que lea tu archivo seguro automáticamente
 
 # Instanciamos la configuración para importarla en otros archivos
 settings = Settings()

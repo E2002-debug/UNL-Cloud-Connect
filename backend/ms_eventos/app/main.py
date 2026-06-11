@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from app.database.session import engine, Base
 import app.database.base  # Importación crítica para que SQLAlchemy reconozca las tablas
 from app.routers import eventos, ubicacion
+from app.models.imagen import ImagenEvento, Reaccion
 
 # Importaciones desde tu carpeta CORE
 from app.core.security import configurar_seguridad_app
