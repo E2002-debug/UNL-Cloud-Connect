@@ -5,7 +5,7 @@ Implementa arquitectura Zero Trust confiando en los headers inyectados por el AP
 y separa claramente las operaciones de lectura (públicas/clientes) de las de escritura (administradores).
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Header, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, status, Header, BackgroundTasks, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
 
@@ -13,7 +13,11 @@ from app.services.notificaciones import enviar_alerta_nuevo_evento
 from app.database.session import get_db
 from app.schemas.evento import EventoCreate, EventoUpdate, EventoResponse
 from app.models.evento import ProgresoEvento  
+from app.schemas.imagen import ReaccionRequest, ReaccionesResumenResponse
+from app.models.imagen import ImagenEvento
+from app.services.almacenamiento import subir_imagen_minio
 from app.crud import crud_evento
+from app.crud import crud_imagen
 
 router = APIRouter(
     prefix="/eventos",
@@ -147,3 +151,121 @@ def cancelar_evento(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El evento ya se encuentra en estado cancelado.")
         
     return crud_evento.eliminar_evento(db, db_evento=evento_existente)
+
+# ==========================================
+# VALIDACIONES DE LA ADUANA (HU_05)
+# ==========================================
+
+def validar_imagen(imagen: UploadFile = File(...)) -> UploadFile:
+    """
+    Filtro estricto para proteger el bucket de MinIO.
+    Verifica MIME type y límite de peso (5MB).
+    """
+    # 1. Validación de Formato
+    formatos_permitidos = ["image/jpeg", "image/png"]
+    if imagen.content_type not in formatos_permitidos:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail="Formato no soportado. Solo se permiten archivos .jpg, .jpeg o .png"
+        )
+    
+    # 2. Validación de Tamaño (5MB = 5 * 1024 * 1024 bytes)
+    # UploadFile.size está disponible de forma nativa en FastAPI moderno
+    LIMITE_MB = 5
+    if imagen.size > LIMITE_MB * 1024 * 1024:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail=f"La imagen supera el límite máximo de {LIMITE_MB}MB."
+        )
+    
+    return imagen
+
+# ==========================================
+# ENDPOINT IMAGEN (HU_04)
+# ==========================================
+
+@router.post("/{id_evento}/imagenes/", status_code=status.HTTP_201_CREATED)
+def subir_imagen_a_evento(
+    id_evento: int,
+    imagen_validada: UploadFile = Depends(validar_imagen), # <-- La Aduana entra en acción
+    db: Session = Depends(get_db),
+    id_usuario: int = Depends(obtener_id_usuario_gateway)  # <-- Solo verificamos que esté logueado
+):
+    """
+    Permite a los participantes (Estudiantes/Docentes) subir una evidencia visual al evento.
+    El archivo pasa por la validación, va a MinIO y la URL se guarda en PostgreSQL.
+    """
+    # 1. Verificamos que el evento físico exista antes de subir archivos a MinIO
+    evento_existente = crud_evento.obtener_evento_por_id(db, id_evento)
+    if not evento_existente:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="El evento solicitado no existe.")
+    
+    # 2. El Transportista: Mandamos el archivo al Bucket
+    try:
+        url_publica = subir_imagen_minio(imagen_validada)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al comunicar con el servidor de almacenamiento: {str(e)}"
+        )
+    
+    # 3. Persistencia: Guardamos la URL final en la base de datos asociando al usuario que la subió
+    nueva_imagen = crud_imagen.crear_registro_imagen(
+        db=db, 
+        id_evento=id_evento, 
+        id_usuario=id_usuario, # Pasamos el ID de quien sube la foto
+        url_minio=url_publica
+    )
+    
+    return {
+        "mensaje": "Imagen procesada y enlazada exitosamente",
+        "id_imagen": nueva_imagen.id_imagen,
+        "url": nueva_imagen.url_minio
+    }
+
+# ==========================================
+# ENDPOINT PROTEGIDO: HU_06 (Interactuar)
+# ==========================================
+@router.post("/imagenes/{id_imagen}/reaccion", status_code=status.HTTP_200_OK)
+def reaccionar_a_imagen(
+    id_imagen: int,
+    reaccion_in: ReaccionRequest,
+    db: Session = Depends(get_db),
+    # Extraemos el ID del estudiante/docente validado por el API Gateway
+    id_usuario: int = Depends(obtener_id_usuario_gateway) 
+):
+    """
+    Aplica Like, Dislike o remueve la interacción actual usando lógica Toggle.
+    """
+    # Verificamos que la imagen física exista
+    imagen_existente = db.query(ImagenEvento).filter(ImagenEvento.id_imagen == id_imagen).first()
+    if not imagen_existente:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La imagen no existe.")
+    
+    resultado = crud_imagen.procesar_reaccion(
+        db=db, 
+        id_imagen=id_imagen, 
+        id_usuario=id_usuario, 
+        tipo_nuevo=reaccion_in.tipo
+    )
+    
+    return {"mensaje": "Interacción procesada", "detalle": resultado}
+
+# ==========================================
+# ENDPOINT PÚBLICO: HU_07 (Consultar)
+# ==========================================
+@router.get("/imagenes/{id_imagen}/reacciones", response_model=ReaccionesResumenResponse, status_code=status.HTTP_200_OK)
+def obtener_interacciones_imagen(
+    id_imagen: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Devuelve los contadores y las listas de IDs de usuarios que reaccionaron.
+    El frontend usará estos IDs para consultar los nombres a ms-usuarios si el usuario abre el modal.
+    """
+    # Verificamos existencia
+    imagen_existente = db.query(ImagenEvento).filter(ImagenEvento.id_imagen == id_imagen).first()
+    if not imagen_existente:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La imagen no existe.")
+        
+    return crud_imagen.obtener_resumen_reacciones(db, id_imagen)
