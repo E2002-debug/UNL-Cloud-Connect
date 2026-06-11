@@ -65,8 +65,10 @@ Una vez que los contenedores estén en ejecución (Up), puedes acceder a las her
 
 ### 📡 Backend (FastAPI)
 
-* **Documentación Interactiva GEstion Usuraios(Swagger):** http://localhost:8000/api/auth/docs *(Aquí podrás probar los endpoints de Login y Registro).*
+* **Documentación Interactiva GEstion Usuraios(Swagger):** http://localhost:8000/api/auth/docs  *(Aquí podrás probar los endpoints de Login y Registro).*
 * **Documentación Interactiva CLima (Swagger):** http://localhost:8000/api/clima/docs *(Aquí podrás probar los endpoints de Clima).*
+* **Documentación Interactiva Eventos(Swagger):** http://localhost:8000/api/eventos/docs *(Aquí podrás probar los endpoints de Eventos).*
+
 ### 💾 Almacenamiento de Imágenes (MinIO)
 * **Consola de Administración Web:** http://localhost:9002
 * **Usuario:** `minio_admin`
@@ -88,6 +90,13 @@ Si deseas conectarte a la base de datos usando un cliente externo (como DBeaver,
 * **Base de Datos:** `db_clima`
 * **Usuario:** `postgres_admin`
 * **Contraseña:** `postgres123456`
+
+**Conexión base de datos (Eventos):**
+* **Host:** `localhost`
+* **Puerto:** `5433`
+* **Base de Datos:** `db_eventos`
+* **Usuario:** `postgres_admin`
+* **Contraseña:** `postgres123456`
 ---
 
 ## 🛑 Detener los Servicios
@@ -98,5 +107,61 @@ Para apagar el entorno de contenedores de forma segura y liberar la memoria RAM 
 Si deseas apagar los servicios eliminando también los datos de los volúmenes creados (limpieza total de la base de datos), usa:
 
 ```docker compose down -v```
+
+---
+---
+---
+
+# 🌐 Frontend Web | UNL Cloud Connect
+
+Este directorio contiene la interfaz de usuario del sistema **UNL Cloud Connect**, construida con **React, Vite y TailwindCSS**. 
+
+Este documento establece la guía estandarizada para configurar y levantar el entorno de desarrollo local sin conflictos de dependencias.
+
+---
+
+## ⚠️ Requisito Crítico: Node.js v20+
+
+El proyecto utiliza dependencias modernas de compilación (como `@tailwindcss/oxide`) que requieren **estrictamente Node.js versión 20 o superior**. Si se intentan instalar las dependencias con una versión anterior (como la v18), el motor de NPM generará advertencias (`EBADENGINE`) y Vite colapsará al intentar arrancar.
+
+### Configuración del Gestor de Versiones (NVM)
+Para entornos de desarrollo Linux/Ubuntu, se exige utilizar **NVM (Node Version Manager)** para garantizar la paridad del motor de ejecución en todo el equipo:
+
+1. **Descarga e instala NVM** (si no lo tienes):
+```curl -o- [https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh](https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh)```
+
+2. **Carga NVM en tu sesión actual**  (ejecuta estas líneas o reinicia tu terminal):
+
+    ```export NVM_DIR="$HOME/.nvm"```<br>
+     ``` [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"```<br>
+    ``` [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"```
+
+3.  **Instala y activa Node 20:**
+
+    ```nvm install 20```<br>
+     ```nvm use 20```
+
+---
+
+  # 🚀 Guía de Despliegue Local
+
+    Una vez que hayas verificado que estás operando bajo Node 20, sigue estos pasos secuenciales:
+1. **Limpieza del Entorno (Crucial tras clonar)**
+
+    Para evitar archivos residuales corruptos por versiones previas de Node, limpia la caché del directorio ejecutando:<br>
+```rm -rf node_modules package-lock.json```
+
+2. **Instalación de Dependencias**
+
+    Descarga e instala todos los paquetes del ecosistema de React:<br>
+```npm install```
+
+3. **Ejecución del Servidor**
+
+    Levanta el servidor de desarrollo de Vite (con Hot Module Replacement):<br>
+```npm run dev```
+
+El entorno gráfico estará disponible inmediatamente en http://localhost:5173 (o el puerto dinámico que asigne la terminal).
+
 
 ### 💻 Desarrollado por el equipo de Procesos de Software-Computacion en la Nube - 6to 'A' - Computación UNL.

@@ -18,37 +18,50 @@ from app.schemas.clima import ClimaPayload
 # Instancia del cliente MQTT
 cliente_mqtt = MQTTClient("unl-backend-fastapi")
 
-# Definir el tópico al que nos vamos a suscribir (Debe coincidir con el código de la ESP32)
-TOPICO_CLIMA = "unl/clima/esp32"
+# =================================================================
+# REGISTRO DE GEMELOS DIGITALES (Device Registry)
+# Mapea el tópico MQTT del sensor con el id_ubicacion de la Base de Datos
+# =================================================================
+REGISTRO_SENSORES = {
+    "unl/clima/esp32": 1
+}
 
 def on_connect(client, flags, rc, properties):
     print(f"[MQTT] Conectado exitosamente al broker en {settings.MQTT_BROKER_HOST}")
-    # Nos suscribimos al tópico en cuanto se establece la conexión
-    client.subscribe(TOPICO_CLIMA, qos=1)
+    # Usamos el comodín '#' para suscribirnos a TODOS los sensores de la universidad a la vez
+    client.subscribe("unl/clima/#", qos=1)
 
 def on_message(client, topic, payload, qos, properties):
     print(f"[MQTT] Mensaje recibido en {topic}")
+    
+    # 1. RESOLUCIÓN DE IDENTIDAD: El backend deduce la ubicación leyendo el tópico
+    id_ubicacion_real = REGISTRO_SENSORES.get(topic)
+    
+    if not id_ubicacion_real:
+        print(f"[MQTT-WARNING] Mensaje ignorado. Sensor no registrado en tópico: {topic}")
+        return # Detenemos el flujo si el sensor no es de confianza
+
     try:
-        # 1. Decodificar los bytes a string y luego a diccionario JSON
         datos_json = json.loads(payload.decode('utf-8'))
         
-        # 2. Validar con el esquema Pydantic que creaste (límites lógicos)
+        # 2. VALIDACIÓN: Pydantic ya no exige id_ubicacion en el JSON
         datos_validados = ClimaPayload(**datos_json)
         
-        # 3. Guardar en PostgreSQL abriendo una sesión manual
         db = SessionLocal()
         try:
+            # 3. PERSISTENCIA: Pasamos el ID inyectado por nuestro diccionario
             crud_clima.crear_registro_clima(
                 db=db,
                 temperatura=datos_validados.temperatura,
                 humedad=datos_validados.humedad,
                 fuente="ESP32",
                 alerta=datos_validados.alerta,
-                detalles_alerta=datos_validados.detalles_alerta
+                detalles_alerta=datos_validados.detalles_alerta,
+                id_ubicacion=id_ubicacion_real # <-- ¡Inyección desde el diccionario!
             )
-            print(f"[MQTT] Clima guardado OK: T={datos_validados.temperatura}°C, H={datos_validados.humedad}%")
+            print(f"[MQTT] Clima guardado OK: T={datos_validados.temperatura}°C, H={datos_validados.humedad}%, Ubicacion={id_ubicacion_real}")
         finally:
-            db.close() # Es vital cerrar la sesión para no agotar el pool de conexiones
+            db.close()
 
     except json.JSONDecodeError:
         print("[MQTT-ERROR] El payload recibido no es un JSON válido.")

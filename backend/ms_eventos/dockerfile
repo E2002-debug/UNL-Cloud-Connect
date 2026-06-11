@@ -1,0 +1,32 @@
+# Autor: David Guamán
+# Fecha: 06/06/2026
+# Version: 0.1
+# Historial:
+# 06/06/2026 v0.1 - David Guamán: Creación del Dockerfile para ms_eventos combinando optimización de caché, logs en tiempo real y CMD nativo.
+
+# Utilizamos una imagen ligera, moderna y oficial de Python
+FROM python:3.11-slim
+
+# Evita que Python escriba archivos .pyc en el disco
+ENV PYTHONDONTWRITEBYTECODE 1
+
+# Evita que Python guarde en el búfer las salidas de la terminal (logs instantáneos)
+ENV PYTHONUNBUFFERED 1
+
+# Establecemos el directorio de trabajo dentro del contenedor
+WORKDIR /app
+
+# Copiamos solo el archivo de requerimientos primero para optimizar la caché de Docker
+COPY ./requirements.txt /app/requirements.txt
+
+# Instalamos las dependencias sin guardar la caché para mantener la imagen liviana
+RUN pip install --no-cache-dir --upgrade -r /app/requirements.txt
+
+# Copiamos estrictamente el código fuente del microservicio (evita copiar archivos innecesarios)
+COPY ./app /app/app
+
+# Exponemos el puerto interno del contenedor
+EXPOSE 8000
+
+# Comando para arrancar el servidor (Uvicorn)
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
