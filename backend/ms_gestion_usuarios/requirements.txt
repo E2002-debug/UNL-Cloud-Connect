@@ -1,0 +1,38 @@
+# Autor: David Guamán
+# Fecha: 30/05/2026
+# Version: 0.3
+# Historial:
+# 21/05/2026 v0.1 - David Guamán: Definición de las dependencias base del proyecto (FastAPI, PostgreSQL, Seguridad e IoT).
+# 22/05/2026 v0.2 - David Guamán: Actualización de versiones y adición de dependencias específicas para el flujo híbrido de autenticación con Google (google-auth, requests).
+# 30/05/2026 v0.3 - David Guamán: Adición de dependencia para el envío de correos (fastapi-mail).
+
+
+
+# Framework Base
+fastapi==0.110.0
+uvicorn==0.28.0
+
+# Base de Datos (PostgreSQL)
+sqlalchemy==2.0.28
+psycopg2-binary==2.9.9
+
+# Validación de Datos y Variables de Entorno
+pydantic==2.6.4
+pydantic-settings==2.2.1
+email-validator==2.1.1
+
+# Seguridad y Autenticación (HU_01, HU_02)
+passlib[bcrypt]==1.7.4
+bcrypt==3.2.2
+python-jose[cryptography] ==3.3.0
+python-multipart==0.0.9
+
+# Google SSO (Flujo Híbrido)
+google-auth==2.29.0
+requests==2.31.0
+fastapi-mail==1.4.1
+asyncpg==0.29.0
+
+# Testing (Caja Blanca y Caja Negra)
+pytest==8.2.0
+httpx==0.27.0
