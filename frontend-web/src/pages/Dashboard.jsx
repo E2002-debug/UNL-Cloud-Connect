@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom'
 import { getUsers, updateUser, deleteUser, register, updateMe } from '../services/api'
 import toast from 'react-hot-toast'
 
+import Events from '../components/dashboard/events/Events'
+import Sensors from '../components/dashboard/sensors/Sensors'
+
 // --- Iconos SVG Básicos ---
 const IconDashboard = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
 const IconUsers = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
@@ -288,13 +291,13 @@ export default function Dashboard() {
   const menuItems = isAdmin ? [
     { id: 'Dashboard', icon: <IconDashboard />, label: 'DASHBOARD' },
     { id: 'Usuarios', icon: <IconUsers />, label: 'GESTIÓN DE USUARIOS', badge: usuarios.length },
-    { id: 'Eventos', icon: <IconEvents />, label: 'EVENTOS UNL', badge: 3 },
+    { id: 'Eventos', icon: <IconEvents />, label: 'EVENTOS UNL' },
     { id: 'Sensores', icon: <IconSensors />, label: 'SENSORES IOT', labelRight: 'ESTABLE' },
     { id: 'Configuracion', icon: <IconSettings />, label: 'CONFIGURACIÓN' },
     { id: 'Perfil', icon: <IconUsers />, label: 'MI PERFIL' },
   ] : [
     { id: 'Dashboard', icon: <IconDashboard />, label: 'MI DASHBOARD', badge: 'PIONERO' },
-    { id: 'Eventos', icon: <IconEvents />, label: 'MIS EVENTOS', badge: 2 },
+    { id: 'Eventos', icon: <IconEvents />, label: 'MIS EVENTOS'},
     { id: 'Sensores', icon: <IconSensors />, label: 'SENSOR IOT', labelRight: 'VIRTUAL' },
     { id: 'Clima', icon: <IconSettings />, label: 'MÉTRICAS CLIMA' },
     { id: 'Perfil', icon: <IconUsers />, label: 'MI PERFIL' },
@@ -334,15 +337,19 @@ export default function Dashboard() {
         {/* NAVIGATION */}
         <nav style={{ padding: '24px 16px', flex: 1 }}>
           {menuItems.map(item => (
-            <button
+            <a
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              href="#"
+              onClick={(e) => {
+                e.preventDefault()
+                setActiveTab(item.id)
+              }}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px', marginBottom: '8px',
                 background: activeTab === item.id ? '#0F766E' : 'transparent',
                 color: activeTab === item.id ? 'var(--bg-card)' : 'var(--text-muted)',
                 border: 'none', borderRadius: '8px', cursor: 'pointer', textAlign: 'left',
-                transition: 'all 0.2s ease', fontWeight: '600', fontSize: '13px'
+                transition: 'all 0.2s ease', fontWeight: '600', fontSize: '13px', textDecoration: 'none'
               }}
             >
               <div style={{ color: activeTab === item.id ? 'var(--bg-card)' : 'var(--text-muted)' }}>{item.icon}</div>
@@ -358,7 +365,7 @@ export default function Dashboard() {
                   {item.labelRight}
                 </span>
               )}
-            </button>
+            </a>
           ))}
         </nav>
 
@@ -422,7 +429,21 @@ export default function Dashboard() {
         </header>
 
         {/* SCROLLABLE CONTENT */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '40px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '32px', width: '100%', boxSizing: 'border-box' }}>
+
+          {/* VISTA DE EVENTOS: Aquí se inyecta tu componente sin asfixiar el espacio */}
+          {activeTab === 'Eventos' && (
+            <div style={{ width: '100%' }}>
+              <Events />
+            </div>
+          )}
+
+          {/* VISTA DE SENSORES IOT */}
+          {activeTab === 'Sensores' && (
+            <div style={{ width: '100%' }}>
+              <Sensors />
+            </div>
+          )}
 
           {/* KPI CARDS Y GRAFICOS (ADMIN DASHBOARD) */}
           {isAdmin && activeTab === 'Dashboard' && (
@@ -818,6 +839,26 @@ export default function Dashboard() {
             </div>
           )}
 
+          {/* 2. AQUÍ INTEGRAS LA VISTA DE EVENTOS */}
+          {activeTab === 'Eventos' && (
+            <div className="animate-fade-in">
+              <Events />
+            </div>
+          )}
+
+          {activeTab === 'Sensores' && (
+            <div className="animate-fade-in">
+              
+            </div>
+          )}
+
+          {activeTab === 'Configuracion' && (
+            <div><h3>Configuración del Sistema</h3></div>
+          )}
+
+          {activeTab === 'Perfil' && (
+            <div><h3>Mi Perfil de Usuario</h3></div>
+          )}
 
           {/* MÓDULO DE PERFIL */}
           {activeTab === 'Perfil' && (
@@ -989,14 +1030,16 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* FALLBACK FOR OTHER TABS */}
-          {((isAdmin && activeTab !== 'Usuarios' && activeTab !== 'Configuracion' && activeTab !== 'Perfil') || (!isAdmin && activeTab !== 'Dashboard' && activeTab !== 'Perfil' && activeTab !== 'Clima')) && (
+         
+          {/* FALLBACK FOR OTHER TABS 
+                  esto solo es para poner que la pagina esta en contruccion*/}
+          {/* {((isAdmin && activeTab !== 'Usuarios' && activeTab !== 'Configuracion' && activeTab !== 'Perfil') || (!isAdmin && activeTab !== 'Dashboard' && activeTab !== 'Perfil' && activeTab !== 'Clima')) && (
             <div style={{ background: 'var(--bg-card)', padding: '60px', borderRadius: '12px', border: '1px solid #DBE3E0', textAlign: 'center' }}>
               <div style={{ fontSize: '48px', marginBottom: '16px' }}>🚧</div>
               <h2 style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: '800', color: 'var(--text-main)' }}>Módulo en Construcción</h2>
               <p style={{ margin: 0, color: 'var(--text-muted)' }}>La sección de {menuItems.find(i => i.id === activeTab)?.label || 'seleccionada'} estará disponible próximamente.</p>
             </div>
-          )}
+          )} */}
 
           {/* FOOTER */}
           <div style={{ marginTop: '40px', borderTop: '1px solid #DBE3E0', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '1px' }}>
