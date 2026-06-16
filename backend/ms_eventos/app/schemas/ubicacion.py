@@ -10,11 +10,21 @@ class UbicacionBase(BaseModel):
 
 # Esquema para registrar una nueva ubicación desde el Frontend
 class UbicacionCreate(UbicacionBase):
-    pass # Hereda todo de UbicacionBase sin cambios por ahora
+    pass
+
+# Esquema para actualizar una ubicación (todos los campos son opcionales)
+class UbicacionUpdate(BaseModel):
+    latitud: Optional[float] = Field(None, description="Coordenada de latitud en el mapa")
+    longitud: Optional[float] = Field(None, description="Coordenada de longitud en el mapa")
+    nombre_lugar: Optional[str] = Field(None, min_length=3, max_length=150, description="Nombre descriptivo del lugar")
+    direccion_alfa_numerica: Optional[str] = Field(None, max_length=255, description="Referencia adicional de la ubicación")
 
 # Esquema para responder al frontend
 class UbicacionResponse(UbicacionBase):
     id_ubicacion: int
+    id_usuario_creador: int
+    id_rol_creador: int
+    activo: bool = True
 
     # Permite a Pydantic leer directamente el objeto de SQLAlchemy
     model_config = ConfigDict(from_attributes=True)

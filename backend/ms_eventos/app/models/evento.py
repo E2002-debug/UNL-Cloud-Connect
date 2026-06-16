@@ -35,5 +35,8 @@ class Evento(Base):
     # Llave foránea INTERNA: Estricta, porque Ubicacion pertenece a ms_eventos
     id_ubicacion: Mapped[int] = mapped_column(ForeignKey("ubicacion.id_ubicacion"), nullable=False)
     
+    # Relación con imágenes del evento
+    imagenes: Mapped[list["ImagenEvento"]] = relationship(back_populates="evento", cascade="all, delete-orphan")
+
     # Llave de referencia EXTERNA: No es ForeignKey porque el Usuario vive en otra DB
     id_usuario: Mapped[int] = mapped_column(nullable=False, index=True)

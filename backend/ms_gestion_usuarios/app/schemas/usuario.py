@@ -55,8 +55,8 @@ class UsuarioCreate(UsuarioBase):
     @field_validator('id_rol')
     @classmethod
     def validar_rol(cls, v: int) -> int:
-        if v not in [1, 2]:
-            raise ValueError('El rol debe ser 1 (Administrador) o 2 (Participante)')
+        if v not in [1, 2, 3]:
+            raise ValueError('El rol debe ser 1 (Administrador), 2 (Participante) o 3 (Superadmin)')
         return v
 
 # Esquema para responderle al frontend (ocultando la clave)
@@ -83,8 +83,8 @@ class UsuarioRegistroHibrido(BaseModel):
     @field_validator('id_rol')
     @classmethod
     def validar_rol(cls, v: int) -> int:
-        if v not in [1, 2]:
-            raise ValueError('El rol debe ser 1 (Administrador) o 2 (Participante)')
+        if v not in [1, 2, 3]:
+            raise ValueError('El rol debe ser 1 (Administrador), 2 (Participante) o 3 (Superadmin)')
         return v
 
 # Esquema para el Inicio de Sesión Dual con Google (HU_02)
@@ -128,8 +128,8 @@ class UsuarioUpdate(BaseModel):
     @field_validator('id_rol')
     @classmethod
     def validar_rol(cls, v: Optional[int]) -> Optional[int]:
-        if v is not None and v not in [1, 2]:
-            raise ValueError('El rol debe ser 1 (Administrador) o 2 (Participante)')
+        if v is not None and v not in [1, 2, 3]:
+            raise ValueError('El rol debe ser 1 (Administrador), 2 (Participante) o 3 (Superadmin)')
         return v
 
 class UsuarioUpdateMe(BaseModel):
