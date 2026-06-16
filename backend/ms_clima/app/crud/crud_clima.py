@@ -39,3 +39,11 @@ def obtener_ultimo_clima(db: Session):
     Obtiene el registro climático más reciente para mostrarlo en el Frontend.
     """
     return db.query(Clima).order_by(Clima.fecha_captura.desc()).first()
+
+def obtener_ultimo_clima_por_ubicacion(db: Session, id_ubicacion: int):
+    """
+    Obtiene el último registro climático para una ubicación específica.
+    """
+    return db.query(Clima).filter(
+        Clima.id_ubicacion == id_ubicacion
+    ).order_by(Clima.fecha_captura.desc()).first()

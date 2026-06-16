@@ -21,6 +21,9 @@ class ImagenEvento(Base):
     # Llave foránea estricta: La imagen le pertenece físicamente a un evento en esta misma BD
     id_evento: Mapped[int] = mapped_column(ForeignKey("evento.id_evento", ondelete="CASCADE"), nullable=False)
 
+    # Relación inversa hacia el evento
+    evento: Mapped["Evento"] = relationship(back_populates="imagenes")
+
     # Referencia lógica al usuario que subió la imagen
     id_usuario: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
 

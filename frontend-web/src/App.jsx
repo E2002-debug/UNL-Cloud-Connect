@@ -23,7 +23,7 @@ const GuardedRoute = ({ element: Element }) => {
   }
 
   // 2. CORRECCIÓN: Permitir la entrada si es Admin (1) O si es Usuario Autorizado (2)
-  if (String(idRol) !== '1' && String(idRol) !== '2') {
+  if (String(idRol) !== '1' && String(idRol) !== '2' && String(idRol) !== '3') {
     localStorage.clear() // Solo limpia si es un rol totalmente desconocido
     return <Navigate to="/login?logout=true" replace />
   }
@@ -37,7 +37,7 @@ export default function App() {
   const idRol = localStorage.getItem('id_rol')
 
   // El usuario puede ir al dashboard desde la raíz si tiene token y rol válido
-  const isUserValid = token && (String(idRol) === '1' || String(idRol) === '2')
+  const isUserValid = token && (String(idRol) === '1' || String(idRol) === '2' || String(idRol) === '3')
 
   return (
     <>

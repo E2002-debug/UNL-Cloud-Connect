@@ -53,6 +53,7 @@ export default function Login() {
   // Procesador unificado de almacenamiento y redirección forzada
   const handleLoginSuccess = (data) => {
     const tokenFinal = data.access_token || data.token || data.token_acceso
+    const idUsuario = data.id_usuario || data.user?.id_usuario || data.usuario?.id_usuario || ''
     const userRole = data.id_rol || data.user?.id_rol || data.usuario?.id_rol || '2'
     const nombre = data.nombre || data.user?.nombre || data.usuario?.nombre || ''
     const apellido = data.apellido || data.user?.apellido || data.usuario?.apellido || ''
@@ -68,6 +69,7 @@ export default function Login() {
 
     // Persistencia síncrona inmediata en el cliente
     localStorage.setItem('access_token', String(tokenFinal))
+    localStorage.setItem('id_usuario', String(idUsuario))
     localStorage.setItem('id_rol', String(userRole))
     localStorage.setItem('nombre', String(nombre))
     localStorage.setItem('apellido', String(apellido))

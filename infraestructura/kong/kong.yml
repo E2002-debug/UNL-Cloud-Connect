@@ -58,7 +58,11 @@ plugins:
         - Content-Type
         - Date
         - Authorization
+        - x-user-role
+        - x-user-id
       exposed_headers:
         - Authorization
+        - x-user-role
+        - x-user-id
       credentials: true
       max_age: 3600

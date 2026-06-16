@@ -29,7 +29,7 @@ def get_current_user(db: Session = Depends(get_db), token: str = Depends(oauth2_
     return usuario
 
 def get_current_admin(current_user: Usuario = Depends(get_current_user)) -> Usuario:
-    if current_user.id_rol != 1:
+    if current_user.id_rol not in [1, 3]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes los permisos suficientes. Se requiere rol de Administrador."

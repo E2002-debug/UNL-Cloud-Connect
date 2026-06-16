@@ -12,9 +12,10 @@
  * Implementación inicial del módulo de gestión de eventos académicos.
  */
 import { useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import EventTable from "./EventTable";
 import EventModal from "./EventModal";
-import { getEventos, createEvento, deleteEvento } from "./eventService";
+import { getEventos, createEvento, updateEvento, deleteEvento, uploadImage } from "./eventService";
 
 // Iconos SVG integrados para no depender de librerías externas
 const IconPlus = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
@@ -23,7 +24,9 @@ const IconSearch = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="n
 export default function Events() {
   const [eventos, setEventos] = useState([]);
   const [openModal, setOpenModal] = useState(false);
+  const [editando, setEditando] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
+  const [tabActivo, setTabActivo] = useState("EN_PROGRESO");
 
   const cargarEventos = async () => {
     try {
@@ -31,6 +34,7 @@ export default function Events() {
       setEventos(data);
     } catch (error) {
       console.error("Error al cargar eventos:", error);
+      toast.error("Error al cargar eventos");
     }
   };
 
@@ -38,14 +42,47 @@ export default function Events() {
     cargarEventos();
   }, []);
 
-  const guardarEvento = async (data) => {
+  const openCreate = () => {
+    setEditando(null);
+    setOpenModal(true);
+  };
+
+  const openEdit = (evento) => {
+    setEditando(evento);
+    setOpenModal(true);
+  };
+
+  const guardarEvento = async (data, imagenFile) => {
+    let evento;
     try {
-      await createEvento(data);
-      setOpenModal(false);
-      cargarEventos();
+      if (editando) {
+        await updateEvento(editando.id_evento, data);
+        evento = editando;
+      } else {
+        evento = await createEvento(data);
+      }
     } catch (error) {
       console.error("Error al guardar evento:", error);
+      toast.error("Error al guardar el evento");
+      throw error;
     }
+
+    if (imagenFile) {
+      try {
+        await uploadImage(evento.id_evento, imagenFile);
+        toast.success("Imagen subida correctamente");
+      } catch (uploadErr) {
+        console.error("Error al subir imagen:", uploadErr);
+        const status = uploadErr.response?.status;
+        const detail = uploadErr.response?.data?.detail || uploadErr.message;
+        toast.error(`El evento se guardó, pero la imagen no pudo subirse (${status}): ${detail}`);
+      }
+    }
+
+    setOpenModal(false);
+    setEditando(null);
+    cargarEventos();
+    toast.success("Evento guardado correctamente");
   };
 
   const eliminarEvento = async (id) => {
@@ -53,8 +90,10 @@ export default function Events() {
     try {
       await deleteEvento(id);
       cargarEventos();
+      toast.success("Evento cancelado correctamente");
     } catch (error) {
       console.error("Error al cancelar evento:", error);
+      toast.error("Error al cancelar el evento");
     }
   };
 
@@ -62,9 +101,21 @@ export default function Events() {
     e.nombre.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const eventosPorTab = tabActivo === "TODOS"
+    ? eventosFiltrados
+    : eventosFiltrados.filter((e) => e.estado === tabActivo);
+
+  const tabs = [
+    { key: "EN_PROGRESO", label: "EN PROGRESO", color: "#10b981" },
+    { key: "PROGRAMADO", label: "PROGRAMADOS", color: "#2563eb" },
+    { key: "FINALIZADO", label: "FINALIZADOS", color: "#475569" },
+    { key: "CANCELADO", label: "CANCELADOS", color: "#ef4444" },
+  ];
+
   const enProgreso = eventos.filter((e) => e.estado === "EN_PROGRESO").length;
   const programados = eventos.filter((e) => e.estado === "PROGRAMADO").length;
-  const totalEventos = eventos.length;
+  const finalizados = eventos.filter((e) => e.estado === "FINALIZADO").length;
+  const cancelados = eventos.filter((e) => e.estado === "CANCELADO").length;
 
   return (
     <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "24px", boxSizing: "border-box" }}>
@@ -78,7 +129,7 @@ export default function Events() {
           </p>
         </div>
         <button 
-          onClick={() => setOpenModal(true)}
+          onClick={openCreate}
           style={{
             background: "#0F766E", color: "white", padding: "10px 20px", borderRadius: "8px",
             border: "none", fontWeight: "700", fontSize: "12px", cursor: "pointer",
@@ -90,31 +141,48 @@ export default function Events() {
         </button>
       </div>
 
-      {/* TARJETAS METRICAS (PROPORCIONALES EN FILA HORIZONTAL) */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "24px", width: "100%" }}>
-        <div style={{ background: "var(--bg-card)", padding: "24px", border: "1px solid #DBE3E0", textAlign: "left" }}>
-          <span style={{ fontSize: "10px", fontWeight: "800", color: "var(--text-muted)", letterSpacing: "0.5px" }}>EVENTOS ACTIVOS</span>
-          <div style={{ fontSize: "32px", fontWeight: "900", color: "#0F766E", margin: "8px 0" }}>{enProgreso}</div>
-          <span style={{ fontSize: "10px", color: "#10b981", fontWeight: "700" }}>● En curso en este momento</span>
+      {/* TARJETAS METRICAS POR ESTADO */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "12px", width: "100%" }}>
+        <div style={{ background: "var(--bg-card)", padding: "12px 16px", border: "1px solid #DBE3E0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontSize: "10px", fontWeight: "800", color: "var(--text-muted)", letterSpacing: "0.5px" }}>EN PROGRESO</span>
+          <span style={{ fontSize: "18px", fontWeight: "900", color: "#10b981" }}>{enProgreso}</span>
         </div>
+        <div style={{ background: "var(--bg-card)", padding: "12px 16px", border: "1px solid #DBE3E0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontSize: "10px", fontWeight: "800", color: "var(--text-muted)", letterSpacing: "0.5px" }}>PROGRAMADOS</span>
+          <span style={{ fontSize: "18px", fontWeight: "900", color: "#2563eb" }}>{programados}</span>
+        </div>
+        <div style={{ background: "var(--bg-card)", padding: "12px 16px", border: "1px solid #DBE3E0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontSize: "10px", fontWeight: "800", color: "var(--text-muted)", letterSpacing: "0.5px" }}>FINALIZADOS</span>
+          <span style={{ fontSize: "18px", fontWeight: "900", color: "#475569" }}>{finalizados}</span>
+        </div>
+        <div style={{ background: "var(--bg-card)", padding: "12px 16px", border: "1px solid #DBE3E0", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span style={{ fontSize: "10px", fontWeight: "800", color: "var(--text-muted)", letterSpacing: "0.5px" }}>CANCELADOS</span>
+          <span style={{ fontSize: "18px", fontWeight: "900", color: "#ef4444" }}>{cancelados}</span>
+        </div>
+      </div>
 
-        <div style={{ background: "var(--bg-card)", padding: "24px", border: "1px solid #DBE3E0", textAlign: "left" }}>
-          <span style={{ fontSize: "10px", fontWeight: "800", color: "var(--text-muted)", letterSpacing: "0.5px" }}>EVENTOS PROGRAMADOS</span>
-          <div style={{ fontSize: "32px", fontWeight: "900", color: "#0F766E", margin: "8px 0" }}>{programados}</div>
-          <span style={{ fontSize: "10px", color: "#2563eb", fontWeight: "700" }}>En el calendario del campus</span>
-        </div>
-
-        <div style={{ background: "var(--bg-card)", padding: "24px", border: "1px solid #DBE3E0", textAlign: "left" }}>
-          <span style={{ fontSize: "10px", fontWeight: "800", color: "var(--text-muted)", letterSpacing: "0.5px" }}>TOTAL REGISTRADOS</span>
-          <div style={{ fontSize: "32px", fontWeight: "900", color: "#0F766E", margin: "8px 0" }}>{totalEventos}</div>
-          <span style={{ fontSize: "10px", color: "var(--text-muted)", fontWeight: "700" }}>Historial acumulado</span>
-        </div>
-
-        <div style={{ background: "var(--bg-card)", padding: "24px", border: "1px solid #DBE3E0", textAlign: "left" }}>
-          <span style={{ fontSize: "10px", fontWeight: "800", color: "var(--text-muted)", letterSpacing: "0.5px" }}>ESTADO DE TELEMETRÍA</span>
-          <div style={{ fontSize: "32px", fontWeight: "900", color: "#0F766E", margin: "8px 0" }}>100%</div>
-          <span style={{ fontSize: "10px", color: "#10b981", fontWeight: "700" }}>● Cloud Gateway Activo</span>
-        </div>
+      {/* TABS POR ESTADO */}
+      <div style={{ display: "flex", gap: "4px", borderBottom: "2px solid #e2e8f0" }}>
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => setTabActivo(tab.key)}
+            style={{
+              background: tabActivo === tab.key ? tab.color : "transparent",
+              color: tabActivo === tab.key ? "white" : tab.color,
+              border: "none",
+              padding: "10px 20px",
+              borderRadius: "8px 8px 0 0",
+              fontSize: "11px",
+              fontWeight: "800",
+              cursor: "pointer",
+              letterSpacing: "0.5px",
+              transition: "all 0.2s",
+            }}
+          >
+            {tab.label} ({tab.key === "EN_PROGRESO" ? enProgreso : tab.key === "PROGRAMADO" ? programados : tab.key === "FINALIZADO" ? finalizados : cancelados})
+          </button>
+        ))}
       </div>
 
       {/* CONTENEDOR DE LA TABLA */}
@@ -141,10 +209,10 @@ export default function Events() {
         </div>
 
         {/* COMPONENTE TABLA */}
-        <EventTable eventos={eventosFiltrados} onDelete={eliminarEvento} />
+        <EventTable eventos={eventosPorTab} onEdit={openEdit} onDelete={eliminarEvento} />
       </div>
 
-      <EventModal open={openModal} onClose={() => setOpenModal(false)} onSave={guardarEvento} />
+      <EventModal open={openModal} onClose={() => { setOpenModal(false); setEditando(null); }} onSave={guardarEvento} editando={editando} />
     </div>
   );
 }

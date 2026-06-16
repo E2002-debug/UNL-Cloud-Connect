@@ -25,11 +25,11 @@ def crear_usuario(db: Session, usuario: UsuarioCreate, verificado: bool = False)
     El parámetro verificado permite marcar usuarios de Google como verificados automáticamente.
     """
     # Validar que el id_rol sea válido (solo 1: Administrador o 2: Participante)
-    if usuario.id_rol not in [1, 2]:
+    if usuario.id_rol not in [1, 2, 3]:
         from fastapi import HTTPException, status
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El rol debe ser 1 (Administrador) o 2 (Participante)."
+            detail="El rol debe ser 1 (Administrador), 2 (Participante) o 3 (Superadmin)."
         )
     
     # Encriptar la contraseña si se proporcionó una (soporte para flujo híbrido)

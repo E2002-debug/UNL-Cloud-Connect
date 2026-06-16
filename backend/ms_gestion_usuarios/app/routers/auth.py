@@ -274,6 +274,7 @@ def iniciar_sesion(
     return {
         "access_token": token_acceso,
         "token_type": "bearer",
+        "id_usuario": usuario.id_usuario,
         "id_rol": usuario.id_rol,
         "nombre": usuario.nombre,
         "apellido": usuario.apellido,
@@ -369,6 +370,7 @@ def iniciar_sesion_google(credenciales: TokenGoogleLogin, db: Session = Depends(
     return {
         "access_token": token_acceso,
         "token_type": "bearer",
+        "id_usuario": usuario.id_usuario,
         "id_rol": usuario.id_rol,
         "nombre": usuario.nombre,
         "apellido": usuario.apellido,

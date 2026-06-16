@@ -11,7 +11,7 @@
 const obtenerEstiloEstado = (estado) => {
   switch (estado) {
     case "EN_PROGRESO":
-      return { background: "#fee2e2", color: "#991b1b", border: "1px solid #fca5a5" }; // Rojo suave para llamar la atención en ejecución
+      return { background: "#d1fae5", color: "#065f46", border: "1px solid #a7f3d0" }; // Rojo suave para llamar la atención en ejecución
     case "PROGRAMADO":
       return { background: "#dbeafe", color: "#1e40af", border: "1px solid #bfdbfe" };
     case "FINALIZADO":
@@ -23,7 +23,10 @@ const obtenerEstiloEstado = (estado) => {
   }
 };
 
-export default function EventTable({ eventos, onDelete }) {
+const IconEdit = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>;
+const IconCamera = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>;
+
+export default function EventTable({ eventos, onEdit, onDelete }) {
   const cellStyle = { padding: "14px 20px", fontSize: "13px", color: "var(--text-main)", borderBottom: "1px solid #f1f5f9", textAlign: "left" };
   const thStyle = { padding: "12px 20px", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", background: "var(--bg-app)", borderBottom: "1px solid #DBE3E0", textAlign: "left", letterSpacing: "0.5px" };
 
@@ -32,9 +35,10 @@ export default function EventTable({ eventos, onDelete }) {
       <table style={{ width: "100%", borderCollapse: "collapse", minWidth: "800px" }}>
         <thead>
           <tr>
-            <th style={{ ...thStyle, width: "35%" }}>DETALLES DEL EVENTO</th>
-            <th style={{ ...thStyle, width: "25%" }}>FECHA Y DURACIÓN</th>
-            <th style={{ ...thStyle, width: "15%" }}>ZONA / UBICACIÓN</th>
+            <th style={{ ...thStyle, width: "8%" }}>IMAGEN</th>
+            <th style={{ ...thStyle, width: "32%" }}>DETALLES DEL EVENTO</th>
+            <th style={{ ...thStyle, width: "22%" }}>FECHA Y DURACIÓN</th>
+            <th style={{ ...thStyle, width: "13%" }}>ZONA / UBICACIÓN</th>
             <th style={{ ...thStyle, width: "15%" }}>ESTADO</th>
             <th style={{ ...thStyle, width: "10%", textAlign: "right" }}>ACCIONES</th>
           </tr>
@@ -42,6 +46,17 @@ export default function EventTable({ eventos, onDelete }) {
         <tbody>
           {eventos.map((evento) => (
             <tr key={evento.id_evento} style={{ transition: "background 0.2s" }} onMouseOver={(e) => e.currentTarget.style.background = "var(--bg-app)"} onMouseOut={(e) => e.currentTarget.style.background = "transparent"}>
+
+              {/* IMAGEN */}
+              <td style={{ ...cellStyle, verticalAlign: "middle" }}>
+                {evento.imagen_url ? (
+                  <img src={evento.imagen_url} alt={evento.nombre} style={{ width: "44px", height: "44px", borderRadius: "6px", objectFit: "cover", border: "1px solid #DBE3E0", display: "block" }} />
+                ) : (
+                  <span style={{ color: "var(--text-muted)", opacity: 0.4, display: "flex", alignItems: "center", justifyContent: "center" }}>
+                    <IconCamera />
+                  </span>
+                )}
+              </td>
 
               {/* NOMBRE Y DESCRIPCION */}
               <td style={cellStyle}>
@@ -76,27 +91,44 @@ export default function EventTable({ eventos, onDelete }) {
                 </span>
               </td>
 
-              {/* BOTÓN CANCELAR */}
+              {/* ACCIONES */}
               <td style={{ ...cellStyle, textAlign: "right" }}>
-                <button
-                  onClick={() => onDelete(evento.id_evento)}
-                  style={{
-                    background: "transparent", border: "1px solid #fca5a5", color: "#ef4444",
-                    padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: "700",
-                    cursor: "pointer", transition: "all 0.2s"
-                  }}
-                  onMouseOver={(e) => { e.target.style.background = "#fee2e2" }}
-                  onMouseOut={(e) => { e.target.style.background = "transparent" }}
-                >
-                  Cancelar
-                </button>
+                <div style={{ display: "flex", gap: "8px", justifyContent: "flex-end" }}>
+                  <button
+                    onClick={() => onEdit(evento)}
+                    title="Editar evento"
+                    style={{
+                      background: "transparent", border: "1px solid #5eead4", color: "#0F766E",
+                      padding: "6px 8px", borderRadius: "6px", fontSize: "11px", fontWeight: "700",
+                      cursor: "pointer", transition: "all 0.2s", lineHeight: 0,
+                    }}
+                    onMouseOver={(e) => { e.target.style.background = "#ccfbf1" }}
+                    onMouseOut={(e) => { e.target.style.background = "transparent" }}
+                  >
+                    <IconEdit />
+                  </button>
+                  {evento.estado !== "CANCELADO" && evento.estado !== "FINALIZADO" && (
+                    <button
+                      onClick={() => onDelete(evento.id_evento)}
+                      style={{
+                        background: "transparent", border: "1px solid #fca5a5", color: "#ef4444",
+                        padding: "6px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: "700",
+                        cursor: "pointer", transition: "all 0.2s"
+                      }}
+                      onMouseOver={(e) => { e.target.style.background = "#fee2e2" }}
+                      onMouseOut={(e) => { e.target.style.background = "transparent" }}
+                    >
+                      Cancelar
+                    </button>
+                  )}
+                </div>
               </td>
             </tr>
           ))}
 
           {eventos.length === 0 && (
             <tr>
-              <td colSpan="5" style={{ ...cellStyle, padding: "40px", textAlign: "center", color: "var(--text-muted)", fontWeight: "600" }}>
+              <td colSpan="6" style={{ ...cellStyle, padding: "40px", textAlign: "center", color: "var(--text-muted)", fontWeight: "600" }}>
                 No se encontraron registros de eventos activos en la base de datos.
               </td>
             </tr>
