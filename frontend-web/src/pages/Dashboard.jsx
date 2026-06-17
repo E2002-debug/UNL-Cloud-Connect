@@ -40,10 +40,51 @@ export default function Dashboard() {
 
   // Notifications State
   const addNotification = (type, title, message) => {
-    const text = `${title}: ${message}`
-    if (type === 'success') toast.success(text)
-    else if (type === 'error') toast.error(text)
-    else toast(text, { icon: 'ℹ️' })
+    toast.custom((t) => (
+      <div
+        style={{
+          background: type === 'success' ? 'rgba(16, 185, 129, 0.95)' : type === 'error' ? 'rgba(239, 68, 68, 0.95)' : 'rgba(15, 118, 110, 0.95)',
+          backdropFilter: 'blur(10px)',
+          color: 'white',
+          padding: '16px 20px',
+          borderRadius: '12px',
+          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          opacity: t.visible ? 1 : 0,
+          transform: t.visible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.9)',
+          transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+          maxWidth: '350px',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}
+      >
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.2)',
+          borderRadius: '50%',
+          width: '32px',
+          height: '32px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0
+        }}>
+          {type === 'success' && <IconCheck />}
+          {type === 'error' && <IconError />}
+          {type === 'info' && <IconInfo />}
+        </div>
+        <div>
+          <h4 style={{ margin: '0 0 4px 0', fontSize: '13px', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase' }}>{title}</h4>
+          <p style={{ margin: 0, fontSize: '12px', fontWeight: '500', opacity: 0.9, lineHeight: '1.4' }}>{message}</p>
+        </div>
+        <button 
+          onClick={() => toast.dismiss(t.id)} 
+          style={{ background: 'transparent', border: 'none', color: 'white', opacity: 0.7, cursor: 'pointer', marginLeft: 'auto', padding: '4px' }}
+        >
+          ✕
+        </button>
+      </div>
+    ), { duration: 4000, position: 'bottom-right' })
   }
 
   // Modal State
