@@ -115,7 +115,7 @@ export default function Dashboard() {
     setLoadingWeather(true)
     setWeatherError('')
     
-    fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/Loja,Ecuador?unitGroup=metric&key=${apiKey}&contentType=json`)
+    fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/Loja,Ecuador?unitGroup=metric&lang=es&key=${apiKey}&contentType=json`)
       .then(res => {
         if (!res.ok) throw new Error('Error al obtener los datos del clima. Verifica la clave de API.')
         return res.json()
