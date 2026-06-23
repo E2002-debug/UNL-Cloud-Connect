@@ -72,6 +72,7 @@ export default function EventModal({ open, onClose, onSave, editando }) {
   const [previewUrl, setPreviewUrl] = useState(null);
   const [editandoUbicacion, setEditandoUbicacion] = useState(null);
   const [subiendo, setSubiendo] = useState(false);
+  const [errores, setErrores] = useState({});
 
   const fileInputRef = React.useRef(null);
 
@@ -101,6 +102,62 @@ export default function EventModal({ open, onClose, onSave, editando }) {
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setSeleccionArchivo(null);
     setPreviewUrl(null);
+  };
+
+  const limpiarError = (campo) => {
+    setErrores(prev => {
+      const copy = { ...prev };
+      delete copy[campo];
+      return copy;
+    });
+  };
+
+  const extraerErrorBackend = (error) => {
+    if (error.response?.data) {
+      const data = error.response.data;
+      if (data.detail) {
+        if (typeof data.detail === 'string') return data.detail;
+        if (Array.isArray(data.detail)) return data.detail.map(e => e.msg || e.detail || JSON.stringify(e)).join(', ');
+      }
+    }
+    return error.message || "Error desconocido";
+  };
+
+  const validarFormulario = () => {
+    const nuevosErrores = {};
+    const nombre = formData.nombre.trim();
+    const descripcion = formData.descripcion.trim();
+
+    if (nombre.length < 5 || nombre.length > 150) {
+      nuevosErrores.nombre = "El nombre debe tener entre 5 y 150 caracteres.";
+    }
+
+    if (descripcion.length < 10 || descripcion.length > 500) {
+      nuevosErrores.descripcion = "La descripción debe tener entre 10 y 500 caracteres.";
+    }
+
+    if (!formData.fecha_inicio || !formData.hora_inicio) {
+      nuevosErrores.fecha_inicio = "Selecciona fecha y hora de inicio.";
+    }
+
+    if (!formData.fecha_fin || !formData.hora_fin) {
+      nuevosErrores.fecha_fin = "Selecciona fecha y hora de finalización.";
+    }
+
+    if (formData.fecha_inicio && formData.hora_inicio && formData.fecha_fin && formData.hora_fin) {
+      const inicio = new Date(`${formData.fecha_inicio}T${formData.hora_inicio}`);
+      const fin = new Date(`${formData.fecha_fin}T${formData.hora_fin}`);
+      if (fin <= inicio) {
+        nuevosErrores.fecha_fin = "La fecha de finalización debe ser posterior a la fecha de inicio.";
+      }
+    }
+
+    if (!formData.id_ubicacion) {
+      nuevosErrores.id_ubicacion = "Selecciona una ubicación para el evento.";
+    }
+
+    setErrores(nuevosErrores);
+    return Object.keys(nuevosErrores).length === 0;
   };
 
   // Componente interno para capturar el click en el mapa
@@ -133,6 +190,7 @@ export default function EventModal({ open, onClose, onSave, editando }) {
 
   useEffect(() => {
     if (open) {
+      setErrores({});
       cargarUbicaciones();
       setVistaActiva("evento");
       if (editando) {
@@ -159,11 +217,12 @@ export default function EventModal({ open, onClose, onSave, editando }) {
 
   const handleSubmitEvent = async (e) => {
     e.preventDefault();
+    if (!validarFormulario()) return;
     setSubiendo(true);
     try {
       const payload = {
-        nombre: formData.nombre,
-        descripcion: formData.descripcion,
+        nombre: formData.nombre.trim(),
+        descripcion: formData.descripcion.trim(),
         fecha_hora_inicio: new Date(`${formData.fecha_inicio}T${formData.hora_inicio}`).toISOString(),
         fecha_hora_final: new Date(`${formData.fecha_fin}T${formData.hora_fin}`).toISOString(),
         id_ubicacion: Number(formData.id_ubicacion)
@@ -173,9 +232,12 @@ export default function EventModal({ open, onClose, onSave, editando }) {
       }
       await onSave(payload, seleccionArchivo);
       setFormData({ nombre: "", descripcion: "", fecha_inicio: "", hora_inicio: "", fecha_fin: "", hora_fin: "", id_ubicacion: "", estado: "" });
+      setErrores({});
       limpiarArchivo();
     } catch (error) {
       console.error(error);
+      const msg = extraerErrorBackend(error);
+      setErrores(prev => ({ ...prev, general: msg }));
     } finally {
       setSubiendo(false);
     }
@@ -237,6 +299,8 @@ export default function EventModal({ open, onClose, onSave, editando }) {
 
   const labelStyle = { display: "block", fontSize: "10px", fontWeight: "800", color: "var(--text-muted)", marginBottom: "6px", letterSpacing: "0.5px", textTransform: "uppercase" };
   const inputStyle = { width: "100%", padding: "10px 12px", background: "var(--bg-app)", border: "1px solid #DBE3E0", borderRadius: "6px", fontSize: "13px", color: "var(--text-main)", outline: "none", boxSizing: "border-box" };
+  const inputErrorStyle = { ...inputStyle, border: "1px solid #ef4444" };
+  const errorTextStyle = { fontSize: "10px", fontWeight: "700", color: "#ef4444", marginTop: "4px", marginBottom: 0 };
 
   return (
     <div style={{ position: "fixed", top: 0, left: 0, right: 0, bottom: 0, background: "rgba(15, 23, 42, 0.6)", backdropFilter: "blur(4px)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 9999 }}>
@@ -260,23 +324,30 @@ export default function EventModal({ open, onClose, onSave, editando }) {
         {/* VISTA 1: EVENTO */}
         {vistaActiva === "evento" && (
           <form onSubmit={handleSubmitEvent} style={{ padding: "24px", display: "flex", flexDirection: "column", gap: "16px" }}>
+            {errores.general && (
+              <div style={{ background: "#fee2e2", border: "1px solid #fca5a5", color: "#dc2626", padding: "10px 14px", borderRadius: "6px", fontSize: "12px", fontWeight: "600" }}>
+                {errores.general}
+              </div>
+            )}
             <div>
               <label style={labelStyle}>Nombre del Evento</label>
-              <input required type="text" placeholder="Ej: Seminario de IoT UNL" value={formData.nombre} onChange={(e) => setFormData({...formData, nombre: e.target.value})} style={inputStyle} />
+              <input type="text" placeholder="Ej: Seminario de IoT UNL" value={formData.nombre} onChange={(e) => { setFormData({...formData, nombre: e.target.value}); limpiarError("nombre"); }} style={errores.nombre ? inputErrorStyle : inputStyle} />
+              {errores.nombre && <p style={errorTextStyle}>{errores.nombre}</p>}
             </div>
             <div>
               <label style={labelStyle}>Descripción</label>
-              <textarea required rows="2" placeholder="Describe la actividad..." value={formData.descripcion} onChange={(e) => setFormData({...formData, descripcion: e.target.value})} style={{ ...inputStyle, resize: "none" }} />
+              <textarea rows="2" placeholder="Describe la actividad..." value={formData.descripcion} onChange={(e) => { setFormData({...formData, descripcion: e.target.value}); limpiarError("descripcion"); }} style={{ ...(errores.descripcion ? inputErrorStyle : inputStyle), resize: "none" }} />
+              {errores.descripcion && <p style={errorTextStyle}>{errores.descripcion}</p>}
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
               <div>
                 <label style={labelStyle}><IconCalendar /> Fecha de Inicio</label>
-                <input required type="date" value={formData.fecha_inicio} onChange={(e) => setFormData({...formData, fecha_inicio: e.target.value})} style={inputStyle} />
+                <input type="date" value={formData.fecha_inicio} onChange={(e) => { setFormData({...formData, fecha_inicio: e.target.value}); limpiarError("fecha_inicio"); }} style={errores.fecha_inicio ? inputErrorStyle : inputStyle} />
               </div>
               <div>
                 <label style={labelStyle}><IconClock /> Hora de Inicio</label>
                 <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                  <select required value={formData.hora_inicio?.split(':')[0] || ""} onChange={(e) => setFormData({...formData, hora_inicio: e.target.value + ":" + (formData.hora_inicio?.split(':')[1] || "00")})} style={{ ...inputStyle, width: "50%" }}>
+                  <select value={formData.hora_inicio?.split(':')[0] || ""} onChange={(e) => { const val = e.target.value + ":" + (formData.hora_inicio?.split(':')[1] || "00"); setFormData({...formData, hora_inicio: val}); limpiarError("fecha_inicio"); }} style={{ ...(errores.fecha_inicio ? inputErrorStyle : inputStyle), width: "50%" }}>
                     <option value="" disabled>HH</option>
                     {Array.from({length: 24}, (_, i) => {
   const v = String(i).padStart(2, '0');
@@ -286,22 +357,23 @@ export default function EventModal({ open, onClose, onSave, editando }) {
 })}
                   </select>
                   <span style={{ fontSize: "16px", fontWeight: "700", color: "var(--text-muted)", lineHeight: "38px" }}>:</span>
-                  <select required value={formData.hora_inicio?.split(':')[1] || ""} onChange={(e) => setFormData({...formData, hora_inicio: (formData.hora_inicio?.split(':')[0] || "00") + ":" + e.target.value})} style={{ ...inputStyle, width: "50%" }}>
+                  <select value={formData.hora_inicio?.split(':')[1] || ""} onChange={(e) => { const val = (formData.hora_inicio?.split(':')[0] || "00") + ":" + e.target.value; setFormData({...formData, hora_inicio: val}); limpiarError("fecha_inicio"); }} style={{ ...(errores.fecha_inicio ? inputErrorStyle : inputStyle), width: "50%" }}>
                     <option value="" disabled>MM</option>
                     {["00", "15", "30", "45"].map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
                 </div>
+                {errores.fecha_inicio && <p style={errorTextStyle}>{errores.fecha_inicio}</p>}
               </div>
             </div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
               <div>
                 <label style={labelStyle}><IconCalendar /> Fecha de Fin</label>
-                <input required type="date" value={formData.fecha_fin} onChange={(e) => setFormData({...formData, fecha_fin: e.target.value})} style={inputStyle} />
+                <input type="date" value={formData.fecha_fin} onChange={(e) => { setFormData({...formData, fecha_fin: e.target.value}); limpiarError("fecha_fin"); }} style={errores.fecha_fin ? inputErrorStyle : inputStyle} />
               </div>
               <div>
                 <label style={labelStyle}><IconClock /> Hora de Fin</label>
                 <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                  <select required value={formData.hora_fin?.split(':')[0] || ""} onChange={(e) => setFormData({...formData, hora_fin: e.target.value + ":" + (formData.hora_fin?.split(':')[1] || "00")})} style={{ ...inputStyle, width: "50%" }}>
+                  <select value={formData.hora_fin?.split(':')[0] || ""} onChange={(e) => { const val = e.target.value + ":" + (formData.hora_fin?.split(':')[1] || "00"); setFormData({...formData, hora_fin: val}); limpiarError("fecha_fin"); }} style={{ ...(errores.fecha_fin ? inputErrorStyle : inputStyle), width: "50%" }}>
                     <option value="" disabled>HH</option>
                     {Array.from({length: 24}, (_, i) => {
   const v = String(i).padStart(2, '0');
@@ -311,23 +383,26 @@ export default function EventModal({ open, onClose, onSave, editando }) {
 })}
                   </select>
                   <span style={{ fontSize: "16px", fontWeight: "700", color: "var(--text-muted)", lineHeight: "38px" }}>:</span>
-                  <select required value={formData.hora_fin?.split(':')[1] || ""} onChange={(e) => setFormData({...formData, hora_fin: (formData.hora_fin?.split(':')[0] || "00") + ":" + e.target.value})} style={{ ...inputStyle, width: "50%" }}>
+                  <select value={formData.hora_fin?.split(':')[1] || ""} onChange={(e) => { const val = (formData.hora_fin?.split(':')[0] || "00") + ":" + e.target.value; setFormData({...formData, hora_fin: val}); limpiarError("fecha_fin"); }} style={{ ...(errores.fecha_fin ? inputErrorStyle : inputStyle), width: "50%" }}>
                     <option value="" disabled>MM</option>
                     {["00", "15", "30", "45"].map(m => <option key={m} value={m}>{m}</option>)}
                   </select>
                 </div>
+                {errores.fecha_fin && <p style={errorTextStyle}>{errores.fecha_fin}</p>}
               </div>
             </div>
             <div>
               <label style={labelStyle}><IconMap /> Ubicación Registrada</label>
               <div style={{ display: "flex", gap: "8px" }}>
-                <select value={formData.id_ubicacion} onChange={(e) => setFormData({...formData, id_ubicacion: e.target.value})} style={{ ...inputStyle, flex: 1 }} required>
+                <select value={formData.id_ubicacion} onChange={(e) => { setFormData({...formData, id_ubicacion: e.target.value}); limpiarError("id_ubicacion"); }} style={{ ...(errores.id_ubicacion ? inputErrorStyle : inputStyle), flex: 1 }}>
+                  <option value="">Selecciona una ubicación...</option>
                   {ubicaciones.map((loc) => <option key={loc.id_ubicacion} value={loc.id_ubicacion}>{loc.nombre_lugar}</option>)}
                 </select>
                 <button type="button" onClick={handleOpenUbicacion} style={{ background: "#0F766E", border: "none", color: "white", width: "38px", height: "38px", borderRadius: "6px", display: "flex", alignItems: "center", justifyContent: "center", cursor: "pointer" }}>
                   <IconPlus />
                 </button>
               </div>
+              {errores.id_ubicacion && <p style={errorTextStyle}>{errores.id_ubicacion}</p>}
             </div>
             {editando && (
               <div>

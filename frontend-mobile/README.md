@@ -1,32 +1,20 @@
-# Frontend Mobile — UNL-Cloud-Connect
+<div align="center">
+<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
+</div>
 
-Resumen: Implementación móvil (Expo/React Native) con diseño coherente al frontend web: ultra-minimalista, tarjetas con radio 12px y sombras sutiles, tipografía limpia y colores establecidos.
+# Run and deploy your AI Studio app
 
-Estructura principal:
-- `App.js` — navegación principal (React Navigation)
-- `src/screens/` — `LoginScreen`, `RegisterScreen`, `GoogleHybridScreen`, `RecoverScreen`, `ResetPasswordScreen`
-- `src/components/` — `Button`, `Input`
-- `src/services/api.js` — cliente fetch simple para consumir el backend
+This contains everything you need to run your app locally.
 
-Requisitos sugeridos:
-- Node.js 18+, npm
-- Expo CLI (recomendado) o React Native CLI
+View your app in AI Studio: https://ai.studio/apps/d94fce06-33a4-4c8f-b85a-c3230f53595a
 
-Instalación y ejecución rápida (Expo):
+## Run Locally
 
-```bash
-cd frontend-mobile
-npm install
-# Instalar expo si no lo tienes
-npm install -g expo-cli
-npx expo start
-```
+**Prerequisites:**  Node.js
 
-Notas de integración:
-- Ajusta `BASE` en `src/services/api.js` al host donde corre el FastAPI (ej: `http://10.0.2.2:8000` para emulador Android o `http://localhost:8000` para tunelización).
-- Los endpoints usados son los mismos que en Web (`/auth/login`, `/auth/registro`, etc.).
-- Para integrar OAuth de Google en móvil, usar `expo-auth-session` o la librería recomendada por Expo y enviar el token al endpoint `POST /auth/login-google`.
 
-Siguientes pasos recomendados:
-- Añadir validaciones de formulario y feedback visual.
-- Integrar NativeWind para estilo tipo Tailwind si se desea homogeneizar clases.
+1. Install dependencies:
+   `npm install`
+2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
+3. Run the app:
+   `npm run dev`

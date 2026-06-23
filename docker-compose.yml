@@ -110,7 +110,20 @@ services:
     depends_on:
       - db 
 
-  # 7. API Gateway (Kong)
+  # 7. Microservicio de Notificaciones (Módulo Transversal Aislado)
+  ms-notificaciones:
+    build: 
+      context: ./backend/ms_notificaciones 
+      dockerfile: Dockerfile
+    container_name: unl_ms_notificaciones
+    restart: always
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8003:8000" # Exposición directa para pruebas puenteando a Kong
+    volumes:
+      - ./backend/ms_notificaciones/app:/app/app 
+
+  # 8. API Gateway (Kong)
   api-gateway:
     image: kong:3.4-ubuntu
     container_name: unl_api_gateway
@@ -132,8 +145,9 @@ services:
       - ms-gestion-usuarios
       - ms-clima
       - ms-eventos
+      - ms-notificaciones
 
-  # 8. Frontend Web (React + Nginx)
+  # 9. Frontend Web (React + Nginx)
   frontend-web:
     build:
       context: ./frontend-web
