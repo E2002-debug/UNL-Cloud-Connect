@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 from app.models.imagen import ImagenEvento, Reaccion, TipoReaccion
 
-def crear_registro_imagen(db: Session, id_evento: int,id_usuario: int, url_minio: str):
+def crear_registro_imagen(db: Session, id_evento: int, id_usuario: int, url_minio: str):
     """
     Guarda la referencia de la imagen asociada al evento en PostgreSQL.
     """
@@ -45,6 +45,10 @@ def procesar_reaccion(db: Session, id_imagen: int, id_usuario: int, tipo_nuevo: 
     reaccion_existente.tipo = tipo_nuevo
     db.commit()
     return {"accion": "actualizado", "estado_actual": tipo_nuevo}
+
+
+def obtener_imagenes_por_evento(db: Session, id_evento: int):
+    return db.query(ImagenEvento).filter(ImagenEvento.id_evento == id_evento).order_by(ImagenEvento.fecha_subida.desc()).all()
 
 
 def obtener_resumen_reacciones(db: Session, id_imagen: int):

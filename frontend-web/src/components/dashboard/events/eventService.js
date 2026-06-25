@@ -43,6 +43,35 @@ export const getClimaActual = async () => {
   return response.data;
 };
 
+export const getImagenesEvento = async (id_evento) => {
+  const response = await api.get(`/eventos/${id_evento}/imagenes/`);
+  return response.data;
+};
+
+export const reaccionarImagen = async (id_imagen, tipo) => {
+  const response = await api.post(`/eventos/imagenes/${id_imagen}/reaccion`, { tipo }, {
+    headers: { ...getUserHeaders() },
+  });
+  return response.data;
+};
+
+export const obtenerNombresUsuarios = async (ids) => {
+  const response = await api.get(`/usuarios/batch?ids=${ids.join(",")}`);
+  return response.data;
+};
+
+export const obtenerReacciones = async (id_imagen) => {
+  const response = await api.get(`/eventos/imagenes/${id_imagen}/reacciones`, {
+    headers: { ...getUserHeaders() },
+  });
+  return response.data;
+};
+
+export const getEventoPorId = async (id) => {
+  const response = await api.get(`/eventos/${id}`);
+  return response.data;
+};
+
 export const uploadImage = async (id_evento, file) => {
   const formData = new FormData();
   formData.append("imagen", file);

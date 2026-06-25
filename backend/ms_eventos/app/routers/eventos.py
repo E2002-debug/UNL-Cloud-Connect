@@ -187,20 +187,17 @@ def validar_imagen(imagen: UploadFile = File(...)) -> UploadFile:
 @router.post("/{id_evento}/imagenes/", status_code=status.HTTP_201_CREATED)
 def subir_imagen_a_evento(
     id_evento: int,
-    imagen_validada: UploadFile = Depends(validar_imagen), # <-- La Aduana entra en acción
+    imagen_validada: UploadFile = Depends(validar_imagen),
     db: Session = Depends(get_db),
-    id_usuario: int = Depends(obtener_id_usuario_gateway)  # <-- Solo verificamos que esté logueado
+    id_usuario: int = Depends(obtener_id_usuario_gateway)
 ):
     """
-    Permite a los participantes (Estudiantes/Docentes) subir una evidencia visual al evento.
-    El archivo pasa por la validación, va a MinIO y la URL se guarda en PostgreSQL.
+    Permite a los participantes subir una foto al evento.
     """
-    # 1. Verificamos que el evento físico exista antes de subir archivos a MinIO
     evento_existente = crud_evento.obtener_evento_por_id(db, id_evento)
     if not evento_existente:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="El evento solicitado no existe.")
     
-    # 2. El Transportista: Mandamos el archivo al Bucket
     try:
         url_publica = subir_imagen_minio(imagen_validada)
     except Exception as e:
@@ -209,11 +206,10 @@ def subir_imagen_a_evento(
             detail=f"Error al comunicar con el servidor de almacenamiento: {str(e)}"
         )
     
-    # 3. Persistencia: Guardamos la URL final en la base de datos asociando al usuario que la subió
     nueva_imagen = crud_imagen.crear_registro_imagen(
         db=db, 
         id_evento=id_evento, 
-        id_usuario=id_usuario, # Pasamos el ID de quien sube la foto
+        id_usuario=id_usuario,
         url_minio=url_publica
     )
     
@@ -222,6 +218,33 @@ def subir_imagen_a_evento(
         "id_imagen": nueva_imagen.id_imagen,
         "url": nueva_imagen.url_minio
     }
+
+# ==========================================
+# ENDPOINT PÚBLICO: Listar imágenes de un evento
+# ==========================================
+@router.get("/{id_evento}/imagenes/", status_code=status.HTTP_200_OK)
+def listar_imagenes_evento(
+    id_evento: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Retorna todas las imágenes subidas a un evento, ordenadas por fecha descendente.
+    """
+    evento_existente = crud_evento.obtener_evento_por_id(db, id_evento)
+    if not evento_existente:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="El evento solicitado no existe.")
+
+    imagenes = crud_imagen.obtener_imagenes_por_evento(db, id_evento)
+    return [
+        {
+            "id_imagen": img.id_imagen,
+            "url": img.url_minio,
+            "fecha_subida": img.fecha_subida.isoformat(),
+            "id_usuario": img.id_usuario,
+        }
+        for img in imagenes
+    ]
+
 
 # ==========================================
 # ENDPOINT PROTEGIDO: HU_06 (Interactuar)

@@ -85,8 +85,8 @@ export default function EventModal({ open, onClose, onSave, editando }) {
     const file = e.target.files[0];
     if (!file) return;
 
-    if (!["image/jpeg", "image/png"].includes(file.type)) {
-      toast.error("Solo se permiten formatos JPG y PNG.");
+    if (!["image/jpeg", "image/png", "image/webp"].includes(file.type)) {
+      toast.error("Solo se permiten formatos JPG, PNG y WEBP.");
       return;
     }
     if (file.size > 5 * 1024 * 1024) {
@@ -416,10 +416,10 @@ export default function EventModal({ open, onClose, onSave, editando }) {
             )}
             <div>
               <label style={labelStyle}><IconImage /> Imagen del Evento (opcional)</label>
-              <input ref={fileInputRef} type="file" accept="image/jpeg,image/png" onChange={handleFileSelect} style={{ display: "none" }} />
+              <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={handleFileSelect} style={{ display: "none" }} />
               {!previewUrl ? (
                 <button type="button" onClick={() => fileInputRef.current?.click()} style={{ background: "var(--bg-app)", border: "1px dashed #cbd5e1", borderRadius: "6px", padding: "12px", width: "100%", cursor: "pointer", color: "var(--text-muted)", fontSize: "11px", fontWeight: "700", display: "flex", alignItems: "center", justifyContent: "center", gap: "6px" }}>
-                  <IconImage /> SELECCIONAR IMAGEN (JPG/PNG, máximo 5MB)
+                  <IconImage /> SELECCIONAR IMAGEN (JPG/PNG/WEBP, máximo 5MB)
                 </button>
               ) : (
                 <div style={{ position: "relative", display: "inline-block" }}>

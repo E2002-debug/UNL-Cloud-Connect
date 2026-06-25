@@ -9,6 +9,7 @@ import Recover from './pages/Recover'
 import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import VerificarCuenta from './pages/VerificarCuenta'
+import EventoPage from './pages/EventoPage'
 
 /**
  * Componente de protección de ruta por Rol (Permite Admin '1' y Usuario '2')
@@ -62,6 +63,9 @@ export default function App() {
         path="/dashboard"
         element={<GuardedRoute element={Dashboard} />}
       />
+
+      {/* Ruta pública de detalle de evento */}
+      <Route path="/eventos/:id" element={<EventoPage />} />
 
       {/* Redirección por si escriben cualquier otra ruta inexistente */}
       <Route path="*" element={<Navigate to="/" replace />} />

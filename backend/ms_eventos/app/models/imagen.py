@@ -16,6 +16,7 @@ class ImagenEvento(Base):
     id_imagen: Mapped[int] = mapped_column(primary_key=True, index=True)
     # URL pública que MinIO nos devolverá tras subir el archivo
     url_minio: Mapped[str] = mapped_column(String(500), nullable=False) 
+    descripcion: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
     fecha_subida: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     
     # Llave foránea estricta: La imagen le pertenece físicamente a un evento en esta misma BD
