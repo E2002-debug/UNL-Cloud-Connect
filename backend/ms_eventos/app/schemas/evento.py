@@ -47,5 +47,6 @@ class EventoResponse(EventoBase):
     id_usuario: int 
     ubicacion: UbicacionResponse
     imagen_url: Optional[str] = None
+    id_primera_imagen: Optional[int] = None
 
     model_config = ConfigDict(from_attributes=True)

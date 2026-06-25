@@ -162,11 +162,11 @@ def validar_imagen(imagen: UploadFile = File(...)) -> UploadFile:
     Verifica MIME type y límite de peso (5MB).
     """
     # 1. Validación de Formato
-    formatos_permitidos = ["image/jpeg", "image/png"]
+    formatos_permitidos = ["image/jpeg", "image/png", "image/webp"]
     if imagen.content_type not in formatos_permitidos:
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="Formato no soportado. Solo se permiten archivos .jpg, .jpeg o .png"
+            detail="Formato no soportado. Solo se permiten archivos .jpg, .jpeg, .png o .webp"
         )
     
     # 2. Validación de Tamaño (5MB = 5 * 1024 * 1024 bytes)
