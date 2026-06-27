@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-from fastapi import APIRouter, Depends, HTTPException, status, Request
-=======
-from fastapi import APIRouter, Depends, HTTPException, status, Query
->>>>>>> feature/programador_2
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
 from sqlalchemy.orm import Session
 from typing import List, Any
 from app.database.session import get_db
