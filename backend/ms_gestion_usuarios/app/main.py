@@ -12,6 +12,7 @@ from app.routers import auth, usuarios, auditoria
 # IMPORTACIÓN CRÍTICA: Modelos correspondientes a este microservicio
 from app.models.usuario import Usuario
 from app.models.auditoria import AuditoriaUsuario
+from app.models.historial_clave import HistorialClave
 
 # IMPORTAMOS EL SCRIPT DE SEMBRADO (Roles y administradores)
 from app.database.init_db import inicializar_datos_maestros

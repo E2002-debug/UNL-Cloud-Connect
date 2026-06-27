@@ -18,6 +18,7 @@ from app.database.session import get_db
 from app.schemas.usuario import EmailRequest, UsuarioCreate, UsuarioResponse, Token, UsuarioRegistroHibrido, TokenGoogleLogin, ResetPasswordRequest, UsuarioGoogleData, LoginRequest
 from app.crud import crud_usuario
 from app.crud import crud_auditoria
+from app.crud import crud_historial_clave
 from app.schemas.auditoria import AuditoriaCreate
 from app.core import security
 from app.core.security import crear_token_recuperacion, verificar_token_recuperacion, obtener_hash_clave, crear_token_verificacion, verificar_token_verificacion, crear_token_verificacion_datos, verificar_token_verificacion_datos
@@ -457,7 +458,18 @@ def ejecutar_restablecer_clave(request: ResetPasswordRequest, req: Request, db: 
     if not usuario:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado.")
 
-    # 3. Encriptamos la nueva contraseña y la guardamos en la base de datos
+    # 3. Verificar que no sea una contraseña usada anteriormente
+    if crud_historial_clave.verificar_reutilizacion_clave(db, usuario.id_usuario, request.nueva_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No puedes usar una contraseña que hayas utilizado anteriormente. Por favor elige una nueva."
+        )
+
+    # 4. Guardar la clave actual en historial antes de cambiarla
+    if usuario.clave:
+        crud_historial_clave.guardar_clave_en_historial(db, usuario.id_usuario, usuario.clave)
+
+    # 5. Encriptamos la nueva contraseña y la guardamos en la base de datos
     usuario.clave = obtener_hash_clave(request.nueva_password)
     db.commit()
     

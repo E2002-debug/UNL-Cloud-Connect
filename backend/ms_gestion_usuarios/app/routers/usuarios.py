@@ -8,6 +8,7 @@ from app.core.deps import get_current_admin, get_current_user
 from app.core.security import obtener_hash_clave
 from app.crud.crud_auditoria import registrar_auditoria
 from app.schemas.auditoria import AuditoriaCreate
+from app.crud import crud_historial_clave
 
 router = APIRouter(
     prefix="/usuarios",
@@ -27,7 +28,29 @@ def actualizar_mi_perfil(
     datos_actualizar = usuario_in.model_dump(exclude_unset=True)
     cambio_clave = False
     if "clave" in datos_actualizar and datos_actualizar["clave"]:
-        datos_actualizar["clave"] = obtener_hash_clave(datos_actualizar["clave"])
+        nueva_clave = datos_actualizar["clave"]
+
+        # Validar que no sea la contraseña actual
+        if current_user.clave and verificar_clave_actual := __import__('app.core.security', fromlist=['verificar_clave']).verificar_clave:
+            from app.core.security import verificar_clave
+            if verificar_clave(nueva_clave, current_user.clave):
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail="La nueva contraseña no puede ser igual a la actual."
+                )
+
+        # Validar que no esté en el historial de contraseñas anteriores
+        if crud_historial_clave.verificar_reutilizacion_clave(db, current_user.id_usuario, nueva_clave):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No puedes reutilizar una contraseña que hayas usado anteriormente."
+            )
+
+        # Guardar la clave actual en historial antes de cambiarla
+        if current_user.clave:
+            crud_historial_clave.guardar_clave_en_historial(db, current_user.id_usuario, current_user.clave)
+
+        datos_actualizar["clave"] = obtener_hash_clave(nueva_clave)
         cambio_clave = True
     
     usuario_actualizado = crud_usuario.actualizar_usuario(db, db_usuario=current_user, datos_actualizar=datos_actualizar)
