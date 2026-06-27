@@ -23,10 +23,14 @@ const obtenerEstiloEstado = (estado) => {
   }
 };
 
+import { useNavigate } from "react-router-dom";
+
 const IconEdit = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>;
 const IconCamera = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>;
+import ImageReactions from "./ImageReactions";
 
 export default function EventTable({ eventos, onEdit, onDelete }) {
+  const navigate = useNavigate();
   const cellStyle = { padding: "14px 20px", fontSize: "13px", color: "var(--text-main)", borderBottom: "1px solid #f1f5f9", textAlign: "left" };
   const thStyle = { padding: "12px 20px", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)", background: "var(--bg-app)", borderBottom: "1px solid #DBE3E0", textAlign: "left", letterSpacing: "0.5px" };
 
@@ -50,7 +54,10 @@ export default function EventTable({ eventos, onEdit, onDelete }) {
               {/* IMAGEN */}
               <td style={{ ...cellStyle, verticalAlign: "middle" }}>
                 {evento.imagen_url ? (
-                  <img src={evento.imagen_url} alt={evento.nombre} style={{ width: "44px", height: "44px", borderRadius: "6px", objectFit: "cover", border: "1px solid #DBE3E0", display: "block" }} />
+                  <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
+                    <img src={evento.imagen_url} alt={evento.nombre} style={{ width: "44px", height: "44px", borderRadius: "6px", objectFit: "cover", border: "1px solid #DBE3E0", display: "block" }} />
+                    {evento.id_primera_imagen && <ImageReactions idImagen={evento.id_primera_imagen} />}
+                  </div>
                 ) : (
                   <span style={{ color: "var(--text-muted)", opacity: 0.4, display: "flex", alignItems: "center", justifyContent: "center" }}>
                     <IconCamera />
@@ -60,7 +67,15 @@ export default function EventTable({ eventos, onEdit, onDelete }) {
 
               {/* NOMBRE Y DESCRIPCION */}
               <td style={cellStyle}>
-                <div style={{ fontWeight: "700", color: "#0F766E", fontSize: "14px" }}>{evento.nombre}</div>
+                <div
+                  onClick={() => navigate(`/eventos/${evento.id_evento}`)}
+                  style={{ fontWeight: "700", color: "#0F766E", fontSize: "14px", cursor: "pointer", textDecoration: "none" }}
+                  title="Ver detalle del evento"
+                  onMouseOver={(e) => { e.currentTarget.style.color = "#0d9488" }}
+                  onMouseOut={(e) => { e.currentTarget.style.color = "#0F766E" }}
+                >
+                  {evento.nombre}
+                </div>
                 <div style={{ fontSize: "11px", color: "var(--text-muted)", marginTop: "2px", maxWidth: "320px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                   {evento.descripcion || "Sin descripción registrada"}
                 </div>

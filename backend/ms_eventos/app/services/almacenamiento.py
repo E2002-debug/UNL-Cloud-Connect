@@ -52,3 +52,17 @@ def subir_imagen_minio(file: UploadFile) -> str:
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Ocurrió un error inesperado al subir la imagen."
         )
+
+
+def eliminar_imagen_minio(url: str) -> bool:
+    """
+    Elimina un objeto de MinIO a partir de su URL pública.
+    Retorna True si se eliminó correctamente, False si falló.
+    """
+    try:
+        object_name = url.split(f"{settings.MINIO_BUCKET_NAME}/")[-1]
+        minio_client.remove_object(settings.MINIO_BUCKET_NAME, object_name)
+        return True
+    except S3Error as e:
+        print(f"[MinIO ERROR] Fallo al eliminar objeto: {e}")
+        return False

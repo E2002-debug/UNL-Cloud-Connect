@@ -12,8 +12,18 @@ def ejecutar_migraciones(db: Session) -> None:
         db.execute(text(
             "ALTER TABLE ubicacion ADD COLUMN IF NOT EXISTS activo BOOLEAN NOT NULL DEFAULT TRUE;"
         ))
+        db.execute(text(
+            "ALTER TABLE imagen_evento ADD COLUMN IF NOT EXISTS descripcion VARCHAR(500);"
+        ))
+        db.execute(text(
+            "ALTER TABLE imagen_evento ADD COLUMN IF NOT EXISTS reportada BOOLEAN NOT NULL DEFAULT FALSE;"
+        ))
+        db.execute(text(
+            "ALTER TABLE imagen_evento ADD COLUMN IF NOT EXISTS motivo_reporte VARCHAR(500);"
+        ))
         db.commit()
         print("[MIGRACION] ✓ Columnas id_usuario_creador, id_rol_creador y activo agregadas a ubicacion.")
+        print("[MIGRACION] ✓ Columnas descripcion, reportada y motivo_reporte agregadas a imagen_evento.")
     except Exception:
         db.rollback()
         print("[MIGRACION] - Columnas ya existen o no se pudieron agregar.")

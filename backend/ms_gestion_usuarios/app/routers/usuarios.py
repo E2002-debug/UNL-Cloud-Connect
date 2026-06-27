@@ -1,8 +1,13 @@
+<<<<<<< HEAD
 from fastapi import APIRouter, Depends, HTTPException, status, Request
+=======
+from fastapi import APIRouter, Depends, HTTPException, status, Query
+>>>>>>> feature/programador_2
 from sqlalchemy.orm import Session
 from typing import List, Any
 from app.database.session import get_db
-from app.schemas.usuario import UsuarioResponse, UsuarioUpdate, UsuarioUpdateMe
+from app.models.usuario import Usuario
+from app.schemas.usuario import UsuarioResponse, UsuarioUpdate, UsuarioUpdateMe, UsuarioResumenResponse
 from app.crud import crud_usuario
 from app.core.deps import get_current_admin, get_current_user
 from app.core.security import obtener_hash_clave
@@ -14,6 +19,21 @@ router = APIRouter(
     prefix="/usuarios",
     tags=["Gestión de Usuarios (Admin)"]
 )
+
+@router.get("/batch", response_model=List[UsuarioResumenResponse])
+def listar_usuarios_por_ids(
+    ids: str = Query(..., description="IDs de usuarios separados por coma"),
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    Retorna información básica de usuarios dado sus IDs separados por coma.
+    Endpoint público para resolver nombres desde otros microservicios.
+    """
+    lista_ids = [int(id_) for id_ in ids.split(",") if id_.strip().isdigit()]
+    if not lista_ids:
+        return []
+    usuarios = db.query(Usuario).filter(Usuario.id_usuario.in_(lista_ids)).all()
+    return usuarios
 
 @router.put("/me", response_model=UsuarioResponse)
 def actualizar_mi_perfil(

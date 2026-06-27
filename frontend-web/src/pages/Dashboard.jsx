@@ -9,7 +9,11 @@ import toast from 'react-hot-toast'
 import Events from '../components/dashboard/events/Events'
 import Sensors from '../components/dashboard/sensors/Sensors'
 import Ubicacion from '../components/dashboard/ubicacion/Ubicacion'
+<<<<<<< HEAD
 import Monitoreo from '../components/dashboard/monitoreo/Monitoreo'
+=======
+import ModerationPanel from '../components/dashboard/moderation/ModerationPanel'
+>>>>>>> feature/programador_2
 
 // --- Iconos SVG Básicos ---
 const IconDashboard = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
@@ -27,6 +31,7 @@ const IconInfo = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="non
 const IconActivity = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
 const IconClock = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
 const IconMap = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+const IconFlag = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
 
 export default function Dashboard() {
   const [user, setUser] = useState(null)
@@ -363,9 +368,10 @@ export default function Dashboard() {
 
   // Opciones del menú lateral
   const menuItems = isAdmin ? [
-    { id: 'Dashboard', icon: <IconDashboard />, label: 'DASHBOARD' },
+    { id: 'Dashboard', icon: <IconDashboard />, label: 'PANEL PRINCIPAL' },
     { id: 'Eventos', icon: <IconEvents />, label: 'EVENTOS UNL' },
     { id: 'Ubicacion', icon: <IconMap />, label: 'UBICACIÓN' },
+    { id: 'Moderacion', icon: <IconFlag />, label: 'MODERACIÓN' },
     { id: 'Perfil', icon: <IconUsers />, label: 'MI PERFIL' },
   ] : isSuperAdmin ? [
     { id: 'Usuarios', icon: <IconUsers />, label: 'GESTIÓN DE USUARIOS', badge: usuarios.length },
@@ -374,7 +380,7 @@ export default function Dashboard() {
     { id: 'Ubicacion', icon: <IconMap />, label: 'UBICACIÓN' },
     { id: 'Configuracion', icon: <IconSettings />, label: 'CONFIGURACIÓN' },
   ] : [
-    { id: 'Dashboard', icon: <IconDashboard />, label: 'MI DASHBOARD', badge: 'PIONERO' },
+    { id: 'Dashboard', icon: <IconDashboard />, label: 'PANEL PRINCIPAL', badge: 'PIONERO' },
     { id: 'Eventos', icon: <IconEvents />, label: 'MIS EVENTOS'},
     { id: 'Clima', icon: <IconSettings />, label: 'MÉTRICAS CLIMA' },
     { id: 'Perfil', icon: <IconUsers />, label: 'MI PERFIL' },
@@ -484,7 +490,7 @@ export default function Dashboard() {
         <header style={{ height: '80px', background: 'var(--bg-card)', borderBottom: '1px solid #DBE3E0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 40px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ background: '#dbeafe', color: '#0F766E', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', letterSpacing: '1px' }}>
-              DASHBOARD VIEW
+              PANEL PRINCIPAL
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>
               <div style={{ width: '8px', height: '8px', background: '#10b981', borderRadius: '50%' }}></div>
@@ -930,6 +936,12 @@ export default function Dashboard() {
             </div>
           )}
 
+          {activeTab === 'Moderacion' && (
+            <div>
+              <ModerationPanel />
+            </div>
+          )}
+
           {activeTab === 'Perfil' && (
             <div><h3>Mi Perfil de Usuario</h3></div>
           )}
@@ -1110,9 +1122,8 @@ export default function Dashboard() {
           )}
 
           {/* FOOTER */}
-          <div style={{ marginTop: '40px', borderTop: '1px solid #DBE3E0', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '1px' }}>
-            <div>CONSOLA CENTRALIZADA UNIVERSIDAD NACIONAL DE LOJA / HANDSHAKE 04.</div>
-            <div>METODOLOGÍA: KANBAN + XP <span style={{ margin: '0 8px' }}>|</span> STACK: PY / RJS / IOT ESP32</div>
+          <div style={{ marginTop: '40px', borderTop: '1px solid #DBE3E0', paddingTop: '16px', textAlign: 'center', fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '1px' }}>
+            © {new Date().getFullYear()} Universidad Nacional de Loja — Ingeniería en Computación.
           </div>
 
         </div>

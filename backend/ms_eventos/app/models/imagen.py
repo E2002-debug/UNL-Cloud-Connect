@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import String, Integer, ForeignKey, DateTime, Enum as SQLEnum, UniqueConstraint
+from sqlalchemy import String, Integer, ForeignKey, DateTime, Boolean, Enum as SQLEnum, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from datetime import datetime
@@ -16,6 +16,7 @@ class ImagenEvento(Base):
     id_imagen: Mapped[int] = mapped_column(primary_key=True, index=True)
     # URL pública que MinIO nos devolverá tras subir el archivo
     url_minio: Mapped[str] = mapped_column(String(500), nullable=False) 
+    descripcion: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
     fecha_subida: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), nullable=False)
     
     # Llave foránea estricta: La imagen le pertenece físicamente a un evento en esta misma BD
@@ -26,6 +27,10 @@ class ImagenEvento(Base):
 
     # Referencia lógica al usuario que subió la imagen
     id_usuario: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+
+    # Moderación de contenido
+    reportada: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    motivo_reporte: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
 
     # Relaciones para que SQLAlchemy pueda navegar entre objetos
     reacciones: Mapped[list["Reaccion"]] = relationship("Reaccion", back_populates="imagen", cascade="all, delete-orphan")

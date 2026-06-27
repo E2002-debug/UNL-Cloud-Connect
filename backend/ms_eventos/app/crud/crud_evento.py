@@ -41,6 +41,7 @@ def obtener_evento_por_id(db: Session, id_evento: int):
     evento = db.query(Evento).options(selectinload(Evento.imagenes)).filter(Evento.id_evento == id_evento).first()
     if evento:
         evento.imagen_url = evento.imagenes[0].url_minio if evento.imagenes else None
+    evento.id_primera_imagen = evento.imagenes[0].id_imagen if evento.imagenes else None
     return evento
 
 def obtener_eventos_activos(db: Session, skip: int = 0, limit: int = 100):
@@ -58,6 +59,7 @@ def obtener_eventos_activos(db: Session, skip: int = 0, limit: int = 100):
                 .all()
     for evento in eventos:
         evento.imagen_url = evento.imagenes[0].url_minio if evento.imagenes else None
+        evento.id_primera_imagen = evento.imagenes[0].id_imagen if evento.imagenes else None
     return eventos
 
 

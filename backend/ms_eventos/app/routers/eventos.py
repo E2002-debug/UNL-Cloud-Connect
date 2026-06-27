@@ -13,9 +13,9 @@ from app.services.notificaciones import enviar_alerta_nuevo_evento
 from app.database.session import get_db
 from app.schemas.evento import EventoCreate, EventoUpdate, EventoResponse
 from app.models.evento import ProgresoEvento  
-from app.schemas.imagen import ReaccionRequest, ReaccionesResumenResponse
+from app.schemas.imagen import ReaccionRequest, ReaccionesResumenResponse, ReportarImagenRequest, ImagenReportadaResponse
 from app.models.imagen import ImagenEvento
-from app.services.almacenamiento import subir_imagen_minio
+from app.services.almacenamiento import subir_imagen_minio, eliminar_imagen_minio
 from app.crud import crud_evento
 from app.crud import crud_imagen
 
@@ -162,11 +162,11 @@ def validar_imagen(imagen: UploadFile = File(...)) -> UploadFile:
     Verifica MIME type y límite de peso (5MB).
     """
     # 1. Validación de Formato
-    formatos_permitidos = ["image/jpeg", "image/png"]
+    formatos_permitidos = ["image/jpeg", "image/png", "image/webp"]
     if imagen.content_type not in formatos_permitidos:
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="Formato no soportado. Solo se permiten archivos .jpg, .jpeg o .png"
+            detail="Formato no soportado. Solo se permiten archivos .jpg, .jpeg, .png o .webp"
         )
     
     # 2. Validación de Tamaño (5MB = 5 * 1024 * 1024 bytes)
@@ -187,20 +187,17 @@ def validar_imagen(imagen: UploadFile = File(...)) -> UploadFile:
 @router.post("/{id_evento}/imagenes/", status_code=status.HTTP_201_CREATED)
 def subir_imagen_a_evento(
     id_evento: int,
-    imagen_validada: UploadFile = Depends(validar_imagen), # <-- La Aduana entra en acción
+    imagen_validada: UploadFile = Depends(validar_imagen),
     db: Session = Depends(get_db),
-    id_usuario: int = Depends(obtener_id_usuario_gateway)  # <-- Solo verificamos que esté logueado
+    id_usuario: int = Depends(obtener_id_usuario_gateway)
 ):
     """
-    Permite a los participantes (Estudiantes/Docentes) subir una evidencia visual al evento.
-    El archivo pasa por la validación, va a MinIO y la URL se guarda en PostgreSQL.
+    Permite a los participantes subir una foto al evento.
     """
-    # 1. Verificamos que el evento físico exista antes de subir archivos a MinIO
     evento_existente = crud_evento.obtener_evento_por_id(db, id_evento)
     if not evento_existente:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="El evento solicitado no existe.")
     
-    # 2. El Transportista: Mandamos el archivo al Bucket
     try:
         url_publica = subir_imagen_minio(imagen_validada)
     except Exception as e:
@@ -209,11 +206,10 @@ def subir_imagen_a_evento(
             detail=f"Error al comunicar con el servidor de almacenamiento: {str(e)}"
         )
     
-    # 3. Persistencia: Guardamos la URL final en la base de datos asociando al usuario que la subió
     nueva_imagen = crud_imagen.crear_registro_imagen(
         db=db, 
         id_evento=id_evento, 
-        id_usuario=id_usuario, # Pasamos el ID de quien sube la foto
+        id_usuario=id_usuario,
         url_minio=url_publica
     )
     
@@ -222,6 +218,35 @@ def subir_imagen_a_evento(
         "id_imagen": nueva_imagen.id_imagen,
         "url": nueva_imagen.url_minio
     }
+
+# ==========================================
+# ENDPOINT PÚBLICO: Listar imágenes de un evento
+# ==========================================
+@router.get("/{id_evento}/imagenes/", status_code=status.HTTP_200_OK)
+def listar_imagenes_evento(
+    id_evento: int,
+    db: Session = Depends(get_db)
+):
+    """
+    Retorna todas las imágenes subidas a un evento, ordenadas por fecha descendente.
+    """
+    evento_existente = crud_evento.obtener_evento_por_id(db, id_evento)
+    if not evento_existente:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="El evento solicitado no existe.")
+
+    imagenes = crud_imagen.obtener_imagenes_por_evento(db, id_evento)
+    return [
+        {
+            "id_imagen": img.id_imagen,
+            "url": img.url_minio,
+            "fecha_subida": img.fecha_subida.isoformat(),
+            "id_usuario": img.id_usuario,
+            "reportada": img.reportada,
+            "motivo_reporte": img.motivo_reporte,
+        }
+        for img in imagenes
+    ]
+
 
 # ==========================================
 # ENDPOINT PROTEGIDO: HU_06 (Interactuar)
@@ -269,3 +294,107 @@ def obtener_interacciones_imagen(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La imagen no existe.")
         
     return crud_imagen.obtener_resumen_reacciones(db, id_imagen)
+
+
+# ==========================================
+# ENDPOINT: HU_11 - Reportar imagen (usuario)
+# ==========================================
+@router.post("/imagenes/{id_imagen}/reportar", status_code=status.HTTP_200_OK)
+def reportar_imagen_endpoint(
+    id_imagen: int,
+    reporte_in: ReportarImagenRequest,
+    db: Session = Depends(get_db),
+    id_usuario: int = Depends(obtener_id_usuario_gateway)
+):
+    """
+    Permite a un usuario reportar una imagen como inapropiada o fuera de contexto.
+    La imagen no se elimina, queda marcada para revisión del administrador.
+    """
+    imagen_existente = db.query(ImagenEvento).filter(ImagenEvento.id_imagen == id_imagen).first()
+    if not imagen_existente:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La imagen no existe.")
+
+    if imagen_existente.reportada:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Esta imagen ya ha sido reportada.")
+
+    resultado = crud_imagen.reportar_imagen(db, id_imagen, reporte_in.motivo_reporte)
+
+    return {"mensaje": "Imagen reportada exitosamente. Un administrador la revisará.", "id_imagen": id_imagen}
+
+
+# ==========================================
+# ENDPOINT ADMIN: Listar imágenes reportadas
+# ==========================================
+@router.get("/imagenes/reportadas", response_model=List[ImagenReportadaResponse], status_code=status.HTTP_200_OK)
+def listar_imagenes_reportadas(
+    db: Session = Depends(get_db),
+    rol_validado: int = Depends(verificar_rol_administrador)
+):
+    """
+    Retorna todas las imágenes que han sido marcadas como reportadas,
+    incluyendo el nombre del evento al que pertenecen.
+    """
+    imagenes = crud_imagen.obtener_imagenes_reportadas(db)
+    return [
+        ImagenReportadaResponse(
+            id_imagen=img.id_imagen,
+            url=img.url_minio,
+            fecha_subida=img.fecha_subida,
+            id_usuario=img.id_usuario,
+            id_evento=img.id_evento,
+            evento_nombre=img.evento.nombre if img.evento else "Desconocido",
+            motivo_reporte=img.motivo_reporte,
+        )
+        for img in imagenes
+    ]
+
+
+# ==========================================
+# ENDPOINT ADMIN: Eliminar imagen (físico + DB)
+# ==========================================
+@router.delete("/imagenes/{id_imagen}", status_code=status.HTTP_200_OK)
+def eliminar_imagen_endpoint(
+    id_imagen: int,
+    db: Session = Depends(get_db),
+    id_usuario: int = Depends(obtener_id_usuario_gateway),
+    rol_validado: int = Depends(verificar_rol_administrador)
+):
+    """
+    Elimina físicamente la imagen de MinIO y su registro de la base de datos.
+    Poder absoluto del administrador.
+    """
+    imagen = crud_imagen.obtener_imagen_por_id(db, id_imagen)
+    if not imagen:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La imagen no existe.")
+
+    url_minio = crud_imagen.eliminar_registro_imagen(db, id_imagen)
+    if url_minio:
+        eliminar_imagen_minio(url_minio)
+
+    return {"mensaje": "Imagen eliminada permanentemente.", "id_imagen": id_imagen}
+
+
+# ==========================================
+# ENDPOINT ADMIN: Descartar reporte
+# ==========================================
+@router.put("/imagenes/{id_imagen}/descartar-reporte", status_code=status.HTTP_200_OK)
+def descartar_reporte_endpoint(
+    id_imagen: int,
+    db: Session = Depends(get_db),
+    id_usuario: int = Depends(obtener_id_usuario_gateway),
+    rol_validado: int = Depends(verificar_rol_administrador)
+):
+    """
+    El administrador determina que la imagen es adecuada y descarta el reporte.
+    La imagen vuelve a estado normal (reportada = false).
+    """
+    imagen = crud_imagen.obtener_imagen_por_id(db, id_imagen)
+    if not imagen:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La imagen no existe.")
+
+    if not imagen.reportada:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La imagen no tiene un reporte activo.")
+
+    crud_imagen.descartar_reporte_imagen(db, id_imagen)
+
+    return {"mensaje": "Reporte descartado. La imagen ya no está marcada como reportada.", "id_imagen": id_imagen}

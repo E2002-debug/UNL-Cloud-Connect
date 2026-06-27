@@ -48,6 +48,10 @@ class EventoResponse(EventoBase):
     id_usuario: int 
     ubicacion: UbicacionResponse
     imagen_url: Optional[str] = None
+<<<<<<< HEAD
     imagenes: List[ImagenResponse] = []
+=======
+    id_primera_imagen: Optional[int] = None
+>>>>>>> feature/programador_2
 
     model_config = ConfigDict(from_attributes=True)

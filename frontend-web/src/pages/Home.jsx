@@ -1,8 +1,14 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { getEventos } from '../components/dashboard/events/eventService'
 
 export default function Home() {
   const navigate = useNavigate()
+  const [eventos, setEventos] = useState([])
+
+  useEffect(() => {
+    getEventos().then(setEventos).catch(() => {})
+  }, [])
 
   // 1. VARIABLES DE PALETA CROMÁTICA (Verde Esmeralda & Menta)
   const colors = {
@@ -180,7 +186,74 @@ export default function Home() {
         </div>
       </section>
 
-      {/* 4. Pie de Página (Footer) */}
+      {/* 4. Eventos Públicos */}
+      <section style={{ padding: "60px 40px", background: "#f4f8f6" }}>
+        <div style={{ maxWidth: "1100px", margin: "0 auto" }}>
+          <h2 style={{ margin: "0 0 8px 0", fontSize: "28px", fontWeight: "800", color: "#0F766E", textAlign: "center" }}>
+            EVENTOS ACADÉMICOS
+          </h2>
+          <p style={{ margin: "0 0 32px 0", fontSize: "14px", color: "#62726b", textAlign: "center" }}>
+            Eventos que están ocurriendo ahora mismo en nuestra facultad
+          </p>
+          {(() => {
+            const enProgreso = eventos.filter(e => e.estado === "EN_PROGRESO");
+            if (enProgreso.length === 0) {
+              return <p style={{ textAlign: "center", color: "#94a3b8", fontSize: "13px", fontWeight: "600" }}>No hay eventos en curso en este momento</p>;
+            }
+            return (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "24px" }}>
+              {enProgreso.map((evento) => {
+                const estado = evento.estado?.replace("_", " ") || "";
+                const estadoEstilo = {
+                  EN_PROGRESO: { bg: "#d1fae5", color: "#065f46" },
+                  PROGRAMADO: { bg: "#dbeafe", color: "#1e40af" },
+                  FINALIZADO: { bg: "#e2e8f0", color: "#475569" },
+                  CANCELADO: { bg: "#fef2f2", color: "#991b1b" },
+                }[evento.estado] || { bg: "#f1f5f9", color: "#334155" };
+                return (
+                  <div
+                    key={evento.id_evento}
+                    onClick={() => navigate(`/eventos/${evento.id_evento}`)}
+                    style={{
+                      background: "white", borderRadius: "12px", overflow: "hidden",
+                      border: "1px solid #dbe3e0", cursor: "pointer",
+                      transition: "all 0.2s", boxShadow: "0 2px 8px rgba(0,0,0,0.04)",
+                    }}
+                    onMouseOver={(e) => { e.currentTarget.style.boxShadow = "0 8px 24px rgba(16,185,129,0.12)"; e.currentTarget.style.transform = "translateY(-2px)" }}
+                    onMouseOut={(e) => { e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.04)"; e.currentTarget.style.transform = "translateY(0)" }}
+                  >
+                    {evento.imagen_url ? (
+                      <img src={evento.imagen_url} alt={evento.nombre} style={{ width: "100%", height: "160px", objectFit: "cover", display: "block" }} />
+                    ) : (
+                      <div style={{ width: "100%", height: "160px", background: "linear-gradient(135deg, #eef6f3, #d1e8e0)", display: "flex", alignItems: "center", justifyContent: "center", color: "#0F766E", fontWeight: "700", fontSize: "14px" }}>
+                        UNL-Cloud-Connect
+                      </div>
+                    )}
+                    <div style={{ padding: "16px 20px" }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: "8px", marginBottom: "6px" }}>
+                        <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#0F766E", flex: 1 }}>{evento.nombre}</h3>
+                        <span style={{ padding: "3px 8px", borderRadius: "4px", fontSize: "9px", fontWeight: "800", background: estadoEstilo.bg, color: estadoEstilo.color, letterSpacing: "0.5px", whiteSpace: "nowrap" }}>
+                          {estado}
+                        </span>
+                      </div>
+                      <p style={{ margin: "0 0 10px 0", fontSize: "12px", color: "#62726b", lineHeight: "1.5", display: "-webkit-box", WebkitLineClamp: 2, WebkitBoxOrient: "vertical", overflow: "hidden" }}>
+                        {evento.descripcion}
+                      </p>
+                      <div style={{ fontSize: "11px", color: "#94a3b8", display: "flex", gap: "12px", flexWrap: "wrap" }}>
+                        <span>{evento.ubicacion?.nombre_lugar || `Zona #${evento.id_ubicacion}`}</span>
+                        <span>{new Date(evento.fecha_hora_inicio).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            );
+          })()}
+        </div>
+      </section>
+
+      {/* 5. Pie de Página (Footer) */}
       <footer style={{
         background: colors.bgFooter,
         color: '#e6f4ea',
