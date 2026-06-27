@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
-import { getEventoPorId, getImagenesEvento, uploadImage, obtenerNombresUsuarios } from "../components/dashboard/events/eventService";
+import { getEventoPorId, getImagenesEvento, uploadImage, obtenerNombresUsuarios, reportarImagen } from "../components/dashboard/events/eventService";
 import ImageReactions from "../components/dashboard/events/ImageReactions";
 
 const IconArrowLeft = () => (
@@ -37,6 +37,9 @@ export default function EventoPage() {
   const [imagenPreview, setImagenPreview] = useState(null);
   const [imagenFile, setImagenFile] = useState(null);
   const [nombres, setNombres] = useState({});
+  const [reportModal, setReportModal] = useState({ open: false, id_imagen: null });
+  const [reportMotivo, setReportMotivo] = useState("");
+  const [reportando, setReportando] = useState(false);
   const fileInputRef = useRef(null);
 
   const estaAutenticado = () => !!localStorage.getItem("access_token");
@@ -100,6 +103,34 @@ export default function EventoPage() {
     if (imagenPreview) URL.revokeObjectURL(imagenPreview);
     setImagenFile(null);
     setImagenPreview(null);
+  };
+
+  const abrirReporte = (id_imagen) => {
+    setReportModal({ open: true, id_imagen });
+    setReportMotivo("");
+  };
+
+  const cerrarReporte = () => {
+    setReportModal({ open: false, id_imagen: null });
+    setReportMotivo("");
+  };
+
+  const handleReportar = async () => {
+    if (!reportMotivo.trim()) {
+      toast.error("Por favor escribe un motivo para el reporte.");
+      return;
+    }
+    setReportando(true);
+    try {
+      await reportarImagen(reportModal.id_imagen, reportMotivo.trim());
+      toast.success("Reporte enviado. Un administrador lo revisará.");
+      cerrarReporte();
+    } catch (err) {
+      const detail = err.response?.data?.detail || err.message;
+      toast.error(`Error al reportar: ${detail}`);
+    } finally {
+      setReportando(false);
+    }
   };
 
   const handlePublicar = async () => {
@@ -308,9 +339,34 @@ export default function EventoPage() {
                     <img src={img.url} alt="Foto" style={{ width: "100%", maxHeight: "500px", objectFit: "contain", background: "#f8fafc", display: "block" }} />
                   </a>
 
-                  {/* FOOTER: Reacciones */}
+                  {/* FOOTER: Reacciones + Reportar */}
                   <div style={{ padding: "8px 16px 12px", borderTop: "1px solid #f1f5f9" }}>
-                    <ImageReactions idImagen={img.id_imagen} />
+                    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                      <ImageReactions idImagen={img.id_imagen} />
+                      {estaAutenticado() && (
+                        <button
+                          type="button"
+                          onClick={() => abrirReporte(img.id_imagen)}
+                          style={{
+                            background: "transparent",
+                            border: "1px solid #DBE3E0",
+                            borderRadius: "4px",
+                            padding: "3px 8px",
+                            fontSize: "12px",
+                            cursor: "pointer",
+                            color: img.reportada ? "#f59e0b" : "#94a3b8",
+                            opacity: img.reportada ? 1 : 0.6,
+                            transition: "all 0.2s",
+                          }}
+                          title={img.reportada ? "Ya reportada" : "Reportar imagen"}
+                          disabled={img.reportada}
+                          onMouseOver={(e) => { if (!img.reportada) e.currentTarget.style.opacity = "1" }}
+                          onMouseOut={(e) => { if (!img.reportada) e.currentTarget.style.opacity = "0.6" }}
+                        >
+                          🚩
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -318,6 +374,75 @@ export default function EventoPage() {
           </div>
         )}
       </div>
+
+      {/* MODAL DE REPORTE */}
+      {reportModal.open && (
+        <div
+          style={{
+            position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
+            background: "rgba(15, 23, 42, 0.6)",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            zIndex: 999, fontFamily: "'Segoe UI', system-ui, sans-serif",
+          }}
+          onClick={cerrarReporte}
+        >
+          <div
+            style={{
+              background: "white", borderRadius: "12px", width: "100%",
+              maxWidth: "420px", overflow: "hidden", boxShadow: "0 20px 25px -5px rgba(0,0,0,0.1)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div style={{ padding: "20px 24px", borderBottom: "1px solid #f1f5f9", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#1e293b" }}>🚩 Reportar imagen</h3>
+              <button onClick={cerrarReporte} style={{ background: "transparent", border: "none", fontSize: "20px", cursor: "pointer", color: "#94a3b8", padding: "4px" }}>✕</button>
+            </div>
+            <div style={{ padding: "20px 24px" }}>
+              <p style={{ margin: "0 0 12px 0", fontSize: "13px", color: "#64748b", fontWeight: "500" }}>
+                ¿Por qué consideras que esta imagen debería ser revisada?
+              </p>
+              <textarea
+                value={reportMotivo}
+                onChange={(e) => setReportMotivo(e.target.value)}
+                placeholder="Ej: La imagen no pertenece al contexto del evento, contiene contenido inapropiado..."
+                maxLength={500}
+                rows={4}
+                style={{
+                  width: "100%", padding: "12px", borderRadius: "8px",
+                  border: "1px solid #dbe3e0", fontSize: "13px",
+                  fontFamily: "inherit", resize: "vertical", boxSizing: "border-box",
+                  outline: "none",
+                }}
+              />
+              <div style={{ fontSize: "11px", color: "#94a3b8", textAlign: "right", marginTop: "4px" }}>{reportMotivo.length}/500</div>
+            </div>
+            <div style={{ padding: "16px 24px", borderTop: "1px solid #f1f5f9", display: "flex", justifyContent: "flex-end", gap: "12px" }}>
+              <button
+                onClick={cerrarReporte}
+                style={{
+                  padding: "10px 16px", background: "#f8fafc", border: "1px solid #dbe3e0",
+                  borderRadius: "6px", fontSize: "13px", fontWeight: "600",
+                  color: "#64748b", cursor: "pointer",
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleReportar}
+                disabled={reportando}
+                style={{
+                  padding: "10px 20px", background: "#ef4444", border: "none",
+                  borderRadius: "6px", fontSize: "13px", fontWeight: "700",
+                  color: "white", cursor: reportando ? "wait" : "pointer",
+                  opacity: reportando ? 0.7 : 1,
+                }}
+              >
+                {reportando ? "ENVIANDO..." : "REPORTAR"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import enum
-from sqlalchemy import String, Integer, ForeignKey, DateTime, Enum as SQLEnum, UniqueConstraint
+from sqlalchemy import String, Integer, ForeignKey, DateTime, Boolean, Enum as SQLEnum, UniqueConstraint
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
 from datetime import datetime
@@ -27,6 +27,10 @@ class ImagenEvento(Base):
 
     # Referencia lógica al usuario que subió la imagen
     id_usuario: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+
+    # Moderación de contenido
+    reportada: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    motivo_reporte: Mapped[str | None] = mapped_column(String(500), nullable=True, default=None)
 
     # Relaciones para que SQLAlchemy pueda navegar entre objetos
     reacciones: Mapped[list["Reaccion"]] = relationship("Reaccion", back_populates="imagen", cascade="all, delete-orphan")

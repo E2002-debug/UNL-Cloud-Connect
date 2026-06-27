@@ -1,5 +1,6 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from app.models.imagen import ImagenEvento, Reaccion, TipoReaccion
+from app.models.evento import Evento
 
 def crear_registro_imagen(db: Session, id_evento: int, id_usuario: int, url_minio: str):
     """
@@ -49,6 +50,52 @@ def procesar_reaccion(db: Session, id_imagen: int, id_usuario: int, tipo_nuevo: 
 
 def obtener_imagenes_por_evento(db: Session, id_evento: int):
     return db.query(ImagenEvento).filter(ImagenEvento.id_evento == id_evento).order_by(ImagenEvento.fecha_subida.desc()).all()
+
+
+def reportar_imagen(db: Session, id_imagen: int, motivo: str):
+    imagen = db.query(ImagenEvento).filter(ImagenEvento.id_imagen == id_imagen).first()
+    if not imagen:
+        return None
+    imagen.reportada = True
+    imagen.motivo_reporte = motivo
+    db.commit()
+    db.refresh(imagen)
+    return imagen
+
+
+def obtener_imagenes_reportadas(db: Session):
+    return (
+        db.query(ImagenEvento)
+        .options(joinedload(ImagenEvento.evento))
+        .filter(ImagenEvento.reportada == True)
+        .order_by(ImagenEvento.fecha_subida.desc())
+        .all()
+    )
+
+
+def obtener_imagen_por_id(db: Session, id_imagen: int):
+    return db.query(ImagenEvento).options(joinedload(ImagenEvento.evento)).filter(ImagenEvento.id_imagen == id_imagen).first()
+
+
+def eliminar_registro_imagen(db: Session, id_imagen: int):
+    imagen = db.query(ImagenEvento).filter(ImagenEvento.id_imagen == id_imagen).first()
+    if not imagen:
+        return None
+    url = imagen.url_minio
+    db.delete(imagen)
+    db.commit()
+    return url
+
+
+def descartar_reporte_imagen(db: Session, id_imagen: int):
+    imagen = db.query(ImagenEvento).filter(ImagenEvento.id_imagen == id_imagen).first()
+    if not imagen:
+        return None
+    imagen.reportada = False
+    imagen.motivo_reporte = None
+    db.commit()
+    db.refresh(imagen)
+    return imagen
 
 
 def obtener_resumen_reacciones(db: Session, id_imagen: int):

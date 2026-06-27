@@ -72,6 +72,34 @@ export const getEventoPorId = async (id) => {
   return response.data;
 };
 
+export const reportarImagen = async (id_imagen, motivo_reporte) => {
+  const response = await api.post(`/eventos/imagenes/${id_imagen}/reportar`, { motivo_reporte }, {
+    headers: { ...getUserHeaders() },
+  });
+  return response.data;
+};
+
+export const obtenerImagenesReportadas = async () => {
+  const response = await api.get("/eventos/imagenes/reportadas", {
+    headers: { ...getUserHeaders() },
+  });
+  return response.data;
+};
+
+export const eliminarImagenAdmin = async (id_imagen) => {
+  const response = await api.delete(`/eventos/imagenes/${id_imagen}`, {
+    headers: { ...getUserHeaders() },
+  });
+  return response.data;
+};
+
+export const descartarReporte = async (id_imagen) => {
+  const response = await api.put(`/eventos/imagenes/${id_imagen}/descartar-reporte`, {}, {
+    headers: { ...getUserHeaders() },
+  });
+  return response.data;
+};
+
 export const uploadImage = async (id_evento, file) => {
   const formData = new FormData();
   formData.append("imagen", file);
