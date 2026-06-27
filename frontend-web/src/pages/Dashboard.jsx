@@ -9,11 +9,7 @@ import toast from 'react-hot-toast'
 import Events from '../components/dashboard/events/Events'
 import Sensors from '../components/dashboard/sensors/Sensors'
 import Ubicacion from '../components/dashboard/ubicacion/Ubicacion'
-<<<<<<< HEAD
-import Monitoreo from '../components/dashboard/monitoreo/Monitoreo'
-=======
 import ModerationPanel from '../components/dashboard/moderation/ModerationPanel'
->>>>>>> feature/programador_2
 
 // --- Iconos SVG Básicos ---
 const IconDashboard = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
