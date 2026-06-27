@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     MINIO_ROOT_USER: str          
     MINIO_ROOT_PASSWORD: str      
     MINIO_BUCKET_NAME: str  
+    MINIO_PUBLIC_URL: str = "http://localhost:9005"
 
     class Config:
         case_sensitive = True

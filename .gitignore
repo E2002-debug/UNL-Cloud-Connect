@@ -220,3 +220,14 @@ __marimo__/
 # Ignorar dependencias de Node
 node_modules/
 frontend-web/node_modules/
+
+# Expo native and cache directories
+frontend-mobile/android/
+frontend-mobile/ios/
+frontend-mobile/.expo/
+
+# Continue AI assistant config
+.continue/
+
+# VS Code project settings
+.vscode/

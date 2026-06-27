@@ -147,3 +147,20 @@ def eliminar_usuario_endpoint(
         detalles=f"Admin eliminó la cuenta del usuario: {correo_eliminado}"
     ))
     return {"mensaje": "Usuario eliminado correctamente"}
+
+
+@router.get("/{id_usuario}/perfil-basico", response_model=UsuarioResponse)
+def obtener_perfil_basico(
+    id_usuario: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+) -> Any:
+    """
+    Obtiene la información básica (perfil) de un usuario por su ID.
+    Ruta protegida: Accesible por cualquier usuario autenticado (participante o admin).
+    """
+    usuario = crud_usuario.obtener_usuario_por_id(db, id_usuario=id_usuario)
+    if not usuario:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+    return usuario
+
