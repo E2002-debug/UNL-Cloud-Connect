@@ -1,8 +1,9 @@
 from pydantic import BaseModel, Field, ConfigDict, model_validator
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from app.models.evento import ProgresoEvento
 from app.schemas.ubicacion import UbicacionResponse
+from app.schemas.imagen import ImagenResponse
 
 # Esquema base con la información central del evento
 class EventoBase(BaseModel):
@@ -47,6 +48,10 @@ class EventoResponse(EventoBase):
     id_usuario: int 
     ubicacion: UbicacionResponse
     imagen_url: Optional[str] = None
+<<<<<<< HEAD
+    imagenes: List[ImagenResponse] = []
+=======
     id_primera_imagen: Optional[int] = None
+>>>>>>> feature/programador_2
 
     model_config = ConfigDict(from_attributes=True)

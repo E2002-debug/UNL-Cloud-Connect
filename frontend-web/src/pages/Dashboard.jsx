@@ -9,7 +9,11 @@ import toast from 'react-hot-toast'
 import Events from '../components/dashboard/events/Events'
 import Sensors from '../components/dashboard/sensors/Sensors'
 import Ubicacion from '../components/dashboard/ubicacion/Ubicacion'
+<<<<<<< HEAD
+import Monitoreo from '../components/dashboard/monitoreo/Monitoreo'
+=======
 import ModerationPanel from '../components/dashboard/moderation/ModerationPanel'
+>>>>>>> feature/programador_2
 
 // --- Iconos SVG Básicos ---
 const IconDashboard = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
@@ -372,6 +376,7 @@ export default function Dashboard() {
   ] : isSuperAdmin ? [
     { id: 'Usuarios', icon: <IconUsers />, label: 'GESTIÓN DE USUARIOS', badge: usuarios.length },
     { id: 'Sensores', icon: <IconSensors />, label: 'SENSOR IOT', labelRight: 'ESTABLE' },
+    { id: 'Monitoreo', icon: <IconActivity />, label: 'MONITOREO DE DATOS' },
     { id: 'Ubicacion', icon: <IconMap />, label: 'UBICACIÓN' },
     { id: 'Configuracion', icon: <IconSettings />, label: 'CONFIGURACIÓN' },
   ] : [
@@ -385,7 +390,7 @@ export default function Dashboard() {
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-app)', fontFamily: "'Inter', sans-serif" }}>
 
       {/* SIDEBAR IZQUIERDO */}
-      <aside style={{ width: '280px', background: 'var(--bg-card)', borderRight: '1px solid #DBE3E0', display: 'flex', flexDirection: 'column', height: '100vh', position: 'sticky', top: 0, alignSelf: 'flex-start' }}>
+      <aside style={{ width: '280px', minWidth: '280px', maxWidth: '280px', background: 'var(--bg-card)', borderRight: '1px solid #DBE3E0', display: 'flex', flexDirection: 'column', height: '100vh', position: 'sticky', top: 0, alignSelf: 'flex-start', overflow: 'hidden', boxSizing: 'border-box' }}>
 
         {/* LOGO AREA */}
         <div style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #f1f5f9' }}>
@@ -431,7 +436,7 @@ export default function Dashboard() {
               }}
             >
               <div style={{ color: activeTab === item.id ? 'var(--bg-card)' : 'var(--text-muted)' }}>{item.icon}</div>
-              <span style={{ flex: 1 }}>{item.label}</span>
+              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{item.label}</span>
 
               {item.badge > 0 && (
                 <span style={{ background: activeTab === item.id ? 'rgba(255,255,255,0.2)' : 'var(--border)', color: activeTab === item.id ? 'var(--text-inverse)' : 'var(--text-muted)', padding: '2px 8px', borderRadius: '12px', fontSize: '11px' }}>
@@ -439,7 +444,7 @@ export default function Dashboard() {
                 </span>
               )}
               {item.labelRight && (
-                <span style={{ fontSize: '9px', fontWeight: '700', color: '#10b981', border: '1px solid #10b981', padding: '2px 6px', borderRadius: '4px' }}>
+                <span style={{ fontSize: '8px', fontWeight: '700', color: '#10b981', border: '1px solid #10b981', padding: '1px 4px', borderRadius: '3px', whiteSpace: 'nowrap', flexShrink: 0 }}>
                   {item.labelRight}
                 </span>
               )}
@@ -525,6 +530,13 @@ export default function Dashboard() {
           {activeTab === 'Sensores' && (
             <div style={{ width: '100%' }}>
               <Sensors />
+            </div>
+          )}
+
+          {/* VISTA DE MONITOREO DE DATOS */}
+          {activeTab === 'Monitoreo' && (
+            <div style={{ width: '100%' }}>
+              <Monitoreo />
             </div>
           )}
 

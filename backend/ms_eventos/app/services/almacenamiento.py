@@ -35,8 +35,8 @@ def subir_imagen_minio(file: UploadFile) -> str:
             content_type=file.content_type
         )
         
-        # 4. Construimos la URL pública (Puerto 9005 expuesto para el Frontend)
-        url_publica = f"http://localhost:9005/{settings.MINIO_BUCKET_NAME}/{nombre_unico}"
+        # 4. Construimos la URL pública (Usando el host público configurado)
+        url_publica = f"{settings.MINIO_PUBLIC_URL}/{settings.MINIO_BUCKET_NAME}/{nombre_unico}"
         
         return url_publica
 

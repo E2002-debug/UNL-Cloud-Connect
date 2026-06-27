@@ -32,6 +32,7 @@ export default function UploadPhotoView({
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
+  const cameraInputRef = React.useRef<HTMLInputElement | null>(null);
 
   // Default beautiful stock photo options to simulate gallery selection
   const stockPhotoOptions = [
@@ -106,6 +107,16 @@ export default function UploadPhotoView({
         ref={fileInputRef} 
         onChange={handleFileChange} 
         accept="image/*" 
+        className="hidden" 
+      />
+
+      {/* Hidden camera input for direct camera access on mobile */}
+      <input 
+        type="file" 
+        ref={cameraInputRef} 
+        onChange={handleFileChange} 
+        accept="image/*" 
+        capture="environment" 
         className="hidden" 
       />
 
@@ -187,7 +198,7 @@ export default function UploadPhotoView({
           </button>
           
           <button
-            onClick={handleSimulatedImage}
+            onClick={() => cameraInputRef.current?.click()}
             className={cn(
               "w-full max-w-[280px] border font-extrabold text-xs uppercase tracking-wider py-3.5 px-6 rounded-xl flex items-center justify-center gap-2 transition-all active:scale-[0.98] cursor-pointer",
               theme === 'light'

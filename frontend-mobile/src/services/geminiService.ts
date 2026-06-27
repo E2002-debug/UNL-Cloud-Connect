@@ -1,6 +1,17 @@
 import { GoogleGenAI } from "@google/genai";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+let ai: any = null;
+const apiKey = process.env.GEMINI_API_KEY;
+
+if (apiKey) {
+  try {
+    ai = new GoogleGenAI({ apiKey });
+  } catch (error) {
+    console.error("Failed to initialize GoogleGenAI client:", error);
+  }
+} else {
+  console.warn("GEMINI_API_KEY is not defined. Gemini features will run in simulation fallback mode.");
+}
 
 export async function analyzeEventPhoto(base64Image: string) {
   // If it's a placeholder or too short, return mock response for demo stability
@@ -8,9 +19,13 @@ export async function analyzeEventPhoto(base64Image: string) {
     return "Análisis de sensor completado: Zona UNL detectada con afluencia académica moderada. Sin riesgos climáticos inmediatos.";
   }
 
+  if (!ai) {
+    return "Análisis simulado (API Key de Gemini no configurada): Imagen cargada con éxito. Se observa el área del campus con iluminación adecuada y flujo normal de personas.";
+  }
+
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
+      model: "gemini-2.5-flash",
       contents: [
         {
           inlineData: {
@@ -39,3 +54,4 @@ export async function analyzeEventPhoto(base64Image: string) {
     return "El nodo de IA está procesando demasiadas solicitudes. Sensing temporalmente limitado.";
   }
 }
+
