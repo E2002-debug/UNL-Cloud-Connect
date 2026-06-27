@@ -40,5 +40,6 @@ export const updateUser = (id, payload) => api.put(`/usuarios/${id}`, payload)
 export const deleteUser = (id) => api.delete(`/usuarios/${id}`)
 
 export const updateMe = (payload) => api.put('/usuarios/me', payload)
+export const getAuditoria = () => api.get('/auditoria/')
 
 export default api

@@ -9,6 +9,7 @@ import toast from 'react-hot-toast'
 import Events from '../components/dashboard/events/Events'
 import Sensors from '../components/dashboard/sensors/Sensors'
 import Ubicacion from '../components/dashboard/ubicacion/Ubicacion'
+import Monitoreo from '../components/dashboard/monitoreo/Monitoreo'
 
 // --- Iconos SVG Básicos ---
 const IconDashboard = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
@@ -369,6 +370,7 @@ export default function Dashboard() {
   ] : isSuperAdmin ? [
     { id: 'Usuarios', icon: <IconUsers />, label: 'GESTIÓN DE USUARIOS', badge: usuarios.length },
     { id: 'Sensores', icon: <IconSensors />, label: 'SENSOR IOT', labelRight: 'ESTABLE' },
+    { id: 'Monitoreo', icon: <IconActivity />, label: 'MONITOREO DE DATOS' },
     { id: 'Ubicacion', icon: <IconMap />, label: 'UBICACIÓN' },
     { id: 'Configuracion', icon: <IconSettings />, label: 'CONFIGURACIÓN' },
   ] : [
@@ -522,6 +524,13 @@ export default function Dashboard() {
           {activeTab === 'Sensores' && (
             <div style={{ width: '100%' }}>
               <Sensors />
+            </div>
+          )}
+
+          {/* VISTA DE MONITOREO DE DATOS */}
+          {activeTab === 'Monitoreo' && (
+            <div style={{ width: '100%' }}>
+              <Monitoreo />
             </div>
           )}
 
