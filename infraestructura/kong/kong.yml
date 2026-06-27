@@ -13,6 +13,7 @@ services:
         paths:
           - /api/auth
           - /api/usuarios
+          - /api/auditoria
         strip_path: false
 
   # 2. Servicio de Clima/Telemetría
