@@ -70,7 +70,7 @@ def test_login_fallido_caja_negra(mock_obtener_usuario):
     
     # Verificaciones de Caja Negra
     assert response.status_code == 401
-    assert response.json()["detail"] == "Correo institucional o contraseña incorrectos."
+    assert response.json()["detail"] == "La contraseña ingresada es incorrecta."
 
 def test_dominio_invalido_caja_negra():
     """

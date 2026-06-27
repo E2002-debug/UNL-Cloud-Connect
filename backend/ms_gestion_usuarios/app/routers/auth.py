@@ -259,7 +259,7 @@ def iniciar_sesion(
         ))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Correo institucional o contraseña incorrectos.",
+            detail="Esta cuenta no existe. Por favor, crea una cuenta primero.",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
@@ -290,7 +290,7 @@ def iniciar_sesion(
         ))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Correo institucional o contraseña incorrectos.",
+            detail="La contraseña ingresada es incorrecta.",
             headers={"WWW-Authenticate": "Bearer"},
         )
         
