@@ -1,9 +1,5 @@
 from pydantic import BaseModel, ConfigDict
-<<<<<<< HEAD
-from typing import List
-=======
 from typing import List, Optional
->>>>>>> feature/programador_2
 from datetime import datetime
 from app.models.imagen import TipoReaccion
 
@@ -20,14 +16,11 @@ class ReaccionesResumenResponse(BaseModel):
     
     model_config = ConfigDict(from_attributes=True)
 
-<<<<<<< HEAD
 class ImagenResponse(BaseModel):
     id_imagen: int
     url_minio: str
     id_usuario: int
     fecha_subida: datetime
-    
-=======
 
 class ReportarImagenRequest(BaseModel):
     motivo_reporte: str
@@ -41,6 +34,4 @@ class ImagenReportadaResponse(BaseModel):
     id_evento: int
     evento_nombre: str
     motivo_reporte: Optional[str] = None
-
->>>>>>> feature/programador_2
     model_config = ConfigDict(from_attributes=True)
