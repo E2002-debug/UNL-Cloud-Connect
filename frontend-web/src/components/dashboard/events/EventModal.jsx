@@ -147,6 +147,25 @@ export default function EventModal({ open, onClose, onSave, editando }) {
     if (formData.fecha_inicio && formData.hora_inicio && formData.fecha_fin && formData.hora_fin) {
       const inicio = new Date(`${formData.fecha_inicio}T${formData.hora_inicio}`);
       const fin = new Date(`${formData.fecha_fin}T${formData.hora_fin}`);
+      
+      const ahora = new Date();
+      ahora.setHours(0, 0, 0, 0); // Inicio del día actual
+      
+      if (inicio < ahora) {
+        nuevosErrores.fecha_inicio = "La fecha de inicio no puede estar en el pasado.";
+      }
+      
+      const horaInicioNum = parseInt(formData.hora_inicio.split(':')[0], 10);
+      const horaFinNum = parseInt(formData.hora_fin.split(':')[0], 10);
+      
+      if (horaInicioNum < 9 || horaInicioNum > 18) {
+        nuevosErrores.fecha_inicio = "La hora de inicio debe estar entre las 09:00 y las 18:00.";
+      }
+      
+      if (horaFinNum < 9 || horaFinNum > 18) {
+        nuevosErrores.fecha_fin = "La hora de finalización debe estar entre las 09:00 y las 18:00.";
+      }
+
       if (fin <= inicio) {
         nuevosErrores.fecha_fin = "La fecha de finalización debe ser posterior a la fecha de inicio.";
       }
@@ -342,19 +361,19 @@ export default function EventModal({ open, onClose, onSave, editando }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
               <div>
                 <label style={labelStyle}><IconCalendar /> Fecha de Inicio</label>
-                <input type="date" value={formData.fecha_inicio} onChange={(e) => { setFormData({...formData, fecha_inicio: e.target.value}); limpiarError("fecha_inicio"); }} style={errores.fecha_inicio ? inputErrorStyle : inputStyle} />
+                <input type="date" min={new Date().toISOString().split('T')[0]} value={formData.fecha_inicio} onChange={(e) => { setFormData({...formData, fecha_inicio: e.target.value}); limpiarError("fecha_inicio"); }} style={errores.fecha_inicio ? inputErrorStyle : inputStyle} />
               </div>
               <div>
                 <label style={labelStyle}><IconClock /> Hora de Inicio</label>
                 <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                   <select value={formData.hora_inicio?.split(':')[0] || ""} onChange={(e) => { const val = e.target.value + ":" + (formData.hora_inicio?.split(':')[1] || "00"); setFormData({...formData, hora_inicio: val}); limpiarError("fecha_inicio"); }} style={{ ...(errores.fecha_inicio ? inputErrorStyle : inputStyle), width: "50%" }}>
                     <option value="" disabled>HH</option>
-                    {Array.from({length: 24}, (_, i) => {
-  const v = String(i).padStart(2, '0');
-  const h12 = i === 0 ? 12 : i > 12 ? i - 12 : i;
-  const ampm = i < 12 ? 'AM' : 'PM';
-  return <option key={i} value={v}>{String(h12).padStart(2, '0')} {ampm}</option>;
-})}
+                    {Array.from({length: 10}, (_, i) => {
+                      const v = String(i + 9).padStart(2, '0');
+                      const h12 = (i + 9) > 12 ? (i + 9) - 12 : (i + 9);
+                      const ampm = (i + 9) < 12 ? 'AM' : 'PM';
+                      return <option key={i+9} value={v}>{String(h12).padStart(2, '0')} {ampm}</option>;
+                    })}
                   </select>
                   <span style={{ fontSize: "16px", fontWeight: "700", color: "var(--text-muted)", lineHeight: "38px" }}>:</span>
                   <select value={formData.hora_inicio?.split(':')[1] || ""} onChange={(e) => { const val = (formData.hora_inicio?.split(':')[0] || "00") + ":" + e.target.value; setFormData({...formData, hora_inicio: val}); limpiarError("fecha_inicio"); }} style={{ ...(errores.fecha_inicio ? inputErrorStyle : inputStyle), width: "50%" }}>
@@ -368,19 +387,19 @@ export default function EventModal({ open, onClose, onSave, editando }) {
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
               <div>
                 <label style={labelStyle}><IconCalendar /> Fecha de Fin</label>
-                <input type="date" value={formData.fecha_fin} onChange={(e) => { setFormData({...formData, fecha_fin: e.target.value}); limpiarError("fecha_fin"); }} style={errores.fecha_fin ? inputErrorStyle : inputStyle} />
+                <input type="date" min={new Date().toISOString().split('T')[0]} value={formData.fecha_fin} onChange={(e) => { setFormData({...formData, fecha_fin: e.target.value}); limpiarError("fecha_fin"); }} style={errores.fecha_fin ? inputErrorStyle : inputStyle} />
               </div>
               <div>
                 <label style={labelStyle}><IconClock /> Hora de Fin</label>
                 <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                   <select value={formData.hora_fin?.split(':')[0] || ""} onChange={(e) => { const val = e.target.value + ":" + (formData.hora_fin?.split(':')[1] || "00"); setFormData({...formData, hora_fin: val}); limpiarError("fecha_fin"); }} style={{ ...(errores.fecha_fin ? inputErrorStyle : inputStyle), width: "50%" }}>
                     <option value="" disabled>HH</option>
-                    {Array.from({length: 24}, (_, i) => {
-  const v = String(i).padStart(2, '0');
-  const h12 = i === 0 ? 12 : i > 12 ? i - 12 : i;
-  const ampm = i < 12 ? 'AM' : 'PM';
-  return <option key={i} value={v}>{String(h12).padStart(2, '0')} {ampm}</option>;
-})}
+                    {Array.from({length: 10}, (_, i) => {
+                      const v = String(i + 9).padStart(2, '0');
+                      const h12 = (i + 9) > 12 ? (i + 9) - 12 : (i + 9);
+                      const ampm = (i + 9) < 12 ? 'AM' : 'PM';
+                      return <option key={i+9} value={v}>{String(h12).padStart(2, '0')} {ampm}</option>;
+                    })}
                   </select>
                   <span style={{ fontSize: "16px", fontWeight: "700", color: "var(--text-muted)", lineHeight: "38px" }}>:</span>
                   <select value={formData.hora_fin?.split(':')[1] || ""} onChange={(e) => { const val = (formData.hora_fin?.split(':')[0] || "00") + ":" + e.target.value; setFormData({...formData, hora_fin: val}); limpiarError("fecha_fin"); }} style={{ ...(errores.fecha_fin ? inputErrorStyle : inputStyle), width: "50%" }}>
