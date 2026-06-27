@@ -191,29 +191,47 @@ export default function EventoPage() {
           </div>
         </div>
         <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-          {estaAutenticado() ? (
-            <button type="button" onClick={() => navigate("/dashboard")} style={{
-              background: "#10b981", color: "white", border: "none", padding: "6px 14px",
-              borderRadius: "6px", fontSize: "12px", fontWeight: "700", cursor: "pointer",
-            }}>
-              DASHBOARD
-            </button>
-          ) : (
-            <>
-              <button type="button" onClick={() => navigate("/login")} style={{
-                background: "transparent", color: "#10b981", border: "2px solid #10b981",
-                padding: "5px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer",
-              }}>
-                INICIAR SESIÓN
-              </button>
-              <button type="button" onClick={() => navigate("/register")} style={{
-                background: "#10b981", color: "white", border: "none", padding: "6px 14px",
-                borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer",
-              }}>
-                REGISTRARSE
-              </button>
-            </>
-          )}
+          {(() => {
+            const token = localStorage.getItem("access_token");
+            const idRol = localStorage.getItem("id_rol");
+            if (token && (String(idRol) === "1" || String(idRol) === "3")) {
+              return (
+                <button type="button" onClick={() => navigate("/dashboard")} style={{
+                  background: "#10b981", color: "white", border: "none", padding: "6px 14px",
+                  borderRadius: "6px", fontSize: "12px", fontWeight: "700", cursor: "pointer",
+                }}>
+                  PANEL DE CONTROL
+                </button>
+              );
+            }
+            if (token && String(idRol) === "2") {
+              return (
+                <span style={{
+                  background: "#fef3c7", color: "#92400e", padding: "6px 14px",
+                  borderRadius: "6px", fontSize: "11px", fontWeight: "700",
+                  border: "1px solid #fde68a",
+                }}>
+                  📱 APP MÓVIL
+                </span>
+              );
+            }
+            return (
+              <>
+                <button type="button" onClick={() => navigate("/login")} style={{
+                  background: "transparent", color: "#10b981", border: "2px solid #10b981",
+                  padding: "5px 12px", borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer",
+                }}>
+                  INICIAR SESIÓN
+                </button>
+                <button type="button" onClick={() => navigate("/register")} style={{
+                  background: "#10b981", color: "white", border: "none", padding: "6px 14px",
+                  borderRadius: "6px", fontSize: "11px", fontWeight: "700", cursor: "pointer",
+                }}>
+                  REGISTRARSE
+                </button>
+              </>
+            );
+          })()}
         </div>
       </header>
 

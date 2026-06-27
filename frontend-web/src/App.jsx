@@ -10,9 +10,11 @@ import ResetPassword from './pages/ResetPassword'
 import Dashboard from './pages/Dashboard'
 import VerificarCuenta from './pages/VerificarCuenta'
 import EventoPage from './pages/EventoPage'
+import MobileOnly from './pages/MobileOnly'
 
 /**
- * Componente de protección de ruta por Rol (Permite Admin '1' y Usuario '2')
+ * Componente de protección de ruta por Rol (Solo Admin '1' y Superadmin '3')
+ * Los participantes (rol 2) deben usar la aplicación móvil.
  */
 const GuardedRoute = ({ element: Element }) => {
   const token = localStorage.getItem('access_token')
@@ -23,13 +25,18 @@ const GuardedRoute = ({ element: Element }) => {
     return <Navigate to="/login" replace />
   }
 
-  // 2. CORRECCIÓN: Permitir la entrada si es Admin (1) O si es Usuario Autorizado (2)
-  if (String(idRol) !== '1' && String(idRol) !== '2' && String(idRol) !== '3') {
-    localStorage.clear() // Solo limpia si es un rol totalmente desconocido
+  // 2. Participantes (rol 2) no pueden acceder al dashboard web
+  if (String(idRol) === '2') {
+    return <Navigate to="/solo-app-movil" replace />
+  }
+
+  // 3. Solo Admin (1) y Superadmin (3) pueden pasar
+  if (String(idRol) !== '1' && String(idRol) !== '3') {
+    localStorage.clear()
     return <Navigate to="/login?logout=true" replace />
   }
 
-  // 3. Si cumple con los roles permitidos, pasa al Dashboard
+  // 4. Si cumple con los roles permitidos, pasa al Dashboard
   return <Element />
 }
 
@@ -37,16 +44,17 @@ export default function App() {
   const token = localStorage.getItem('access_token')
   const idRol = localStorage.getItem('id_rol')
 
-  // El usuario puede ir al dashboard desde la raíz si tiene token y rol válido
-  const isUserValid = token && (String(idRol) === '1' || String(idRol) === '2' || String(idRol) === '3')
+  // Admin (1) y Superadmin (3) van al dashboard; Participante (2) va a página móvil
+  const isAdmin = token && (String(idRol) === '1' || String(idRol) === '3')
+  const isParticipant = token && String(idRol) === '2'
 
   return (
     <>
     <Routes>
-      {/* Ruta raíz: Redirige al Dashboard si está validado, o muestra el Home (Landing Page) si no */}
+      {/* Ruta raíz: Admin/Superadmin al dashboard, Participante a app móvil, invitados al Home */}
       <Route
         path="/"
-        element={isUserValid ? <Navigate to="/dashboard" replace /> : <Home />}
+        element={isAdmin ? <Navigate to="/dashboard" replace /> : isParticipant ? <Navigate to="/solo-app-movil" replace /> : <Home />}
       />
 
       {/* Rutas Públicas de Autenticación */}
@@ -63,6 +71,9 @@ export default function App() {
         path="/dashboard"
         element={<GuardedRoute element={Dashboard} />}
       />
+
+      {/* Ruta pública: Solo app móvil (para participantes) */}
+      <Route path="/solo-app-movil" element={<MobileOnly />} />
 
       {/* Ruta pública de detalle de evento */}
       <Route path="/eventos/:id" element={<EventoPage />} />

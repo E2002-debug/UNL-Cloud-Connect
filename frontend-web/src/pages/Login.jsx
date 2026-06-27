@@ -35,8 +35,10 @@ export default function Login() {
   useEffect(() => {
     const token = localStorage.getItem('access_token')
     const idRol = localStorage.getItem('id_rol')
-    if (token && (String(idRol) === '1' || String(idRol) === '2') && !searchParams.get('logout')) {
+    if (token && (String(idRol) === '1' || String(idRol) === '3') && !searchParams.get('logout')) {
       navigate('/dashboard', { replace: true })
+    } else if (token && String(idRol) === '2' && !searchParams.get('logout')) {
+      navigate('/solo-app-movil', { replace: true })
     }
   }, [navigate, searchParams])
 
@@ -77,9 +79,13 @@ export default function Login() {
 
     toast.success(`Bienvenido de nuevo, ${nombre}`)
 
-    // Forzar el cambio de ciclo de vida del DOM e ir al Dashboard de raíz
+    // Forzar el cambio de ciclo de vida del DOM: Admin/Superadmin al dashboard, Participante a app móvil
     setTimeout(() => {
+      if (String(userRole) === '2') {
+        window.location.replace('/solo-app-movil')
+      } else {
         window.location.replace('/dashboard')
+      }
     }, 500)
   }
 
