@@ -18,6 +18,14 @@ api.interceptors.request.use((config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
   }
+  
+  // Inyectar headers para ms_eventos (ya que confía ciegamente en ellos según AGENTS.md)
+  const idRol = localStorage.getItem('id_rol')
+  const idUsuario = localStorage.getItem('id_usuario')
+  
+  if (idRol) config.headers['x-user-role'] = idRol
+  if (idUsuario) config.headers['x-user-id'] = idUsuario
+  
   return config
 }, (error) => {
   return Promise.reject(error)
