@@ -193,13 +193,16 @@ export default function Home() {
             EVENTOS ACADÉMICOS
           </h2>
           <p style={{ margin: "0 0 32px 0", fontSize: "14px", color: "#62726b", textAlign: "center" }}>
-            Explora los eventos académicos programados y en curso en nuestra facultad
+            Eventos que están ocurriendo ahora mismo en nuestra facultad
           </p>
-          {eventos.length === 0 ? (
-            <p style={{ textAlign: "center", color: "#94a3b8", fontSize: "13px", fontWeight: "600" }}>No hay eventos disponibles en este momento</p>
-          ) : (
+          {(() => {
+            const enProgreso = eventos.filter(e => e.estado === "EN_PROGRESO");
+            if (enProgreso.length === 0) {
+              return <p style={{ textAlign: "center", color: "#94a3b8", fontSize: "13px", fontWeight: "600" }}>No hay eventos en curso en este momento</p>;
+            }
+            return (
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(320px, 1fr))", gap: "24px" }}>
-              {eventos.map((evento) => {
+              {enProgreso.map((evento) => {
                 const estado = evento.estado?.replace("_", " ") || "";
                 const estadoEstilo = {
                   EN_PROGRESO: { bg: "#d1fae5", color: "#065f46" },
@@ -245,7 +248,8 @@ export default function Home() {
                 );
               })}
             </div>
-          )}
+            );
+          })()}
         </div>
       </section>
 
