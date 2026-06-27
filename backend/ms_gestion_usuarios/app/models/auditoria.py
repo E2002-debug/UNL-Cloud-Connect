@@ -6,7 +6,7 @@ class AuditoriaUsuario(Base):
     __tablename__ = "auditoria_usuarios"
 
     id_log = Column(Integer, primary_key=True, index=True)
-    id_usuario = Column(Integer, ForeignKey("usuarios.id_usuario"), nullable=True)
+    id_usuario = Column(Integer, ForeignKey("usuario.id_usuario"), nullable=True)
     correo = Column(String(255), nullable=True)
     accion = Column(String(100), nullable=False)
     fecha_hora = Column(DateTime, default=datetime.utcnow)
