@@ -97,8 +97,9 @@ export default function Events() {
     }
   };
 
-  const eventosFiltrados = eventos.filter((e) =>
-    e.nombre.toLowerCase().includes(searchTerm.toLowerCase())
+  const eventosSeguros = Array.isArray(eventos) ? eventos : [];
+  const eventosFiltrados = eventosSeguros.filter((e) =>
+    e.nombre?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const eventosPorTab = tabActivo === "TODOS"
@@ -112,10 +113,10 @@ export default function Events() {
     { key: "CANCELADO", label: "CANCELADOS", color: "#ef4444" },
   ];
 
-  const enProgreso = eventos.filter((e) => e.estado === "EN_PROGRESO").length;
-  const programados = eventos.filter((e) => e.estado === "PROGRAMADO").length;
-  const finalizados = eventos.filter((e) => e.estado === "FINALIZADO").length;
-  const cancelados = eventos.filter((e) => e.estado === "CANCELADO").length;
+  const enProgreso = eventosSeguros.filter((e) => e.estado === "EN_PROGRESO").length;
+  const programados = eventosSeguros.filter((e) => e.estado === "PROGRAMADO").length;
+  const finalizados = eventosSeguros.filter((e) => e.estado === "FINALIZADO").length;
+  const cancelados = eventosSeguros.filter((e) => e.estado === "CANCELADO").length;
 
   return (
     <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "24px", boxSizing: "border-box" }}>

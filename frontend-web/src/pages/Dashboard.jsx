@@ -552,7 +552,7 @@ export default function Dashboard() {
                 <div style={{ background: 'var(--bg-card)', padding: '16px 20px', border: '1px solid #DBE3E0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                   <div>
                     <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>EN PROGRESO</span>
-                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#10b981', marginTop: '4px' }}>{loadingDashboard ? '...' : eventos.filter(e => e.estado === 'EN_PROGRESO').length}</div>
+                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#10b981', marginTop: '4px' }}>{loadingDashboard ? '...' : (Array.isArray(eventos) ? eventos : []).filter(e => e.estado === 'EN_PROGRESO').length}</div>
                   </div>
                   <IconActivity />
                 </div>
