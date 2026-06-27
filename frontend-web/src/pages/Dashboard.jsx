@@ -438,7 +438,7 @@ export default function Dashboard() {
                 </span>
               )}
               {item.labelRight && (
-                <span style={{ fontSize: '9px', fontWeight: '700', color: '#10b981', border: '1px solid #10b981', padding: '2px 6px', borderRadius: '4px' }}>
+                <span style={{ fontSize: '8px', fontWeight: '700', color: '#10b981', border: '1px solid #10b981', padding: '1px 4px', borderRadius: '3px', whiteSpace: 'nowrap', flexShrink: 0 }}>
                   {item.labelRight}
                 </span>
               )}

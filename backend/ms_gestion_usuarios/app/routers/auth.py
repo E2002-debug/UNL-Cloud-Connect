@@ -202,7 +202,15 @@ def verificar_cuenta(token: str, db: Session = Depends(get_db)):
     
     # Crear el usuario en este momento
     usuario_create = UsuarioCreate(**user_data)
-    crud_usuario.crear_usuario(db, usuario=usuario_create, verificado=True)
+    nuevo_usuario = crud_usuario.crear_usuario(db, usuario=usuario_create, verificado=True)
+    
+    crud_auditoria.registrar_auditoria(db, AuditoriaCreate(
+        id_usuario=nuevo_usuario.id_usuario,
+        correo=nuevo_usuario.correo,
+        accion="REGISTRO_USUARIO",
+        ip_origen=None,
+        detalles="Cuenta verificada y creada exitosamente"
+    ))
     
     return {"mensaje": "¡Cuenta creada y verificada exitosamente! Ya puedes iniciar sesión."}
 
