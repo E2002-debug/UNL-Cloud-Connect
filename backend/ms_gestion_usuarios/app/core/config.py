@@ -26,7 +26,8 @@ class Settings(BaseSettings):
     ]
 
     # Variables para la Autenticación y Base de Datos
-    SECRET_KEY: str = "unl_secreto_extremadamente_seguro_123456"
+    # IMPORTANTE: SECRET_KEY debe definirse en el archivo .env. Nunca uses un valor por defecto aquí.
+    SECRET_KEY: str  # Sin default: Pydantic lanzará error si no está en .env
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 día de duración
     DATABASE_URL: str  # Pydantic la jalará automáticamente del .env

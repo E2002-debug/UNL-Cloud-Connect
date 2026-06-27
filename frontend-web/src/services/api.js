@@ -23,6 +23,39 @@ api.interceptors.request.use((config) => {
   return Promise.reject(error)
 })
 
+// Interceptor global de respuestas: traduce errores técnicos a mensajes claros
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    const status = error?.response?.status
+    const detailFromServer = error?.response?.data?.detail
+
+    // Si el servidor ya envió un mensaje claro, lo usamos directamente
+    if (detailFromServer && typeof detailFromServer === 'string') {
+      return Promise.reject(new Error(detailFromServer))
+    }
+
+    // Traducción de códigos HTTP a mensajes amigables
+    const mensajes = {
+      400: 'Los datos enviados no son válidos. Por favor revisa la información.',
+      401: 'Sesión expirada o no autorizado. Por favor inicia sesión nuevamente.',
+      403: 'No tienes permiso para realizar esta acción.',
+      404: 'El recurso solicitado no existe.',
+      408: 'La solicitud tardó demasiado. Verifica tu conexión a internet.',
+      409: 'Ya existe un registro con esos datos.',
+      422: 'Hay un error en los datos enviados. Por favor revisa los campos.',
+      429: 'Demasiados intentos. Por favor espera unos minutos antes de intentar de nuevo.',
+      500: 'Error interno del servidor. Por favor intenta más tarde.',
+      502: 'El servicio no está disponible en este momento. Por favor intenta en unos segundos.',
+      503: 'El servicio está en mantenimiento. Por favor intenta más tarde.',
+      504: 'El servidor tardó demasiado en responder. Por favor intenta de nuevo.',
+    }
+
+    const mensaje = mensajes[status] || 'Ocurrió un error inesperado. Por favor intenta de nuevo.'
+    return Promise.reject(new Error(mensaje))
+  }
+)
+
 // Endpoints de Autenticación
 export const login = (payload) => api.post('/auth/login', payload)
 export const loginGoogle = (payload) => api.post('/auth/login-google', payload)

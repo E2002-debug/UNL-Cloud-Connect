@@ -28,16 +28,15 @@ def actualizar_mi_perfil(
     datos_actualizar = usuario_in.model_dump(exclude_unset=True)
     cambio_clave = False
     if "clave" in datos_actualizar and datos_actualizar["clave"]:
+        from app.core.security import verificar_clave
         nueva_clave = datos_actualizar["clave"]
 
         # Validar que no sea la contraseña actual
-        if current_user.clave and verificar_clave_actual := __import__('app.core.security', fromlist=['verificar_clave']).verificar_clave:
-            from app.core.security import verificar_clave
-            if verificar_clave(nueva_clave, current_user.clave):
-                raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="La nueva contraseña no puede ser igual a la actual."
-                )
+        if current_user.clave and verificar_clave(nueva_clave, current_user.clave):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="La nueva contraseña no puede ser igual a la actual."
+            )
 
         # Validar que no esté en el historial de contraseñas anteriores
         if crud_historial_clave.verificar_reutilizacion_clave(db, current_user.id_usuario, nueva_clave):
