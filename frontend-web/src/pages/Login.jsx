@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { Link, useSearchParams, useNavigate } from 'react-router-dom'
-import { GoogleLogin } from '@react-oauth/google'
+import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google'
 import toast from 'react-hot-toast'
 import { login as apiLogin, loginGoogle as apiLoginGoogle, reenviarVerificacion } from '../services/api'
 
@@ -18,7 +18,7 @@ const extractErrorMessage = (error) => {
   return 'Error desconocido'
 }
 
-const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1045246456759-ukkf353m9h7plhu0t1j1e08lo1r7qdgp.apps.googleusercontent.com'
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -35,8 +35,10 @@ export default function Login() {
   useEffect(() => {
     const token = localStorage.getItem('access_token')
     const idRol = localStorage.getItem('id_rol')
-    if (token && (String(idRol) === '1' || String(idRol) === '2') && !searchParams.get('logout')) {
+    if (token && (String(idRol) === '1' || String(idRol) === '3') && !searchParams.get('logout')) {
       navigate('/dashboard', { replace: true })
+    } else if (token && String(idRol) === '2' && !searchParams.get('logout')) {
+      navigate('/solo-app-movil', { replace: true })
     }
   }, [navigate, searchParams])
 
@@ -53,6 +55,7 @@ export default function Login() {
   // Procesador unificado de almacenamiento y redirección forzada
   const handleLoginSuccess = (data) => {
     const tokenFinal = data.access_token || data.token || data.token_acceso
+    const idUsuario = data.id_usuario || data.user?.id_usuario || data.usuario?.id_usuario || ''
     const userRole = data.id_rol || data.user?.id_rol || data.usuario?.id_rol || '2'
     const nombre = data.nombre || data.user?.nombre || data.usuario?.nombre || ''
     const apellido = data.apellido || data.user?.apellido || data.usuario?.apellido || ''
@@ -68,6 +71,7 @@ export default function Login() {
 
     // Persistencia síncrona inmediata en el cliente
     localStorage.setItem('access_token', String(tokenFinal))
+    localStorage.setItem('id_usuario', String(idUsuario))
     localStorage.setItem('id_rol', String(userRole))
     localStorage.setItem('nombre', String(nombre))
     localStorage.setItem('apellido', String(apellido))
@@ -75,9 +79,13 @@ export default function Login() {
 
     toast.success(`Bienvenido de nuevo, ${nombre}`)
 
-    // Forzar el cambio de ciclo de vida del DOM e ir al Dashboard de raíz
+    // Forzar el cambio de ciclo de vida del DOM: Admin/Superadmin al dashboard, Participante a app móvil
     setTimeout(() => {
+      if (String(userRole) === '2') {
+        window.location.replace('/solo-app-movil')
+      } else {
         window.location.replace('/dashboard')
+      }
     }, 500)
   }
 
@@ -152,7 +160,8 @@ export default function Login() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F4F8F6', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
+    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+      <div style={{ minHeight: '100vh', background: '#F4F8F6', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '20px' }}>
       <style>{`
         .auth-container { flex-direction: row; }
         .auth-left { padding: 60px 40px; min-height: 500px; }
@@ -264,5 +273,6 @@ export default function Login() {
 
       </div>
     </div>
+    </GoogleOAuthProvider>
   )
 }

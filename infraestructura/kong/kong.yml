@@ -7,21 +7,32 @@ _transform: true
 services:
   # 1. Servicio de Usuarios
   - name: servicio-usuarios
-    url: http://unl_ms_gestion_usuarios:8000 # Usa el nombre del contenedor y su puerto interno
+    url: http://ms-gestion-usuarios:8000 # Usa el nombre del SERVICIO (Docker Swarm ignora container_name)
     routes:
       - name: ruta-usuarios
         paths:
           - /api/auth
           - /api/usuarios
+          - /api/auditoria
         strip_path: false
 
   # 2. Servicio de Clima/Telemetría
   - name: servicio-clima
-    url: http://unl_ms_clima:8000
+    url: http://ms-clima:8000
     routes:
       - name: ruta-clima
         paths:
           - /api/clima
+        strip_path: false
+
+  # 3. Servicio de Eventos 
+  - name: servicio-eventos
+    url: http://unl_ms_eventos:8000 # Nombre del contenedor en docker-compose
+    routes:
+      - name: ruta-eventos
+        paths:
+          - /api/eventos  
+          - /api/imagenes
         strip_path: false
 
 # ==========================================
@@ -48,7 +59,11 @@ plugins:
         - Content-Type
         - Date
         - Authorization
+        - x-user-role
+        - x-user-id
       exposed_headers:
         - Authorization
+        - x-user-role
+        - x-user-id
       credentials: true
       max_age: 3600

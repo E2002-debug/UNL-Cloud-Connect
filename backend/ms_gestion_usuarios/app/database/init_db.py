@@ -16,6 +16,7 @@ def inicializar_datos_maestros(db: Session) -> None:
         roles_requeridos = [
             {"id_rol": 1, "nombre_rol": "Administrador"},
             {"id_rol": 2, "nombre_rol": "Participante"},
+            {"id_rol": 3, "nombre_rol": "Superadmin"},
         ]
         
         roles_agregados = 0

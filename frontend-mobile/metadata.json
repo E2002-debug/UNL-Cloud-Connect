@@ -1,0 +1,6 @@
+{
+  "name": "UNL Cloud Connect",
+  "description": "Plataforma de la Universidad Nacional de Loja para la gestión de eventos, monitoreo climático y red social en tiempo real.",
+  "requestFramePermissions": ["camera", "geolocation"],
+  "majorCapabilities": ["real-time-data", "image-processing", "geospatial", "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

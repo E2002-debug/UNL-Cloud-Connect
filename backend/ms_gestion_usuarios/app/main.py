@@ -7,10 +7,12 @@ logger = logging.getLogger(__name__)
 from app.database.session import engine, Base, SessionLocal
 from app.core.config import settings
 from app.core.security import setup_cors
-from app.routers import auth, usuarios
+from app.routers import auth, usuarios, auditoria
 
 # IMPORTACIÓN CRÍTICA: Modelos correspondientes a este microservicio
 from app.models.usuario import Usuario
+from app.models.auditoria import AuditoriaUsuario
+from app.models.historial_clave import HistorialClave
 
 # IMPORTAMOS EL SCRIPT DE SEMBRADO (Roles y administradores)
 from app.database.init_db import inicializar_datos_maestros
@@ -59,3 +61,4 @@ app.add_middleware(IPRateLimitMiddleware, max_requests=50, window_seconds=60, bl
 # Incluimos solo los endpoints de identidad
 app.include_router(auth.router)
 app.include_router(usuarios.router)
+app.include_router(auditoria.router)

@@ -1,7 +1,16 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getUsers, updateUser, deleteUser, register, updateMe } from '../services/api'
+import api, { getUsers, updateUser, deleteUser, register, updateMe } from '../services/api'
+import { listarSensores } from '../services/climaService'
+import { listarUbicaciones } from '../services/ubicacionService'
+import { getEventos, getUbicaciones } from '../components/dashboard/events/eventService'
 import toast from 'react-hot-toast'
+
+import Events from '../components/dashboard/events/Events'
+import Sensors from '../components/dashboard/sensors/Sensors'
+import Ubicacion from '../components/dashboard/ubicacion/Ubicacion'
+import Monitoreo from '../components/dashboard/monitoreo/Monitoreo'
+import ModerationPanel from '../components/dashboard/moderation/ModerationPanel'
 
 // --- Iconos SVG Básicos ---
 const IconDashboard = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
@@ -18,11 +27,13 @@ const IconError = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="no
 const IconInfo = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
 const IconActivity = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
 const IconClock = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+const IconMap = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+const IconFlag = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
 
 export default function Dashboard() {
   const [user, setUser] = useState(null)
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'claro')
-  const [activeTab, setActiveTab] = useState('Usuarios')
+  const [activeTab, setActiveTab] = useState(localStorage.getItem('id_rol') === '3' ? 'Usuarios' : 'Dashboard')
   const navigate = useNavigate()
 
   // Gestión de Usuarios State
@@ -32,10 +43,51 @@ export default function Dashboard() {
 
   // Notifications State
   const addNotification = (type, title, message) => {
-    const text = `${title}: ${message}`
-    if (type === 'success') toast.success(text)
-    else if (type === 'error') toast.error(text)
-    else toast(text, { icon: 'ℹ️' })
+    toast.custom((t) => (
+      <div
+        style={{
+          background: type === 'success' ? 'rgba(16, 185, 129, 0.95)' : type === 'error' ? 'rgba(239, 68, 68, 0.95)' : 'rgba(15, 118, 110, 0.95)',
+          backdropFilter: 'blur(10px)',
+          color: 'white',
+          padding: '16px 20px',
+          borderRadius: '12px',
+          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          opacity: t.visible ? 1 : 0,
+          transform: t.visible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.9)',
+          transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+          maxWidth: '350px',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}
+      >
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.2)',
+          borderRadius: '50%',
+          width: '32px',
+          height: '32px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0
+        }}>
+          {type === 'success' && <IconCheck />}
+          {type === 'error' && <IconError />}
+          {type === 'info' && <IconInfo />}
+        </div>
+        <div>
+          <h4 style={{ margin: '0 0 4px 0', fontSize: '13px', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase' }}>{title}</h4>
+          <p style={{ margin: 0, fontSize: '12px', fontWeight: '500', opacity: 0.9, lineHeight: '1.4' }}>{message}</p>
+        </div>
+        <button 
+          onClick={() => toast.dismiss(t.id)} 
+          style={{ background: 'transparent', border: 'none', color: 'white', opacity: 0.7, cursor: 'pointer', marginLeft: 'auto', padding: '4px' }}
+        >
+          ✕
+        </button>
+      </div>
+    ), { duration: 4000, position: 'bottom-right' })
   }
 
   // Modal State
@@ -73,6 +125,30 @@ export default function Dashboard() {
   const [loadingWeather, setLoadingWeather] = useState(false)
   const [weatherError, setWeatherError] = useState('')
 
+  // Dashboard real data state
+  const [eventos, setEventos] = useState([])
+  const [sensores, setSensores] = useState([])
+  const [ubicacionesDB, setUbicacionesDB] = useState([])
+  const [loadingDashboard, setLoadingDashboard] = useState(false)
+
+  const fetchDashboardData = async () => {
+    setLoadingDashboard(true)
+    try {
+      const [evts, sens, ubi] = await Promise.all([
+        getEventos(),
+        listarSensores(),
+        getUbicaciones()
+      ])
+      setEventos(evts)
+      setSensores(sens)
+      setUbicacionesDB(ubi)
+    } catch (err) {
+      console.error('Error al cargar datos del dashboard:', err)
+    } finally {
+      setLoadingDashboard(false)
+    }
+  }
+
   useEffect(() => {
     const apiKey = import.meta.env.VITE_WEATHER_API_KEY
     if (!apiKey) {
@@ -83,7 +159,7 @@ export default function Dashboard() {
     setLoadingWeather(true)
     setWeatherError('')
     
-    fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/Loja,Ecuador?unitGroup=metric&key=${apiKey}&contentType=json`)
+    fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/Loja,Ecuador?unitGroup=metric&lang=es&key=${apiKey}&contentType=json`)
       .then(res => {
         if (!res.ok) throw new Error('Error al obtener los datos del clima. Verifica la clave de API.')
         return res.json()
@@ -123,8 +199,9 @@ export default function Dashboard() {
       clave: ''
     })
 
-    if (String(id_rol) === '1') {
+    if (String(id_rol) === '1' || String(id_rol) === '3') {
       fetchUsuarios()
+      fetchDashboardData()
     }
 
     const timer = setTimeout(() => {
@@ -163,8 +240,9 @@ export default function Dashboard() {
   }
 
   const handleToggleRole = (u) => {
-    const newRole = u.id_rol === 1 ? 2 : 1
-    const roleName = newRole === 1 ? 'Administrador' : 'Participante'
+    const roleCycle = { 1: 2, 2: 3, 3: 1 }
+    const newRole = roleCycle[u.id_rol] || 2
+    const roleName = newRole === 1 ? 'Administrador' : newRole === 2 ? 'Participante' : 'Superadmin'
     setConfirmDialog({
       isOpen: true,
       type: 'ROLE',
@@ -283,19 +361,24 @@ export default function Dashboard() {
   if (!user) return <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Cargando...</div>
 
   const isAdmin = user.id_rol === '1'
+  const isSuperAdmin = user.id_rol === '3'
 
   // Opciones del menú lateral
   const menuItems = isAdmin ? [
-    { id: 'Dashboard', icon: <IconDashboard />, label: 'DASHBOARD' },
-    { id: 'Usuarios', icon: <IconUsers />, label: 'GESTIÓN DE USUARIOS', badge: usuarios.length },
-    { id: 'Eventos', icon: <IconEvents />, label: 'EVENTOS UNL', badge: 3 },
-    { id: 'Sensores', icon: <IconSensors />, label: 'SENSORES IOT', labelRight: 'ESTABLE' },
-    { id: 'Configuracion', icon: <IconSettings />, label: 'CONFIGURACIÓN' },
+    { id: 'Dashboard', icon: <IconDashboard />, label: 'PANEL PRINCIPAL' },
+    { id: 'Eventos', icon: <IconEvents />, label: 'EVENTOS UNL' },
+    { id: 'Ubicacion', icon: <IconMap />, label: 'UBICACIÓN' },
+    { id: 'Moderacion', icon: <IconFlag />, label: 'MODERACIÓN' },
     { id: 'Perfil', icon: <IconUsers />, label: 'MI PERFIL' },
+  ] : isSuperAdmin ? [
+    { id: 'Usuarios', icon: <IconUsers />, label: 'GESTIÓN DE USUARIOS', badge: usuarios.length },
+    { id: 'Sensores', icon: <IconSensors />, label: 'SENSOR IOT', labelRight: 'ESTABLE' },
+    { id: 'Monitoreo', icon: <IconActivity />, label: 'MONITOREO DE DATOS' },
+    { id: 'Ubicacion', icon: <IconMap />, label: 'UBICACIÓN' },
+    { id: 'Configuracion', icon: <IconSettings />, label: 'CONFIGURACIÓN' },
   ] : [
-    { id: 'Dashboard', icon: <IconDashboard />, label: 'MI DASHBOARD', badge: 'PIONERO' },
-    { id: 'Eventos', icon: <IconEvents />, label: 'MIS EVENTOS', badge: 2 },
-    { id: 'Sensores', icon: <IconSensors />, label: 'SENSOR IOT', labelRight: 'VIRTUAL' },
+    { id: 'Dashboard', icon: <IconDashboard />, label: 'PANEL PRINCIPAL', badge: 'PIONERO' },
+    { id: 'Eventos', icon: <IconEvents />, label: 'MIS EVENTOS'},
     { id: 'Clima', icon: <IconSettings />, label: 'MÉTRICAS CLIMA' },
     { id: 'Perfil', icon: <IconUsers />, label: 'MI PERFIL' },
   ]
@@ -304,7 +387,7 @@ export default function Dashboard() {
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-app)', fontFamily: "'Inter', sans-serif" }}>
 
       {/* SIDEBAR IZQUIERDO */}
-      <aside style={{ width: '280px', background: 'var(--bg-card)', borderRight: '1px solid #DBE3E0', display: 'flex', flexDirection: 'column' }}>
+      <aside style={{ width: '280px', minWidth: '280px', maxWidth: '280px', background: 'var(--bg-card)', borderRight: '1px solid #DBE3E0', display: 'flex', flexDirection: 'column', height: '100vh', position: 'sticky', top: 0, alignSelf: 'flex-start', overflow: 'hidden', boxSizing: 'border-box' }}>
 
         {/* LOGO AREA */}
         <div style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #f1f5f9' }}>
@@ -313,7 +396,7 @@ export default function Dashboard() {
           </div>
           <div>
             <h1 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: 'var(--text-main)', letterSpacing: '-0.5px' }}>UNL-CLOUD-CONNECT</h1>
-            <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '1px' }}>{isAdmin ? 'CONSOLE ADMIN' : 'CONSOLE PARTICIPANTE'}</span>
+            <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '1px' }}>{isAdmin ? 'CONSOLE ADMIN' : isSuperAdmin ? 'CONSOLE SUPER ADMIN' : 'CONSOLE PARTICIPANTE'}</span>
           </div>
         </div>
 
@@ -327,26 +410,30 @@ export default function Dashboard() {
           </div>
           <div>
             <h2 style={{ margin: '0 0 2px 0', fontSize: '14px', fontWeight: '700', color: 'var(--text-main)', textTransform: 'uppercase' }}>{user.nombre} {user.apellido}</h2>
-            <span style={{ fontSize: '10px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>{isAdmin ? 'ADMINISTRADOR' : 'PARTICIPANTE UNL'}</span>
+            <span style={{ fontSize: '10px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>{isAdmin ? 'ADMINISTRADOR' : isSuperAdmin ? 'SUPER ADMIN' : 'PARTICIPANTE UNL'}</span>
           </div>
         </div>
 
         {/* NAVIGATION */}
-        <nav style={{ padding: '24px 16px', flex: 1 }}>
+        <nav style={{ padding: '24px 16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
           {menuItems.map(item => (
-            <button
+            <a
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              href="#"
+              onClick={(e) => {
+                e.preventDefault()
+                setActiveTab(item.id)
+              }}
               style={{
                 width: '100%', display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px', marginBottom: '8px',
                 background: activeTab === item.id ? '#0F766E' : 'transparent',
                 color: activeTab === item.id ? 'var(--bg-card)' : 'var(--text-muted)',
                 border: 'none', borderRadius: '8px', cursor: 'pointer', textAlign: 'left',
-                transition: 'all 0.2s ease', fontWeight: '600', fontSize: '13px'
+                transition: 'all 0.2s ease', fontWeight: '600', fontSize: '13px', textDecoration: 'none'
               }}
             >
               <div style={{ color: activeTab === item.id ? 'var(--bg-card)' : 'var(--text-muted)' }}>{item.icon}</div>
-              <span style={{ flex: 1 }}>{item.label}</span>
+              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{item.label}</span>
 
               {item.badge > 0 && (
                 <span style={{ background: activeTab === item.id ? 'rgba(255,255,255,0.2)' : 'var(--border)', color: activeTab === item.id ? 'var(--text-inverse)' : 'var(--text-muted)', padding: '2px 8px', borderRadius: '12px', fontSize: '11px' }}>
@@ -354,12 +441,29 @@ export default function Dashboard() {
                 </span>
               )}
               {item.labelRight && (
-                <span style={{ fontSize: '9px', fontWeight: '700', color: '#10b981', border: '1px solid #10b981', padding: '2px 6px', borderRadius: '4px' }}>
+                <span style={{ fontSize: '8px', fontWeight: '700', color: '#10b981', border: '1px solid #10b981', padding: '1px 4px', borderRadius: '3px', whiteSpace: 'nowrap', flexShrink: 0 }}>
                   {item.labelRight}
                 </span>
               )}
-            </button>
+            </a>
           ))}
+
+          {/* CERRAR SESIÓN */}
+          <div style={{ marginTop: 'auto', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
+            <button
+              onClick={handleLogout}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: '16px',
+                padding: '12px 16px', border: 'none', borderRadius: '8px',
+                background: 'transparent', color: '#ef4444', fontWeight: '600',
+                fontSize: '13px', cursor: 'pointer', textAlign: 'left'
+              }}
+              onMouseOver={(e) => e.target.style.background = '#fee2e2'}
+              onMouseOut={(e) => e.target.style.background = 'transparent'}
+            >
+              <IconLogOut /> CERRAR SESIÓN
+            </button>
+          </div>
         </nav>
 
         {/* THEME / CONSOLE TOGGLE (Participant only) */}
@@ -374,18 +478,6 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-
-        {/* BOTTOM CONTROLS */}
-        <div style={{ padding: '24px', borderTop: '1px solid #f1f5f9', background: 'var(--bg-app)' }}>
-          <button
-            onClick={handleLogout}
-            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', background: 'transparent', border: '1px solid #fca5a5', borderRadius: '8px', color: '#ef4444', fontWeight: '600', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s' }}
-            onMouseOver={(e) => e.target.style.background = '#fee2e2'}
-            onMouseOut={(e) => e.target.style.background = 'transparent'}
-          >
-            <IconLogOut /> CERRAR SESIÓN
-          </button>
-        </div>
       </aside>
 
       {/* CONTENIDO PRINCIPAL */}
@@ -395,7 +487,7 @@ export default function Dashboard() {
         <header style={{ height: '80px', background: 'var(--bg-card)', borderBottom: '1px solid #DBE3E0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 40px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
             <div style={{ background: '#dbeafe', color: '#0F766E', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', letterSpacing: '1px' }}>
-              DASHBOARD VIEW
+              PANEL PRINCIPAL
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>
               <div style={{ width: '8px', height: '8px', background: '#10b981', borderRadius: '50%' }}></div>
@@ -422,59 +514,61 @@ export default function Dashboard() {
         </header>
 
         {/* SCROLLABLE CONTENT */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '40px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '32px', width: '100%', boxSizing: 'border-box' }}>
+
+          {/* VISTA DE EVENTOS: Aquí se inyecta tu componente sin asfixiar el espacio */}
+          {activeTab === 'Eventos' && (
+            <div style={{ width: '100%' }}>
+              <Events />
+            </div>
+          )}
+
+          {/* VISTA DE SENSORES IOT */}
+          {activeTab === 'Sensores' && (
+            <div style={{ width: '100%' }}>
+              <Sensors />
+            </div>
+          )}
+
+          {/* VISTA DE MONITOREO DE DATOS */}
+          {activeTab === 'Monitoreo' && (
+            <div style={{ width: '100%' }}>
+              <Monitoreo />
+            </div>
+          )}
 
           {/* KPI CARDS Y GRAFICOS (ADMIN DASHBOARD) */}
           {isAdmin && activeTab === 'Dashboard' && (
             <>
               {/* KPI CARDS */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '24px' }}>
-                <div style={{ background: 'var(--bg-card)', padding: '24px', border: '1px solid #DBE3E0' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+                <div style={{ background: 'var(--bg-card)', padding: '16px 20px', border: '1px solid #DBE3E0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
                     <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>EVENTOS TOTALES</span>
-                    <IconEvents />
+                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#0F766E', marginTop: '4px' }}>{loadingDashboard ? '...' : eventos.length}</div>
                   </div>
-                  <div style={{ fontSize: '32px', fontWeight: '900', color: '#0F766E', marginBottom: '16px' }}>1286</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                    <span>Sincronizados en campus</span>
-                    <span style={{ color: '#0F766E' }}>+12% este mes</span>
-                  </div>
+                  <IconEvents />
                 </div>
-
-                <div style={{ background: 'var(--bg-card)', padding: '24px', border: '1px solid #DBE3E0' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>EVENTOS ACTIVOS</span>
-                    <IconActivity />
+                <div style={{ background: 'var(--bg-card)', padding: '16px 20px', border: '1px solid #DBE3E0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>EN PROGRESO</span>
+                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#10b981', marginTop: '4px' }}>{loadingDashboard ? '...' : eventos.filter(e => e.estado === 'EN_PROGRESO').length}</div>
                   </div>
-                  <div style={{ fontSize: '32px', fontWeight: '900', color: '#0F766E', marginBottom: '16px' }}>42</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                    <span>Transmitiendo microdatos</span>
-                    <span style={{ color: '#10b981' }}>En Tiempo Real</span>
-                  </div>
+                  <IconActivity />
                 </div>
-
-                <div style={{ background: 'var(--bg-card)', padding: '24px', border: '1px solid #DBE3E0' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>SENSORS EN LÍNEA</span>
-                    <IconSensors />
+                <div style={{ background: 'var(--bg-card)', padding: '16px 20px', border: '1px solid #DBE3E0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>SENSORES</span>
+                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#0F766E', marginTop: '4px' }}>{loadingDashboard ? '...' : sensores.length}</div>
                   </div>
-                  <div style={{ fontSize: '32px', fontWeight: '900', color: '#0F766E', marginBottom: '16px' }}>942</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                    <span>Nodos MESH activos</span>
-                    <span style={{ color: '#0F766E' }}>98.2% Uptime</span>
-                  </div>
+                  <IconSensors />
                 </div>
-
-                <div style={{ background: 'var(--bg-card)', padding: '24px', border: '1px solid #DBE3E0' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>ESTUDIANTES UNL</span>
-                    <IconUsers />
+                <div style={{ background: 'var(--bg-card)', padding: '16px 20px', border: '1px solid #DBE3E0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>USUARIOS</span>
+                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#0F766E', marginTop: '4px' }}>{loadingDashboard ? '...' : usuarios.length}</div>
                   </div>
-                  <div style={{ fontSize: '32px', fontWeight: '900', color: '#0F766E', marginBottom: '16px' }}>{usuarios.length > 0 ? usuarios.length : '15,402'}</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                    <span>Usuarios Registrados</span>
-                    <span style={{ color: '#0F766E' }}>Acreditados</span>
-                  </div>
+                  <IconUsers />
                 </div>
               </div>
 
@@ -493,10 +587,20 @@ export default function Dashboard() {
                     </div>
                   </div>
                   <div style={{ height: '240px', display: 'flex', alignItems: 'flex-end', gap: '16px', borderBottom: '1px solid #DBE3E0', paddingBottom: '20px' }}>
-                    {[50, 60, 70, 80, 90, 85, 80, 70, 75, 50, 40, 50, 55, 65, 85].map((val, i) => (
-                      <div key={i} style={{ flex: 1, background: i === 14 ? 'var(--text-main)' : i === 10 ? '#cbd5e1' : 'var(--border)', height: `${val}%`, position: 'relative' }}>
+                    {weatherData?.days?.slice(0, 15).map((day, i) => {
+                      const h = Math.min(Math.max(day.temp, 0), 40) * 2;
+                      return (
+                        <div key={i} style={{ flex: 1, background: i === 14 ? 'var(--text-main)' : i === 10 ? '#cbd5e1' : 'var(--border)', height: `${h}%`, position: 'relative', minHeight: '4px' }}>
+                          <span style={{ position: 'absolute', bottom: '-20px', left: '50%', transform: 'translateX(-50%)', fontSize: '9px', fontWeight: '700', color: 'var(--text-muted)' }}>
+                            {day.datetime?.slice(5)}
+                          </span>
+                        </div>
+                      );
+                    })}
+                    {!weatherData?.days && Array.from({length: 15}, (_, i) => (
+                      <div key={i} style={{ flex: 1, background: 'var(--border)', height: `${40 + Math.sin(i) * 20}%`, position: 'relative', minHeight: '4px' }}>
                         <span style={{ position: 'absolute', bottom: '-20px', left: '50%', transform: 'translateX(-50%)', fontSize: '9px', fontWeight: '700', color: 'var(--text-muted)' }}>
-                          {6 + i}:00
+                          --
                         </span>
                       </div>
                     ))}
@@ -513,27 +617,27 @@ export default function Dashboard() {
                     <div style={{ fontSize: '9px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>SINCRONIZACIÓN EN TIEMPO REAL</div>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', flex: 1 }}>
-                    <div>
-                      <div style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-main)', marginBottom: '2px' }}>TEMPERATURA ELEVADA EN LAB 304</div>
-                      <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>HACE 2 MIN <span style={{ color: '#0F766E' }}>• NODO FF422</span></div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-main)', marginBottom: '2px' }}>NUEVA CURADURÍA APPROVED</div>
-                      <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>HACE 15 MIN <span style={{ color: '#0F766E' }}>• @elisa_s</span></div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-main)', marginBottom: '2px' }}>PUSH DE FIRMWARE A GATEWAY-NORTH</div>
-                      <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>HACE 1 HORA <span style={{ color: '#0F766E' }}>• System_v4</span></div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-main)', marginBottom: '2px' }}>SEMINARIO IOT: 650 LOGINS</div>
-                      <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>HACE 3 HORAS <span style={{ color: '#0F766E' }}>• Event_042</span></div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-main)', marginBottom: '2px' }}>SENSOR 12B EN ESTADO STAND-BY</div>
-                      <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>HACE 5 HORAS <span style={{ color: '#0F766E' }}>• Maintenance</span></div>
-                    </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
+                    {eventos.length === 0 && (
+                      <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', textAlign: 'center', padding: '40px 0' }}>No hay eventos registrados</div>
+                    )}
+                    {eventos.slice(-5).reverse().map((evt, i) => {
+                      const tiempoRel = (() => {
+                        const diff = Date.now() - new Date(evt.fecha_hora_inicio).getTime();
+                        const mins = Math.floor(diff / 60000);
+                        if (mins < 60) return `HACE ${mins} MIN`;
+                        const hrs = Math.floor(mins / 60);
+                        if (hrs < 24) return `HACE ${hrs} HORA${hrs > 1 ? 'S' : ''}`;
+                        return `${new Date(evt.fecha_hora_inicio).toLocaleDateString()}`;
+                      })();
+                      const estados = { EN_PROGRESO: '● EN CURSO', PROGRAMADO: '● PROGRAMADO', FINALIZADO: '● FINALIZADO', CANCELADO: '● CANCELADO' };
+                      return (
+                        <div key={evt.id_evento || i}>
+                          <div style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-main)', marginBottom: '2px' }}>{evt.nombre}</div>
+                          <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>{tiempoRel} <span style={{ color: '#0F766E' }}>• {estados[evt.estado] || evt.estado}</span></div>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   <button style={{ width: '100%', marginTop: '24px', padding: '12px', background: 'var(--bg-app)', border: '1px solid #DBE3E0', fontSize: '10px', fontWeight: '800', color: 'var(--text-main)', letterSpacing: '1px', cursor: 'pointer' }}>
@@ -550,11 +654,16 @@ export default function Dashboard() {
                     <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '900', color: 'var(--text-main)' }}>TOPOLOGÍA DE SENSORS UNL (MAPA CONCEPTUAL)</h3>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '500', marginTop: '4px' }}>Representación gráfica del campus de Loja y la central de recepción de tramas atmosféricas.</div>
                   </div>
-                  <div style={{ background: 'var(--border-light)', height: '120px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '0 20px', border: '1px solid #DBE3E0' }}>
-                    <div style={{ padding: '6px 12px', background: 'var(--text-muted)', color: 'var(--text-inverse)', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}><div style={{ width: 6, height: 6, background: '#10b981', borderRadius: '50%' }}></div> Campus Físico (Central)</div>
-                    <div style={{ padding: '6px 12px', background: 'var(--text-muted)', color: 'var(--text-inverse)', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}><div style={{ width: 6, height: 6, background: '#10b981', borderRadius: '50%' }}></div> SENSOR Norte 002</div>
-                    <div style={{ padding: '6px 12px', background: 'var(--text-muted)', color: 'var(--text-inverse)', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}><div style={{ width: 6, height: 6, background: '#10b981', borderRadius: '50%' }}></div> Centro Ambiental</div>
-                    <div style={{ padding: '6px 12px', background: 'var(--text-muted)', color: 'var(--text-inverse)', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}><div style={{ width: 6, height: 6, background: '#10b981', borderRadius: '50%' }}></div> Clínica Educativa</div>
+                  <div style={{ background: 'var(--border-light)', height: '120px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '0 20px', border: '1px solid #DBE3E0', flexWrap: 'wrap' }}>
+                    {ubicacionesDB.length === 0 && (
+                      <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)' }}>No hay ubicaciones registradas</span>
+                    )}
+                    {ubicacionesDB.slice(0, 6).map((ubi, i) => (
+                      <div key={ubi.id_ubicacion || i} style={{ padding: '6px 12px', background: 'var(--text-muted)', color: 'var(--text-inverse)', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}>
+                        <div style={{ width: 6, height: 6, background: '#10b981', borderRadius: '50%' }}></div>
+                        {ubi.nombre_lugar}
+                      </div>
+                    ))}
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '1px' }}>
                     <span>CONEXIÓN: CLÚSTER UNL LOJA</span>
@@ -572,8 +681,8 @@ export default function Dashboard() {
                   <div style={{ marginBottom: '40px' }}>
                     <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '1px', marginBottom: '8px' }}>ALMACENAMIENTO DE RECURSOS</div>
                     <div style={{ width: '100%', height: '8px', background: 'var(--border)', display: 'flex' }}>
-                      <div style={{ width: '70%', background: 'var(--text-main)' }}></div>
-                      <div style={{ width: '15%', background: '#0F766E' }}></div>
+                      <div style={{ width: `${Math.min(eventos.length * 5, 85)}%`, background: 'var(--text-main)' }}></div>
+                      <div style={{ width: `${Math.min(ubicacionesDB.length * 3, 15)}%`, background: '#0F766E' }}></div>
                     </div>
                   </div>
 
@@ -582,14 +691,14 @@ export default function Dashboard() {
                     <span style={{ fontSize: '12px', fontWeight: '800', color: '#0F766E' }}>24 ms</span>
                   </div>
 
-                  <div style={{ fontSize: '9px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>REPOSITORIO EN LÍNEA CONFIRMADO</div>
+                  <div style={{ fontSize: '9px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>{eventos.length} EVENTOS • {ubicacionesDB.length} UBICACIONES • {sensores.length} SENSORES</div>
                 </div>
               </div>
             </>
           )}
 
           {/* PARTICIPANT DASHBOARD VIEW */}
-          {!isAdmin && activeTab === 'Dashboard' && (
+          {!isAdmin && !isSuperAdmin && activeTab === 'Dashboard' && (
             <>
               {/* KPI CARDS PARTICIPANT */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '32px' }}>
@@ -742,7 +851,7 @@ export default function Dashboard() {
           )}
 
           {/* MAIN CONTENT AREA - CONDITIONAL RENDERING BASED ON TAB */}
-          {activeTab === 'Usuarios' && isAdmin && (
+          {activeTab === 'Usuarios' && (isAdmin || isSuperAdmin) && (
             <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid #DBE3E0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', overflow: 'hidden' }}>
               <div style={{ padding: '24px', borderBottom: '1px solid #DBE3E0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
@@ -782,10 +891,10 @@ export default function Dashboard() {
                           <td style={{ padding: '16px 24px' }}>
                             <span style={{
                               padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', letterSpacing: '0.5px',
-                              background: u.id_rol === 1 ? '#fee2e2' : '#e0e7ff',
-                              color: u.id_rol === 1 ? '#ef4444' : '#4338ca'
+                              background: u.id_rol === 1 ? '#fee2e2' : u.id_rol === 3 ? '#fef3c7' : '#e0e7ff',
+                              color: u.id_rol === 1 ? '#ef4444' : u.id_rol === 3 ? '#d97706' : '#4338ca'
                             }}>
-                              {u.id_rol === 1 ? 'ADMINISTRADOR' : 'PARTICIPANTE'}
+                              {u.id_rol === 1 ? 'ADMINISTRADOR' : u.id_rol === 3 ? 'SUPERADMIN' : 'PARTICIPANTE'}
                             </span>
                           </td>
                           <td style={{ padding: '16px 24px', textAlign: 'right' }}>
@@ -818,6 +927,21 @@ export default function Dashboard() {
             </div>
           )}
 
+          {activeTab === 'Sensores' && (
+            <div className="animate-fade-in">
+              
+            </div>
+          )}
+
+          {activeTab === 'Moderacion' && (
+            <div>
+              <ModerationPanel />
+            </div>
+          )}
+
+          {activeTab === 'Perfil' && (
+            <div><h3>Mi Perfil de Usuario</h3></div>
+          )}
 
           {/* MÓDULO DE PERFIL */}
           {activeTab === 'Perfil' && (
@@ -830,7 +954,7 @@ export default function Dashboard() {
                   <div>
                     <h2 style={{ margin: '0 0 4px 0', fontSize: '24px', fontWeight: '800', color: 'var(--text-main)', textTransform: 'uppercase' }}>{user.nombre} {user.apellido}</h2>
                     <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--primary)', letterSpacing: '1px', background: 'var(--primary-light)', padding: '4px 12px', borderRadius: '20px' }}>
-                      {isAdmin ? 'ADMINISTRADOR' : 'PARTICIPANTE UNL'}
+                      {isAdmin ? 'ADMINISTRADOR' : isSuperAdmin ? 'SUPER ADMIN' : 'PARTICIPANTE UNL'}
                     </span>
                   </div>
                 </div>
@@ -930,7 +1054,7 @@ export default function Dashboard() {
           )}
 
           {/* MÓDULO DE CONFIGURACIÓN ADMIN */}
-          {activeTab === 'Configuracion' && isAdmin && (
+          {activeTab === 'Configuracion' && (isAdmin || isSuperAdmin) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div style={{ background: 'var(--bg-card)', padding: '40px', borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
                 <h2 style={{ margin: '0 0 24px 0', fontSize: '24px', fontWeight: '800', color: 'var(--text-main)' }}>Configuración Global del Sistema</h2>
@@ -989,19 +1113,14 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* FALLBACK FOR OTHER TABS */}
-          {((isAdmin && activeTab !== 'Usuarios' && activeTab !== 'Configuracion' && activeTab !== 'Perfil') || (!isAdmin && activeTab !== 'Dashboard' && activeTab !== 'Perfil' && activeTab !== 'Clima')) && (
-            <div style={{ background: 'var(--bg-card)', padding: '60px', borderRadius: '12px', border: '1px solid #DBE3E0', textAlign: 'center' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🚧</div>
-              <h2 style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: '800', color: 'var(--text-main)' }}>Módulo en Construcción</h2>
-              <p style={{ margin: 0, color: 'var(--text-muted)' }}>La sección de {menuItems.find(i => i.id === activeTab)?.label || 'seleccionada'} estará disponible próximamente.</p>
-            </div>
+          {/* VISTA DE UBICACIÓN */}
+          {activeTab === 'Ubicacion' && (
+            <Ubicacion userRole={user.id_rol} />
           )}
 
           {/* FOOTER */}
-          <div style={{ marginTop: '40px', borderTop: '1px solid #DBE3E0', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '1px' }}>
-            <div>CONSOLA CENTRALIZADA UNIVERSIDAD NACIONAL DE LOJA / HANDSHAKE 04.</div>
-            <div>METODOLOGÍA: KANBAN + XP <span style={{ margin: '0 8px' }}>|</span> STACK: PY / RJS / IOT ESP32</div>
+          <div style={{ marginTop: '40px', borderTop: '1px solid #DBE3E0', paddingTop: '16px', textAlign: 'center', fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '1px' }}>
+            © {new Date().getFullYear()} Universidad Nacional de Loja — Ingeniería en Computación.
           </div>
 
         </div>
@@ -1063,6 +1182,7 @@ export default function Dashboard() {
                   <select value={formData.id_rol} onChange={e => setFormData({ ...formData, id_rol: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box', background: 'var(--text-inverse)' }}>
                     <option value={2}>Participante (Estándar)</option>
                     <option value={1}>Administrador (Control Total)</option>
+                    <option value={3}>Superadmin (Acceso Total)</option>
                   </select>
                 </div>
 

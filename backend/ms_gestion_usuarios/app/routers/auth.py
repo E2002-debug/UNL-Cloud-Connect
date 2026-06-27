@@ -7,16 +7,19 @@
 # 30/05/2026 v0.3 - David Guamán: Adición de endpoints para recuperación de contraseña, incluyendo generación de tokens de recuperación y validación de los mismos al restablecer la clave.
 # 03/06/2026 v0.4 - David Guamán: Implementación de verificación de correo electrónico y validación de reCAPTCHA para prevenir cuentas robot.
 
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
-from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
 from typing import Any
 import httpx
 import re
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Request
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
 from app.database.session import get_db
 # CORRECCIÓN: Se agrega UsuarioGoogleData a la lista de esquemas importados
 from app.schemas.usuario import EmailRequest, UsuarioCreate, UsuarioResponse, Token, UsuarioRegistroHibrido, TokenGoogleLogin, ResetPasswordRequest, UsuarioGoogleData, LoginRequest
 from app.crud import crud_usuario
+from app.crud import crud_auditoria
+from app.crud import crud_historial_clave
+from app.schemas.auditoria import AuditoriaCreate
 from app.core import security
 from app.core.security import crear_token_recuperacion, verificar_token_recuperacion, obtener_hash_clave, crear_token_verificacion, verificar_token_verificacion, crear_token_verificacion_datos, verificar_token_verificacion_datos
 from app.core.email import enviar_correo_recuperacion, enviar_correo_verificacion
@@ -200,7 +203,15 @@ def verificar_cuenta(token: str, db: Session = Depends(get_db)):
     
     # Crear el usuario en este momento
     usuario_create = UsuarioCreate(**user_data)
-    crud_usuario.crear_usuario(db, usuario=usuario_create, verificado=True)
+    nuevo_usuario = crud_usuario.crear_usuario(db, usuario=usuario_create, verificado=True)
+    
+    crud_auditoria.registrar_auditoria(db, AuditoriaCreate(
+        id_usuario=nuevo_usuario.id_usuario,
+        correo=nuevo_usuario.correo,
+        accion="REGISTRO_USUARIO",
+        ip_origen=None,
+        detalles="Cuenta verificada y creada exitosamente"
+    ))
     
     return {"mensaje": "¡Cuenta creada y verificada exitosamente! Ya puedes iniciar sesión."}
 
@@ -229,6 +240,7 @@ async def reenviar_verificacion(
 @router.post("/login", response_model=Any)
 def iniciar_sesion(
     credenciales: LoginRequest,
+    request: Request,
     db: Session = Depends(get_db)
 ) -> Any:
     """
@@ -239,6 +251,12 @@ def iniciar_sesion(
     usuario = crud_usuario.obtener_usuario_por_correo(db, correo=credenciales.username)
     
     if not usuario:
+        crud_auditoria.registrar_auditoria(db, AuditoriaCreate(
+            correo=credenciales.username,
+            accion="LOGIN_FALLIDO",
+            ip_origen=request.client.host if request.client else None,
+            detalles="Usuario no encontrado"
+        ))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Correo institucional o contraseña incorrectos.",
@@ -263,17 +281,33 @@ def iniciar_sesion(
         )
     
     if not security.verificar_clave(credenciales.password, usuario.clave):
+        crud_auditoria.registrar_auditoria(db, AuditoriaCreate(
+            id_usuario=usuario.id_usuario,
+            correo=usuario.correo,
+            accion="LOGIN_FALLIDO",
+            ip_origen=request.client.host if request.client else None,
+            detalles="Contraseña incorrecta"
+        ))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Correo institucional o contraseña incorrectos.",
             headers={"WWW-Authenticate": "Bearer"},
         )
         
+    crud_auditoria.registrar_auditoria(db, AuditoriaCreate(
+        id_usuario=usuario.id_usuario,
+        correo=usuario.correo,
+        accion="LOGIN_EXITOSO",
+        ip_origen=request.client.host if request.client else None,
+        detalles="Inicio de sesión manual"
+    ))
+        
     token_acceso = security.crear_token_acceso(sujeto=usuario.correo)
     
     return {
         "access_token": token_acceso,
         "token_type": "bearer",
+        "id_usuario": usuario.id_usuario,
         "id_rol": usuario.id_rol,
         "nombre": usuario.nombre,
         "apellido": usuario.apellido,
@@ -342,7 +376,7 @@ def iniciar_sesion_google_alias(credenciales: TokenGoogleLogin, db: Session = De
 
 
 @router.post("/login-google", response_model=Any)
-def iniciar_sesion_google(credenciales: TokenGoogleLogin, db: Session = Depends(get_db)) -> Any:
+def iniciar_sesion_google(credenciales: TokenGoogleLogin, request: Request, db: Session = Depends(get_db)) -> Any:
     """
     Caso de Uso: Iniciar Sesión (Flujo Alternativo Google SSO) - HU_02.
     Verifica el token de Google y otorga acceso inmediato SOLO si ya completó el registro híbrido.
@@ -363,12 +397,21 @@ def iniciar_sesion_google(credenciales: TokenGoogleLogin, db: Session = Depends(
         )
         usuario = crud_usuario.crear_usuario(db, usuario=usuario_create, verificado=True)
         
+    crud_auditoria.registrar_auditoria(db, AuditoriaCreate(
+        id_usuario=usuario.id_usuario,
+        correo=usuario.correo,
+        accion="LOGIN_EXITOSO",
+        ip_origen=request.client.host if request.client else None,
+        detalles="Inicio de sesión con Google"
+    ))
+        
     # 3. Generación del token de la app agregando el id_rol para el control de accesos del frontend
     token_acceso = security.crear_token_acceso(sujeto=usuario.correo)
     
     return {
         "access_token": token_acceso,
         "token_type": "bearer",
+        "id_usuario": usuario.id_usuario,
         "id_rol": usuario.id_rol,
         "nombre": usuario.nombre,
         "apellido": usuario.apellido,
@@ -397,7 +440,7 @@ async def solicitar_recuperacion(request: EmailRequest, background_tasks: Backgr
 
 
 @router.post("/restablecer-clave")
-def ejecutar_restablecer_clave(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+def ejecutar_restablecer_clave(request: ResetPasswordRequest, req: Request, db: Session = Depends(get_db)):
     '''Endpoint que el usuario visita desde el enlace del correo. Valida el token, y si es correcto, actualiza la contraseña en la base de datos.'''
     # Validar la nueva contraseña
     _validar_clave(request.nueva_password)
@@ -415,8 +458,27 @@ def ejecutar_restablecer_clave(request: ResetPasswordRequest, db: Session = Depe
     if not usuario:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado.")
 
-    # 3. Encriptamos la nueva contraseña y la guardamos en la base de datos
+    # 3. Verificar que no sea una contraseña usada anteriormente
+    if crud_historial_clave.verificar_reutilizacion_clave(db, usuario.id_usuario, request.nueva_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No puedes usar una contraseña que hayas utilizado anteriormente. Por favor elige una nueva."
+        )
+
+    # 4. Guardar la clave actual en historial antes de cambiarla
+    if usuario.clave:
+        crud_historial_clave.guardar_clave_en_historial(db, usuario.id_usuario, usuario.clave)
+
+    # 5. Encriptamos la nueva contraseña y la guardamos en la base de datos
     usuario.clave = obtener_hash_clave(request.nueva_password)
     db.commit()
+    
+    crud_auditoria.registrar_auditoria(db, AuditoriaCreate(
+        id_usuario=usuario.id_usuario,
+        correo=usuario.correo,
+        accion="CAMBIO_CLAVE",
+        ip_origen=req.client.host if req.client else None,
+        detalles="Clave restablecida por correo"
+    ))
 
     return {"mensaje": "Contraseña actualizada exitosamente. Ya puedes iniciar sesión con tu nueva clave."}

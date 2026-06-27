@@ -6,8 +6,15 @@
 # 28/05/2026 v0.2 - David Guamán: Actualización de la función de creación de registros climáticos para incluir los nuevos campos de alerta (alerta, detalles_alerta) y reflejar estos cambios en el payload MQTT.
 from sqlalchemy.orm import Session
 from app.models.clima import Clima
+from typing import Optional
 
-def crear_registro_clima(db: Session, temperatura: float, humedad: float, fuente: str = "ESP32", alerta: bool = False, detalles_alerta: str = None):
+def crear_registro_clima(db: Session, 
+                         temperatura: float, 
+                         humedad: float, 
+                         id_ubicacion: int, 
+                         fuente: str = "ESP32", 
+                         alerta: bool = False, 
+                         detalles_alerta: Optional[str] = None):
     """
     Inserta un nuevo registro climático en la base de datos.
     La fecha_captura se genera automáticamente en PostgreSQL gracias al server_default.
@@ -17,7 +24,8 @@ def crear_registro_clima(db: Session, temperatura: float, humedad: float, fuente
         humedad=humedad,
         fuente=fuente,
         alerta=alerta,
-        detalles_alerta=detalles_alerta
+        detalles_alerta=detalles_alerta,
+        id_ubicacion=id_ubicacion
     )
     
     db.add(db_clima)
@@ -31,3 +39,11 @@ def obtener_ultimo_clima(db: Session):
     Obtiene el registro climático más reciente para mostrarlo en el Frontend.
     """
     return db.query(Clima).order_by(Clima.fecha_captura.desc()).first()
+
+def obtener_ultimo_clima_por_ubicacion(db: Session, id_ubicacion: int):
+    """
+    Obtiene el último registro climático para una ubicación específica.
+    """
+    return db.query(Clima).filter(
+        Clima.id_ubicacion == id_ubicacion
+    ).order_by(Clima.fecha_captura.desc()).first()

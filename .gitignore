@@ -148,7 +148,6 @@ activemq-data/
 *.sage.py
 
 # Environments
-.env
 .envrc
 .venv
 env/
@@ -216,3 +215,19 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+
+# Ignorar dependencias de Node
+node_modules/
+frontend-web/node_modules/
+
+# Expo native and cache directories
+frontend-mobile/android/
+frontend-mobile/ios/
+frontend-mobile/.expo/
+
+# Continue AI assistant config
+.continue/
+
+# VS Code project settings
+.vscode/
