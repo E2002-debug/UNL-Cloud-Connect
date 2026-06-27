@@ -24,6 +24,19 @@ export default function Monitoreo() {
     }
   }
 
+  const getBadgeStyle = (accion) => {
+    switch (accion) {
+      case 'LOGIN_EXITOSO': return { background: '#10b981', color: 'white' }
+      case 'LOGIN_FALLIDO': return { background: '#ef4444', color: 'white' }
+      case 'CAMBIO_ROL': return { background: '#8b5cf6', color: 'white' }
+      case 'CREACION_USUARIO': return { background: '#3b82f6', color: 'white' }
+      case 'ELIMINACION_USUARIO': return { background: '#475569', color: 'white' }
+      case 'ACTUALIZACION_PERFIL': return { background: '#f59e0b', color: 'white' }
+      case 'CAMBIO_CLAVE': return { background: '#ec4899', color: 'white' }
+      default: return { background: '#dbeafe', color: '#1e40af' }
+    }
+  }
+
   return (
     <div style={{ background: 'var(--bg-card)', border: '1px solid #DBE3E0', padding: '32px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '24px' }}>
@@ -83,8 +96,7 @@ export default function Monitoreo() {
                       fontSize: '10px', 
                       fontWeight: '700', 
                       borderRadius: '4px',
-                      background: log.accion === 'LOGIN_EXITOSO' ? '#dcfce7' : log.accion === 'LOGIN_FALLIDO' ? '#fee2e2' : '#dbeafe',
-                      color: log.accion === 'LOGIN_EXITOSO' ? '#166534' : log.accion === 'LOGIN_FALLIDO' ? '#991b1b' : '#1e40af'
+                      ...getBadgeStyle(log.accion)
                     }}>
                       {log.accion}
                     </span>
