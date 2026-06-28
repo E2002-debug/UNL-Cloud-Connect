@@ -85,7 +85,7 @@ export default function Monitoreo() {
               logs.map((log) => (
                 <tr key={log.id_log} style={{ borderBottom: '1px solid #f1f5f9', transition: 'background 0.2s' }}>
                   <td style={{ padding: '16px 12px', fontSize: '11px', color: 'var(--text-main)', fontWeight: '600' }}>
-                    {new Date(log.fecha_hora).toLocaleString()}
+                    {new Date(log.fecha_hora + (log.fecha_hora.endsWith('Z') ? '' : 'Z')).toLocaleString()}
                   </td>
                   <td style={{ padding: '16px 12px', fontSize: '11px', color: 'var(--text-main)', fontWeight: '600' }}>
                     {log.correo || '-'}

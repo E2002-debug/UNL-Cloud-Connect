@@ -8,6 +8,7 @@ y separa claramente las operaciones de lectura (públicas/clientes) de las de es
 from fastapi import APIRouter, Depends, HTTPException, status, Header, BackgroundTasks, UploadFile, File
 from sqlalchemy.orm import Session
 from typing import List
+import filetype
 
 from app.services.notificaciones import enviar_alerta_nuevo_evento 
 from app.database.session import get_db
@@ -159,14 +160,27 @@ def cancelar_evento(
 def validar_imagen(imagen: UploadFile = File(...)) -> UploadFile:
     """
     Filtro estricto para proteger el bucket de MinIO.
-    Verifica MIME type y límite de peso (5MB).
+    Verifica MIME type real (Magic Numbers) y límite de peso (5MB).
     """
-    # 1. Validación de Formato
-    formatos_permitidos = ["image/jpeg", "image/png", "image/webp"]
-    if imagen.content_type not in formatos_permitidos:
+    # 1. Validación de Formato (Prevención de MIME Spoofing)
+    # Leemos los primeros 2048 bytes para analizar la firma del archivo
+    chunk = imagen.file.read(2048)
+    
+    # Rebobinamos el archivo para que MinIO pueda leerlo desde el inicio
+    imagen.file.seek(0)
+    
+    tipo_archivo = filetype.guess(chunk)
+    if tipo_archivo is None:
         raise HTTPException(
             status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
-            detail="Formato no soportado. Solo se permiten archivos .jpg, .jpeg, .png o .webp"
+            detail="No se pudo determinar el tipo de archivo o está corrupto."
+        )
+        
+    formatos_permitidos = ["image/jpeg", "image/png", "image/webp"]
+    if tipo_archivo.mime not in formatos_permitidos:
+        raise HTTPException(
+            status_code=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE,
+            detail=f"Formato detectado ({tipo_archivo.mime}) no está permitido. Solo se permiten archivos .jpg, .png o .webp"
         )
     
     # 2. Validación de Tamaño (5MB = 5 * 1024 * 1024 bytes)
