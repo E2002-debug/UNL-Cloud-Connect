@@ -168,9 +168,43 @@ services:
       - grafana_data:/var/lib/grafana
     depends_on:
       - db
+      - prometheus
+
+  # 11. Motor de Métricas (Prometheus)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: unl_prometheus
+    restart: always
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./infraestructura/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+
+  # 12. Agente de Monitoreo de Host (Node Exporter)
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: unl_node_exporter
+    restart: always
+    ports:
+      - "9100:9100"
+
+  # 13. Agente de Monitoreo de Contenedores (cAdvisor)
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: unl_cadvisor
+    restart: always
+    ports:
+      - "8081:8080" # El puerto 8080 está ocupado por Kong, exponemos en el 8081
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:rw
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
 
 volumes:
   postgres_data:
   mosquitto_data:
   minio_data:
   grafana_data:
+  prometheus_data:
