@@ -169,8 +169,8 @@ export default function Sensors() {
                   </span>
                 </div>
 
-                <div style={{ fontSize: '11px', fontWeight: '700', color: s.id_ubicacion ? '#0F766E' : '#ef4444' }}>
-                  {s.id_ubicacion ? `Ubicación: ${getUbicacionLabel(s)}` : 'Sin ubicación asignada'}
+                <div style={{ fontSize: '11px', fontWeight: '700', color: s.id_ubicacion ? '#0F766E' : 'transparent', userSelect: 'none' }}>
+                  {s.id_ubicacion ? `Ubicación: ${getUbicacionLabel(s)}` : ' '}
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
