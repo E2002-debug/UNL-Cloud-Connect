@@ -30,6 +30,6 @@ class ClimaResponse(BaseModel):
     fuente: str
     alerta: bool
     detalles_alerta: Optional[str] = None
-    id_ubicacion: int # Importante para que el front sepa a qué sitio mostrar el clima
+    id_ubicacion: Optional[int] = None # Importante para que el front sepa a qué sitio mostrar el clima
 
     model_config = ConfigDict(from_attributes=True)
