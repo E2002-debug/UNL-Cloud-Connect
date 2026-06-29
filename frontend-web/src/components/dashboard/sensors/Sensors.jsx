@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import toast from 'react-hot-toast'
-import { listarSensores, crearSensor, actualizarSensor, eliminarSensor } from '../../../services/climaService'
+import { listarSensores, crearSensor, actualizarSensor, eliminarSensor, obtenerUltimaLectura } from '../../../services/climaService'
 import { listarUbicaciones } from '../../../services/ubicacionService'
 
 const IconAdd = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
@@ -29,6 +29,7 @@ export default function Sensors() {
   const [editando, setEditando] = useState(null)
   const [formData, setFormData] = useState({ nombre: '', topico_mqtt: '' })
   const [ubicacionesMap, setUbicacionesMap] = useState({})
+  const [lecturasMap, setLecturasMap] = useState({})
 
   const cargarSensores = async () => {
     setLoading(true)
@@ -42,6 +43,18 @@ export default function Sensors() {
       const map = {}
       ubicacionesData.forEach(ubi => { map[ubi.id_ubicacion] = ubi.nombre_lugar })
       setUbicacionesMap(map)
+
+      const nuevasLecturas = {}
+      await Promise.all(sensoresData.map(async (s) => {
+        try {
+          const lectura = await obtenerUltimaLectura(s.id_sensor)
+          nuevasLecturas[s.id_sensor] = lectura
+        } catch (e) {
+          // Si no hay lecturas, ignoramos
+        }
+      }))
+      setLecturasMap(nuevasLecturas)
+
     } catch (err) {
       setError('No se pudieron cargar los sensores.')
     } finally {
@@ -165,13 +178,17 @@ export default function Sensors() {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', marginBottom: '4px', fontSize: '10px', fontWeight: '700' }}>
                       <IconThermostat /> TEMP
                     </div>
-                    <div style={{ fontSize: '20px', fontWeight: '900', color: online ? '#0F766E' : 'var(--text-muted)' }}>--°C</div>
+                    <div style={{ fontSize: '20px', fontWeight: '900', color: online ? '#0F766E' : 'var(--text-muted)' }}>
+                      {lecturasMap[s.id_sensor] ? `${lecturasMap[s.id_sensor].temperatura}°C` : '--°C'}
+                    </div>
                   </div>
                   <div style={{ background: 'var(--bg-app)', border: '1px solid #DBE3E0', padding: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)', marginBottom: '4px', fontSize: '10px', fontWeight: '700' }}>
                       <IconHumidity /> HUMEDAD
                     </div>
-                    <div style={{ fontSize: '20px', fontWeight: '900', color: online ? '#0F766E' : 'var(--text-muted)' }}>--%</div>
+                    <div style={{ fontSize: '20px', fontWeight: '900', color: online ? '#0F766E' : 'var(--text-muted)' }}>
+                      {lecturasMap[s.id_sensor] ? `${lecturasMap[s.id_sensor].humedad}%` : '--%'}
+                    </div>
                   </div>
                 </div>
 
