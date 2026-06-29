@@ -15,7 +15,7 @@ class ClimaPayload(BaseModel):
     # Agregamos rangos lógicos para evitar guardar datos corruptos del sensor
     temperatura: float = Field(..., ge=-50.0, le=100.0, description="Temperatura en grados centígrados")
     humedad: float = Field(..., ge=0.0, le=100.0, description="Humedad relativa en porcentaje")  
-    alerta: bool
+    alerta: bool = False
     detalles_alerta: Optional[str] = None
     fuente: str = "ESP32" # Valor por defecto importante
 
