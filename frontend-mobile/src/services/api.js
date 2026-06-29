@@ -4,8 +4,8 @@ import { Platform } from 'react-native';
 // --- CONFIGURACIÓN DE ENDPOINT ---
 // Reemplaza esta URL con la dirección IP pública o dominio de tu servidor en la nube
 // Ejemplo: 'http://3.12.45.150:8000/api' o 'https://tu-dominio.com/api'
-// Para pruebas locales con celular físico, pon la IP local de tu PC (ej. 'http://192.168.1.86:8000/api')
-const CLOUD_BACKEND_URL = 'http://192.168.1.86:8000/api';
+// Para la versión en producción, apuntamos al API Gateway protegido con HTTPS
+const CLOUD_BACKEND_URL = 'https://unl-cloud-connect.me/api';
 
 const getBaseUrl = () => {
   // Si corres en emulador de Android local, 10.0.2.2 redirige al localhost de la PC
