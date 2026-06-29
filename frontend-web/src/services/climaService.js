@@ -40,3 +40,8 @@ export const eliminarSensor = async (id) => {
   })
   return response.data
 }
+
+export const obtenerClimaActual = async () => {
+  const response = await api.get('/clima/actual')
+  return response.data
+}

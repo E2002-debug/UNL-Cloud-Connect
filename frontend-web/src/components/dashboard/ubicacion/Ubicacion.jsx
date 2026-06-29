@@ -1,5 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react'
 import { listarUbicaciones, crearUbicacion, actualizarUbicacion, eliminarUbicacion } from '../../../services/ubicacionService'
+import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+
+delete L.Icon.Default.prototype._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+})
 
 const nominatimCache = {}
 
@@ -31,8 +41,21 @@ async function reverseGeocode(lat, lng) {
 const initialForm = {
   nombre_lugar: '',
   direccion_alfa_numerica: '',
-  latitud: '',
-  longitud: '',
+  latitud: -4.032,
+  longitud: -79.204,
+}
+
+function MapEvents({ setForm }) {
+  useMapEvents({
+    click(e) {
+      setForm(prev => ({
+        ...prev,
+        latitud: e.latlng.lat,
+        longitud: e.latlng.lng
+      }))
+    }
+  })
+  return null
 }
 
 export default function Ubicacion({ userRole }) {
@@ -185,7 +208,7 @@ export default function Ubicacion({ userRole }) {
             <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '6px', letterSpacing: '0.5px' }}>DIRECCIÓN ALFANUMÉRICA</label>
             <input name="direccion_alfa_numerica" value={form.direccion_alfa_numerica} onChange={handleChange} placeholder="Ej: Calle 10 y Av. Universitaria" style={{ width: '100%', padding: '10px 12px', border: '1px solid #DBE3E0', borderRadius: '6px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
           </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '8px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '6px', letterSpacing: '0.5px' }}>LATITUD *</label>
               <input name="latitud" value={form.latitud} onChange={handleChange} required type="number" step="any" placeholder="-4.032" style={{ width: '100%', padding: '10px 12px', border: '1px solid #DBE3E0', borderRadius: '6px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
@@ -194,6 +217,16 @@ export default function Ubicacion({ userRole }) {
               <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '6px', letterSpacing: '0.5px' }}>LONGITUD *</label>
               <input name="longitud" value={form.longitud} onChange={handleChange} required type="number" step="any" placeholder="-79.204" style={{ width: '100%', padding: '10px 12px', border: '1px solid #DBE3E0', borderRadius: '6px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
             </div>
+          </div>
+          <div style={{ height: '180px', width: '100%', marginBottom: '16px', borderRadius: '6px', overflow: 'hidden', border: '1px solid #DBE3E0' }}>
+            <MapContainer center={[form.latitud || -4.032, form.longitud || -79.204]} zoom={14} style={{ height: '100%', width: '100%' }}>
+              <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+              <MapEvents setForm={setForm} />
+              {form.latitud && form.longitud && (
+                <Marker position={[form.latitud, form.longitud]} />
+              )}
+            </MapContainer>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', textAlign: 'center', marginTop: '4px' }}>Haz clic en el mapa para ubicar el punto exacto</div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
             <button type="button" onClick={handleCloseModal} style={{ padding: '10px 20px', border: '1px solid #DBE3E0', borderRadius: '6px', background: 'white', fontSize: '13px', fontWeight: '600', cursor: 'pointer', color: 'var(--text-muted)' }}>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api, { getUsers, updateUser, deleteUser, register, updateMe } from '../services/api'
-import { listarSensores } from '../services/climaService'
+import { listarSensores, obtenerClimaActual } from '../services/climaService'
 import { listarUbicaciones } from '../services/ubicacionService'
 import { getEventos, getUbicaciones } from '../components/dashboard/events/eventService'
 import toast from 'react-hot-toast'
@@ -150,28 +150,56 @@ export default function Dashboard() {
   }
 
   useEffect(() => {
-    const apiKey = import.meta.env.VITE_WEATHER_API_KEY
-    if (!apiKey) {
-      setWeatherError('No se ha configurado la clave de API del clima. Por favor, solicite al administrador que la configure.')
-      return
+    const fetchWeather = async () => {
+      setLoadingWeather(true)
+      setWeatherError('')
+      
+      try {
+        // 1. Intentar obtener datos físicos del ESP32 local primero (IoT Priorizado)
+        const localData = await obtenerClimaActual()
+        if (localData && localData.length > 0) {
+          const actual = localData[0]
+          setWeatherData({
+            currentConditions: {
+              temp: actual.temperatura,
+              humidity: actual.humedad,
+              conditions: 'sensor iot activo',
+              feelslike: actual.temperatura,
+              windspeed: 0
+            },
+            source: 'esp32'
+          })
+          setLoadingWeather(false)
+          return // Si tiene éxito, no llama a la API externa
+        }
+      } catch (error) {
+        console.log("Sensor local no disponible, cambiando a API externa de respaldo...")
+      }
+
+      // 2. Fallback Automático a la API de VisualCrossing
+      const apiKey = import.meta.env.VITE_WEATHER_API_KEY
+      if (!apiKey) {
+        setWeatherError('No se ha configurado la clave de API del clima.')
+        setLoadingWeather(false)
+        return
+      }
+      
+      fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/Loja,Ecuador?unitGroup=metric&lang=es&key=${apiKey}&contentType=json`)
+        .then(res => {
+          if (!res.ok) throw new Error('Error al obtener los datos del clima.')
+          return res.json()
+        })
+        .then(data => {
+          setWeatherData(data)
+          setLoadingWeather(false)
+        })
+        .catch(err => {
+          setWeatherError(err.message)
+          setLoadingWeather(false)
+        })
     }
 
-    setLoadingWeather(true)
-    setWeatherError('')
-    
-    fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/Loja,Ecuador?unitGroup=metric&lang=es&key=${apiKey}&contentType=json`)
-      .then(res => {
-        if (!res.ok) throw new Error('Error al obtener los datos del clima. Verifica la clave de API.')
-        return res.json()
-      })
-      .then(data => {
-        setWeatherData(data)
-        setLoadingWeather(false)
-      })
-      .catch(err => {
-        setWeatherError(err.message)
-        setLoadingWeather(false)
-      })
+    fetchWeather()
   }, [])
 
   useEffect(() => {
