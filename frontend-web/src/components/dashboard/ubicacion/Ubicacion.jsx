@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react'
-import { listarUbicaciones, crearUbicacion, actualizarUbicacion, eliminarUbicacion } from '../../../services/ubicacionService'
+import { listarUbicaciones, crearUbicacion, actualizarUbicacion, eliminarUbicacion, listarSensoresSinUbicacion } from '../../../services/ubicacionService'
+import { actualizarSensor } from '../../../services/climaService'
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
@@ -65,6 +66,7 @@ export default function Ubicacion({ userRole }) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [direcciones, setDirecciones] = useState({})
+  const [sensoresDisponibles, setSensoresDisponibles] = useState([])
 
   const [modalOpen, setModalOpen] = useState(false)
   const [modalMode, setModalMode] = useState('create')
@@ -112,11 +114,17 @@ export default function Ubicacion({ userRole }) {
     cargarUbicaciones()
   }, [cargarUbicaciones])
 
-  const handleOpenCreate = () => {
-    setForm(initialForm)
+  const handleOpenCreate = async () => {
+    setForm({ ...initialForm, id_sensor: '' })
     setModalMode('create')
     setModalError('')
     setModalOpen(true)
+    try {
+      const sens = await listarSensoresSinUbicacion()
+      setSensoresDisponibles(sens)
+    } catch {
+      // Ignorar errores al cargar sensores
+    }
   }
 
   const handleOpenEdit = (loc) => {
@@ -155,7 +163,17 @@ export default function Ubicacion({ userRole }) {
         longitud: parseFloat(form.longitud),
       }
       if (modalMode === 'create') {
-        await crearUbicacion(payload)
+        const nuevaUbicacion = await crearUbicacion(payload)
+        
+        // Si seleccionó un sensor, lo actualizamos con el ID de esta nueva ubicación
+        if (form.id_sensor) {
+          try {
+            await actualizarSensor(form.id_sensor, { id_ubicacion: nuevaUbicacion.id_ubicacion })
+          } catch (err) {
+            console.warn("No se pudo asociar el sensor a la ubicación:", err)
+          }
+        }
+        
         showToast('Ubicación creada exitosamente')
       } else {
         await actualizarUbicacion(window.__editUbicacionId, payload)
@@ -208,6 +226,17 @@ export default function Ubicacion({ userRole }) {
             <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '6px', letterSpacing: '0.5px' }}>DIRECCIÓN ALFANUMÉRICA</label>
             <input name="direccion_alfa_numerica" value={form.direccion_alfa_numerica} onChange={handleChange} placeholder="Ej: Calle 10 y Av. Universitaria" style={{ width: '100%', padding: '10px 12px', border: '1px solid #DBE3E0', borderRadius: '6px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
           </div>
+          {modalMode === 'create' && (
+          <div style={{ marginBottom: '16px' }}>
+            <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '6px', letterSpacing: '0.5px' }}>VINCULAR SENSOR IOT (OPCIONAL)</label>
+            <select name="id_sensor" value={form.id_sensor || ''} onChange={handleChange} style={{ width: '100%', padding: '10px 12px', border: '1px solid #DBE3E0', borderRadius: '6px', fontSize: '13px', outline: 'none', background: 'white' }}>
+              <option value="">-- No vincular ninguno --</option>
+              {sensoresDisponibles.map(s => (
+                <option key={s.id_sensor} value={s.id_sensor}>{s.nombre} ({s.topico_mqtt})</option>
+              ))}
+            </select>
+          </div>
+          )}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '8px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '6px', letterSpacing: '0.5px' }}>LATITUD *</label>
