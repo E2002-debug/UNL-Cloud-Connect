@@ -219,14 +219,24 @@ export default function Ubicacion({ userRole }) {
             </div>
           </div>
           <div style={{ height: '180px', width: '100%', marginBottom: '16px', borderRadius: '6px', overflow: 'hidden', border: '1px solid #DBE3E0' }}>
-            <MapContainer center={[form.latitud || -4.032, form.longitud || -79.204]} zoom={14} style={{ height: '100%', width: '100%' }}>
+            <MapContainer 
+              center={[form.latitud || -4.032, form.longitud || -79.204]} 
+              zoom={17} 
+              minZoom={16}
+              maxBounds={[
+                [-4.0360, -79.2080], // Suroeste (Límites Facultad de Energía/UNL)
+                [-4.0280, -79.1980]  // Noreste
+              ]}
+              maxBoundsViscosity={1.0}
+              style={{ height: '100%', width: '100%' }}
+            >
               <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
               <MapEvents setForm={setForm} />
               {form.latitud && form.longitud && (
                 <Marker position={[form.latitud, form.longitud]} />
               )}
             </MapContainer>
-            <div style={{ fontSize: '10px', color: 'var(--text-muted)', textAlign: 'center', marginTop: '4px' }}>Haz clic en el mapa para ubicar el punto exacto</div>
+            <div style={{ fontSize: '10px', color: 'var(--text-muted)', textAlign: 'center', marginTop: '4px' }}>Haz clic en el mapa para ubicar el punto exacto (Zona restringida a la Facultad)</div>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '24px' }}>
             <button type="button" onClick={handleCloseModal} style={{ padding: '10px 20px', border: '1px solid #DBE3E0', borderRadius: '6px', background: 'white', fontSize: '13px', fontWeight: '600', cursor: 'pointer', color: 'var(--text-muted)' }}>
