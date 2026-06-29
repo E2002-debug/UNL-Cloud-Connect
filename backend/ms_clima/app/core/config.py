@@ -32,7 +32,7 @@ class Settings:
     ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 1 día de duración
 
     # Variable necesaria para validar la sesión de Google
-    GOOGLE_CLIENT_ID: str = "883175682519-tv0t5ndf3185sdimdjd6ro9hack12m7r.apps.googleusercontent.com"
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
 
 # Instanciamos la clase para que el resto de archivos la puedan importar
 settings = Settings()
