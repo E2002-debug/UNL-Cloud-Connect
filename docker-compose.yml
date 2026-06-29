@@ -93,8 +93,6 @@ services:
     container_name: unl_ms_eventos
     restart: always
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    ports:
-      - "8002:8000" # Exposición directa para pruebas puenteando a Kong
     volumes:
       - ./backend/ms_eventos/app:/app/app
     env_file:
@@ -110,8 +108,6 @@ services:
     container_name: unl_ms_notificaciones
     restart: always
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
-    ports:
-      - "8003:8000" # Exposición directa para pruebas puenteando a Kong
     volumes:
       - ./backend/ms_notificaciones/app:/app/app
 
