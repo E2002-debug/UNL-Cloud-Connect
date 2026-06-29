@@ -29,4 +29,4 @@ class Clima(Base):
 
     # Relación con la tabla Ubicacion (según el diagrama Clima pertenece a Ubicacion)
     # Referencia desacoplada (Arquitectura de Microservicios)
-    id_ubicacion: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    id_ubicacion: Mapped[int] = mapped_column(Integer, nullable=True, index=True)
