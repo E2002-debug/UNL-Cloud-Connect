@@ -67,7 +67,17 @@ def actualizar_usuario(db: Session, db_usuario: Usuario, datos_actualizar: dict)
     db.refresh(db_usuario)
     return db_usuario
 
+from app.models.historial_clave import HistorialClave
+from app.models.auditoria import AuditoriaUsuario
+
 def eliminar_usuario(db: Session, db_usuario: Usuario):
+    # Primero: Eliminar historial de contraseñas (dependencia fuerte)
+    db.query(HistorialClave).filter(HistorialClave.id_usuario == db_usuario.id_usuario).delete()
+    
+    # Segundo: Desvincular registros de auditoría (para no perder el registro histórico)
+    db.query(AuditoriaUsuario).filter(AuditoriaUsuario.id_usuario == db_usuario.id_usuario).update({"id_usuario": None})
+    
+    # Tercero: Eliminar el usuario
     db.delete(db_usuario)
     db.commit()
     return db_usuario

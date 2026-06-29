@@ -82,12 +82,8 @@ async def enviar_correo_recuperacion(email_destino: str, token: str):
     """
     Construye un correo HTML bonito y lo envía usando fastapi-mail.
     """
-    # =========================================================================
-    # ENLACE DIRECTO A LA APLICACIÓN MÓVIL EN DESARROLLO (EXPO):
-    # Modificamos el enlace para abrir directamente la app móvil a través de Expo Go.
-    # Para producción, deberías usar el esquema de tu app (ej: unlconnect://reset-password?token=...)
-    # =========================================================================
-    url_recuperacion = f"exp://192.168.1.86:8081/--/reset-password?token={token}"
+    frontend_url = settings.FRONTEND_URL
+    url_recuperacion = f"{frontend_url}/reset-password?token={token}"
 
     # Ocultar parcialmente el correo para mayor seguridad en logs
     partes = email_destino.split("@")
