@@ -57,7 +57,7 @@ export default function LoginScreen({ navigation }) {
     if (GoogleSignin) {
       try {
         GoogleSignin.configure({
-          webClientId: '769582610148-q74d4n5i30or7unv9bcsp92m71pcs8va.apps.googleusercontent.com',
+          webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
           offlineAccess: true,
         });
       } catch (err) {

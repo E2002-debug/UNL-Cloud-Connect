@@ -7,6 +7,7 @@ y separa claramente las operaciones de lectura (públicas/clientes) de las de es
 
 from fastapi import APIRouter, Depends, HTTPException, status, Header, BackgroundTasks, UploadFile, File
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 from typing import List
 import filetype
 
@@ -281,14 +282,20 @@ def reaccionar_a_imagen(
     if not imagen_existente:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La imagen no existe.")
     
-    resultado = crud_imagen.procesar_reaccion(
-        db=db, 
-        id_imagen=id_imagen, 
-        id_usuario=id_usuario, 
-        tipo_nuevo=reaccion_in.tipo
-    )
-    
-    return {"mensaje": "Interacción procesada", "detalle": resultado}
+    try:
+        resultado = crud_imagen.procesar_reaccion(
+            db=db, 
+            id_imagen=id_imagen, 
+            id_usuario=id_usuario, 
+            tipo_nuevo=reaccion_in.tipo
+        )
+        return {"mensaje": "Interacción procesada", "detalle": resultado}
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Reacción duplicada para este usuario e imagen. Conflicto de concurrencia."
+        )
 
 # ==========================================
 # ENDPOINT PÚBLICO: HU_07 (Consultar)

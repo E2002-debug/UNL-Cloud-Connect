@@ -3,6 +3,7 @@ from sqlalchemy import String, DateTime, ForeignKey, Enum as SQLEnum
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from app.database.session import Base
+from app.models.ubicacion import Ubicacion
 
 # Paso 1.3: Definición del Enumerador según el UML
 class ProgresoEvento(str, enum.Enum):
