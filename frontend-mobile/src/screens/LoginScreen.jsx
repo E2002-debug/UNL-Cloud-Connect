@@ -5,7 +5,7 @@
 // 27/06/2026 v0.1 - David Guamán: Implementación de la pantalla de inicio de sesión con soporte para autenticación estándar y botón integrado con el logo vectorial oficial de Google.
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, TextInput } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, TextInput, Image } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
 import Input from '../components/Input';
@@ -171,7 +171,9 @@ export default function LoginScreen({ navigation }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>UNL-Cloud-Connect</Text>
+        <View style={{ height: 40, width: 200, marginBottom: 8 }}>
+          <Image source={require('../img/logo.png')} style={{ width: '100%', height: '100%', resizeMode: 'contain' }} />
+        </View>
         <Text style={styles.subtitle}>Accede con tu correo institucional</Text>
       </View>
 

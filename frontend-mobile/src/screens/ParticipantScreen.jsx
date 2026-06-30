@@ -436,17 +436,17 @@ export default function ParticipantScreen({ route, navigation }) {
           {weather ? (
             <View style={styles.weatherDetails}>
               <Sun size={64} color="#F59E0B" style={styles.weatherIcon} />
-              <Text style={styles.tempText}>{weather.temp ? `${weather.temp.toFixed(1)}°C` : '18.5°C'}</Text>
-              <Text style={styles.descText}>{weather.description || 'Despejado / Soleado'}</Text>
+              <Text style={styles.tempText}>{weather.temperatura ? `${weather.temperatura.toFixed(1)}°C` : '18.5°C'}</Text>
+              <Text style={styles.descText}>{weather.alerta ? weather.detalles_alerta : 'Despejado / Soleado'}</Text>
               
               <View style={styles.weatherMetaGrid}>
                 <View style={styles.metaCol}>
                   <Text style={styles.metaLabel}>Humedad</Text>
-                  <Text style={styles.metaVal}>{weather.humidity ? `${weather.humidity}%` : '62%'}</Text>
+                  <Text style={styles.metaVal}>{weather.humedad ? `${weather.humedad.toFixed(1)}%` : '62%'}</Text>
                 </View>
                 <View style={styles.metaCol}>
-                  <Text style={styles.metaLabel}>Viento</Text>
-                  <Text style={styles.metaVal}>{weather.wind_speed ? `${weather.wind_speed} m/s` : '3.1 m/s'}</Text>
+                  <Text style={styles.metaLabel}>Fuente</Text>
+                  <Text style={styles.metaVal}>{weather.fuente || 'Desconocida'}</Text>
                 </View>
               </View>
             </View>
@@ -547,8 +547,8 @@ export default function ParticipantScreen({ route, navigation }) {
     <SafeAreaView style={styles.safeContainer} edges={['top']}>
       {/* App Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>UNL <Text style={styles.headerHighlight}>Cloud Connect</Text></Text>
+        <View style={{ height: 30, width: 120 }}>
+          <Image source={require('../img/logo.png')} style={{ width: '100%', height: '100%', resizeMode: 'contain' }} />
         </View>
         <TouchableOpacity style={styles.bellBtn}>
           <Bell size={20} color="#0F766E" />
