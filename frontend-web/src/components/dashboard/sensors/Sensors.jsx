@@ -128,9 +128,14 @@ export default function Sensors() {
             TELEMETRÍA EN TIEMPO REAL Y ESTADO DE SALUD DE NODOS CAMPUS LOJA
           </div>
         </div>
-        <button onClick={openCreate} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', border: 'none', borderRadius: '0px', fontSize: '11px', fontWeight: '700', color: 'white', background: '#0F766E', cursor: 'pointer' }}>
-          <IconAdd /> AGREGAR NODO
-        </button>
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <button onClick={cargarSensores} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', border: '1px solid #0F766E', borderRadius: '0px', fontSize: '11px', fontWeight: '700', color: '#0F766E', background: 'transparent', cursor: 'pointer' }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.59-9.21l5.67-5.67"/></svg> ACTUALIZAR
+          </button>
+          <button onClick={openCreate} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', border: 'none', borderRadius: '0px', fontSize: '11px', fontWeight: '700', color: 'white', background: '#0F766E', cursor: 'pointer' }}>
+            <IconAdd /> AGREGAR NODO
+          </button>
+        </div>
       </div>
 
       {loading ? (
