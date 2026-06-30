@@ -70,6 +70,7 @@ import {
 } from 'recharts';
 import { cn } from './lib/utils';
 import { getLojaWeather } from './services/weatherService';
+import { getClimaActual } from './services/api';
 import { WeatherData, SystemStatus, Event } from './types';
 import { SYSTEM_METRICS_MOCK, MOCK_EVENTS } from './constants';
 import { EventMap } from './components/mobile/EventMap';
@@ -463,7 +464,29 @@ const DashboardView = ({
   const [profileSavedMsg, setProfileSavedMsg] = useState(false);
 
   useEffect(() => {
-    getLojaWeather().then(setWeather);
+    const fetchWeather = async () => {
+      try {
+        const data = await getClimaActual();
+        const ahora = new Date();
+        const fechaDato = new Date(data.fecha_captura + 'Z');
+        const diffMin = (ahora - fechaDato) / (1000 * 60);
+        const esEsp32 = diffMin <= 1;
+        setWeather({
+          temp: data.temperatura,
+          description: data.detalles_alerta || (esEsp32 ? 'Datos en vivo ESP32' : 'Visual Crossing'),
+          icon: esEsp32 ? 's-activo' : 'partly-cloudy-day',
+          humidity: data.humedad,
+          windSpeed: 0,
+          feelsLike: data.temperatura,
+          rainChance: 0,
+          uvIndex: 0,
+          timestamp: Date.now(),
+        });
+      } catch {
+        getLojaWeather().then(setWeather);
+      }
+    };
+    fetchWeather();
   }, []);
 
   // Handle sensor reboots
@@ -2458,7 +2481,29 @@ const MobileView = ({
   };
   
   useEffect(() => {
-    getLojaWeather().then(setWeather);
+    const fetchWeather = async () => {
+      try {
+        const data = await getClimaActual();
+        const ahora = new Date();
+        const fechaDato = new Date(data.fecha_captura + 'Z');
+        const diffMin = (ahora - fechaDato) / (1000 * 60);
+        const esEsp32 = diffMin <= 1;
+        setWeather({
+          temp: data.temperatura,
+          description: data.detalles_alerta || (esEsp32 ? 'Datos en vivo ESP32' : 'Visual Crossing'),
+          icon: esEsp32 ? 's-activo' : 'partly-cloudy-day',
+          humidity: data.humedad,
+          windSpeed: 0,
+          feelsLike: data.temperatura,
+          rainChance: 0,
+          uvIndex: 0,
+          timestamp: Date.now(),
+        });
+      } catch {
+        getLojaWeather().then(setWeather);
+      }
+    };
+    fetchWeather();
   }, []);
 
   return (

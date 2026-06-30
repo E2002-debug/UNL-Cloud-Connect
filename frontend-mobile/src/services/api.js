@@ -83,8 +83,40 @@ export const getEventos = async () => {
 };
 
 export const getClimaActual = async () => {
-  const res = await api.get('/clima/actual');
-  return res.data;
+  try {
+    const res = await api.get('/clima/actual');
+    const data = res.data;
+    const fechaDato = new Date(data.fecha_captura + 'Z');
+    const ahora = new Date();
+    const diferenciaMinutos = (ahora - fechaDato) / (1000 * 60);
+    if (diferenciaMinutos <= 1) {
+      return data;
+    }
+    console.warn(`[CLIMA] Dato IoT antiguo (${Math.round(diferenciaMinutos)} min). Usando fallback...`);
+  } catch (error) {
+    console.log('[CLIMA] Sensor local no disponible, usando fallback...');
+  }
+  try {
+    const { getLojaWeather } = await import('./weatherService');
+    const w = await getLojaWeather();
+    return {
+      temperatura: w.temp,
+      humedad: w.humidity,
+      fuente: 'VisualCrossing',
+      alerta: false,
+      detalles_alerta: w.description,
+      fecha_captura: new Date().toISOString(),
+    };
+  } catch (e) {
+    return {
+      temperatura: 18.5,
+      humedad: 62,
+      fuente: 'Fallback',
+      alerta: false,
+      detalles_alerta: 'Estación fuera de línea temporalmente',
+      fecha_captura: new Date().toISOString(),
+    };
+  }
 };
 
 export const uploadImage = async (idEvento, fileUri) => {

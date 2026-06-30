@@ -33,7 +33,7 @@ import {
   CloudRain
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
-import api, { uploadImage, reaccionarAImagen, obtenerReaccionesImagen } from '../services/api';
+import api, { uploadImage, reaccionarAImagen, obtenerReaccionesImagen, getClimaActual } from '../services/api';
 
 export default function EventDetailScreen({ route, navigation }) {
   const { eventId, user } = route.params;
@@ -209,10 +209,10 @@ export default function EventDetailScreen({ route, navigation }) {
         resolveUserName(uid);
       });
 
-      // Fetch climate/weather in background
+      // Fetch climate/weather in background with fallback
       try {
-        const climateRes = await api.get('/clima/actual');
-        setWeather(climateRes.data);
+        const climateData = await getClimaActual();
+        setWeather(climateData);
       } catch (err) {
         console.warn('Could not load weather for event detail:', err.message);
       }
