@@ -39,6 +39,7 @@ import {
   Shield
 } from 'lucide-react-native';
 import { getEventos, getClimaActual, setAuthHeaders, reaccionarAImagen, obtenerReaccionesImagen } from '../services/api';
+import { getLojaWeather } from '../services/weatherService';
 
 export default function ParticipantScreen({ route, navigation }) {
   const { user } = route.params || { user: { name: 'Invitado', email: 'invitado@unl.edu.ec', id_usuario: 1, id_rol: 2 } };
@@ -106,8 +107,14 @@ export default function ParticipantScreen({ route, navigation }) {
   const loadWeather = async () => {
     try {
       setLoadingWeather(true);
-      const data = await getClimaActual();
-      setWeather(data);
+      const data = await getLojaWeather();
+      setWeather({
+        temperatura: data.temp,
+        humedad: data.humidity,
+        alerta: false,
+        detalles_alerta: data.description || 'Despejado / Soleado',
+        fuente: 'VisualCrossing API'
+      });
     } catch (err) {
       console.error('Error al cargar clima:', err);
     } finally {

@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { WeatherData } from '../types';
 
-const API_KEY = (import.meta as any).env?.VITE_WEATHER_API_KEY || 'KKFVURM9AN';
+const API_KEY = process.env.EXPO_PUBLIC_WEATHER_API_KEY;
 const LOJA_QUERY = 'Loja,EC';
 
 export interface WeatherResponse {
