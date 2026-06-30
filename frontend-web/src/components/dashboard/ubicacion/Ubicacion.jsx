@@ -249,12 +249,13 @@ export default function Ubicacion({ userRole }) {
           </div>
           <div style={{ height: '180px', width: '100%', marginBottom: '16px', borderRadius: '6px', overflow: 'hidden', border: '1px solid #DBE3E0' }}>
             <MapContainer 
-              center={[form.latitud || -4.032, form.longitud || -79.204]} 
-              zoom={17} 
-              minZoom={16}
+              center={[form.latitud || -4.03115, form.longitud || -79.20016]} 
+              zoom={18} 
+              minZoom={17}
+              maxZoom={19}
               maxBounds={[
-                [-4.0360, -79.2080], // Suroeste (Límites Facultad de Energía/UNL)
-                [-4.0280, -79.1980]  // Noreste
+                [-4.0330, -79.2020], // Suroeste (Muy ajustado al edificio de la foto)
+                [-4.0290, -79.1980]  // Noreste
               ]}
               maxBoundsViscosity={1.0}
               style={{ height: '100%', width: '100%' }}
