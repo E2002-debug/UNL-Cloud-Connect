@@ -427,12 +427,11 @@ export default function Dashboard() {
       <aside style={{ width: '280px', minWidth: '280px', maxWidth: '280px', background: 'var(--bg-card)', borderRight: '1px solid #DBE3E0', display: 'flex', flexDirection: 'column', height: '100vh', position: 'sticky', top: 0, alignSelf: 'flex-start', overflow: 'hidden', boxSizing: 'border-box' }}>
 
         {/* LOGO AREA */}
-        <div style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #f1f5f9' }}>
-          <div style={{ width: '40px', height: '40px', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#fff', overflow: 'hidden' }}>
-            <img src="/img/logo.png" alt="UNL Cloud Connect" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px', borderBottom: '1px solid #f1f5f9' }}>
+          <div style={{ height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', background: 'transparent' }}>
+            <img src="/img/logo.png" alt="UNL Cloud Connect" style={{ height: '100%', width: 'auto', objectFit: 'contain' }} />
           </div>
           <div>
-            <h1 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: 'var(--text-main)', letterSpacing: '-0.5px' }}>UNL-CLOUD-CONNECT</h1>
             <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '1px' }}>{isAdmin ? 'CONSOLE ADMIN' : isSuperAdmin ? 'CONSOLE SUPER ADMIN' : 'CONSOLE PARTICIPANTE'}</span>
           </div>
         </div>
