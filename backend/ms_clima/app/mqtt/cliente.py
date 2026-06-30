@@ -40,11 +40,13 @@ def on_message(client, topic, payload, qos, properties):
     info_sensor = REGISTRO_SENSORES.get(topic)
 
     if not info_sensor:
-        print(f"[MQTT-WARNING] Sensor no registrado en tópico: {topic}")
+        print(f"[MQTT-WARNING] Sensor no registrado en tópico: {topic} (Payload ignorado: {payload.decode('utf-8', 'ignore')})")
         return
 
     try:
-        datos_json = json.loads(payload.decode('utf-8'))
+        raw_payload = payload.decode('utf-8')
+        print(f"[MQTT-DEBUG] Payload crudo recibido: {raw_payload}")
+        datos_json = json.loads(raw_payload)
         datos_validados = ClimaPayload(**datos_json)
 
         db = SessionLocal()
