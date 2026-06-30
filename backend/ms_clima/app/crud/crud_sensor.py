@@ -14,7 +14,7 @@ def obtener_sensor_por_id(db: Session, id_sensor: int) -> Optional[Sensor]:
     return db.query(Sensor).filter(Sensor.id_sensor == id_sensor).first()
 
 def obtener_sensor_por_topico(db: Session, topico: str) -> Optional[Sensor]:
-    return db.query(Sensor).filter(Sensor.topico_mqtt == topico, Sensor.activo == True).first()
+    return db.query(Sensor).filter(Sensor.topico_mqtt == topico).first()
 
 def crear_sensor(db: Session, datos: SensorCreate) -> Sensor:
     db_sensor = Sensor(

@@ -69,7 +69,17 @@ def crear_sensor(
     """
     existente = crud_sensor.obtener_sensor_por_topico(db, datos.topico_mqtt)
     if existente:
-        raise HTTPException(status_code=400, detail="Ya existe un sensor con ese tópico MQTT")
+        if not existente.activo:
+            existente.activo = True
+            existente.nombre = datos.nombre
+            existente.tipo = datos.tipo
+            if getattr(datos, 'id_ubicacion', None):
+                existente.id_ubicacion = datos.id_ubicacion
+            db.commit()
+            db.refresh(existente)
+            return existente
+        else:
+            raise HTTPException(status_code=400, detail="Ya existe un sensor activo con ese tópico MQTT")
     return crud_sensor.crear_sensor(db, datos)
 
 @router.put("/sensores/{id_sensor}", response_model=SensorResponse, status_code=status.HTTP_200_OK)
