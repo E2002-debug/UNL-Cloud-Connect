@@ -157,14 +157,13 @@ export default function Dashboard() {
       try {
         // 1. Intentar obtener datos físicos del ESP32 local primero (IoT Priorizado)
         const localData = await obtenerClimaActual()
-        if (localData && localData.length > 0) {
-          const actual = localData[0]
+        if (localData && localData.temperatura !== undefined) {
           setWeatherData({
             currentConditions: {
-              temp: actual.temperatura,
-              humidity: actual.humedad,
+              temp: localData.temperatura,
+              humidity: localData.humedad,
               conditions: 'sensor iot activo',
-              feelslike: actual.temperatura,
+              feelslike: localData.temperatura,
               windspeed: 0
             },
             source: 'esp32'
