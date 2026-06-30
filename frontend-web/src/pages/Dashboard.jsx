@@ -158,18 +158,28 @@ export default function Dashboard() {
         // 1. Intentar obtener datos físicos del ESP32 local primero (IoT Priorizado)
         const localData = await obtenerClimaActual()
         if (localData && localData.temperatura !== undefined) {
-          setWeatherData({
-            currentConditions: {
-              temp: localData.temperatura,
-              humidity: localData.humedad,
-              conditions: 'sensor iot activo',
-              feelslike: localData.temperatura,
-              windspeed: 0
-            },
-            source: 'esp32'
-          })
-          setLoadingWeather(false)
-          return // Si tiene éxito, no llama a la API externa
+          // Verificar qué tan antiguo es el dato
+          const fechaDato = new Date(localData.fecha_captura + 'Z') // Asegurar que lo lea como UTC
+          const ahora = new Date()
+          const diferenciaMinutos = (ahora - fechaDato) / (1000 * 60)
+
+          // Solo usamos el sensor si el dato es de hace menos de 30 minutos
+          if (diferenciaMinutos <= 30) {
+            setWeatherData({
+              currentConditions: {
+                temp: localData.temperatura,
+                humidity: localData.humedad,
+                conditions: 'sensor iot activo',
+                feelslike: localData.temperatura,
+                windspeed: 0
+              },
+              source: 'esp32'
+            })
+            setLoadingWeather(false)
+            return // Si tiene éxito y es reciente, no llama a la API externa
+          }
+          // Si es muy viejo (el sensor se desconectó o desactivó), ignoramos y pasamos a la API
+          console.warn(`Dato IoT muy antiguo (${Math.round(diferenciaMinutos)} min). Pasando a API externa...`)
         }
       } catch (error) {
         console.log("Sensor local no disponible, cambiando a API externa de respaldo...")
