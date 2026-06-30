@@ -95,7 +95,7 @@ export default function Sensors() {
       setModalOpen(false)
       cargarSensores()
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Error al guardar sensor')
+      toast.error(err.message || 'Error al guardar sensor')
     }
   }
 
@@ -106,7 +106,7 @@ export default function Sensors() {
       toast.success(`Sensor "${s.nombre}" desactivado`)
       cargarSensores()
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Error al eliminar sensor')
+      toast.error(err.message || 'Error al eliminar sensor')
     }
   }
 
