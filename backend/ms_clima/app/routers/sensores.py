@@ -7,6 +7,7 @@ from app.schemas.sensor import SensorCreate, SensorResponse, SensorUpdate
 from app.schemas.clima import ClimaResponse
 from app.crud import crud_sensor, crud_clima
 from app.core.security import obtener_usuario_actual, get_admin_user
+from app.mqtt.cliente import recargar_registro_sensores
 
 router = APIRouter(
     prefix="/clima",
@@ -77,10 +78,13 @@ def crear_sensor(
                 existente.id_ubicacion = datos.id_ubicacion
             db.commit()
             db.refresh(existente)
+            recargar_registro_sensores()
             return existente
         else:
             raise HTTPException(status_code=400, detail="Ya existe un sensor activo con ese tópico MQTT")
-    return crud_sensor.crear_sensor(db, datos)
+    nuevo_sensor = crud_sensor.crear_sensor(db, datos)
+    recargar_registro_sensores()
+    return nuevo_sensor
 
 @router.put("/sensores/{id_sensor}", response_model=SensorResponse, status_code=status.HTTP_200_OK)
 def actualizar_sensor(
@@ -96,7 +100,9 @@ def actualizar_sensor(
     sensor = crud_sensor.obtener_sensor_por_id(db, id_sensor)
     if not sensor or not sensor.activo:
         raise HTTPException(status_code=404, detail="Sensor no encontrado")
-    return crud_sensor.actualizar_sensor(db, sensor, datos)
+    actualizado = crud_sensor.actualizar_sensor(db, sensor, datos)
+    recargar_registro_sensores()
+    return actualizado
 
 @router.delete("/sensores/{id_sensor}", status_code=status.HTTP_200_OK)
 def eliminar_sensor(
@@ -112,4 +118,5 @@ def eliminar_sensor(
     if not sensor or not sensor.activo:
         raise HTTPException(status_code=404, detail="Sensor no encontrado")
     crud_sensor.eliminar_sensor(db, sensor)
+    recargar_registro_sensores()
     return {"mensaje": f"Sensor '{sensor.nombre}' desactivado correctamente"}
