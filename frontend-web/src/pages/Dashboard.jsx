@@ -80,8 +80,8 @@ export default function Dashboard() {
           <h4 style={{ margin: '0 0 4px 0', fontSize: '13px', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase' }}>{title}</h4>
           <p style={{ margin: 0, fontSize: '12px', fontWeight: '500', opacity: 0.9, lineHeight: '1.4' }}>{message}</p>
         </div>
-        <button 
-          onClick={() => toast.dismiss(t.id)} 
+        <button
+          onClick={() => toast.dismiss(t.id)}
           style={{ background: 'transparent', border: 'none', color: 'white', opacity: 0.7, cursor: 'pointer', marginLeft: 'auto', padding: '4px' }}
         >
           ✕
@@ -153,7 +153,7 @@ export default function Dashboard() {
     const fetchWeather = async () => {
       setLoadingWeather(true)
       setWeatherError('')
-      
+
       try {
         // 1. Intentar obtener datos físicos del ESP32 local primero (IoT Priorizado)
         const localData = await obtenerClimaActual()
@@ -169,7 +169,7 @@ export default function Dashboard() {
               currentConditions: {
                 temp: localData.temperatura,
                 humidity: localData.humedad,
-                conditions: 'sensor iot activo',
+                conditions: 's-activo',
                 feelslike: localData.temperatura,
                 windspeed: 0
               },
@@ -192,7 +192,7 @@ export default function Dashboard() {
         setLoadingWeather(false)
         return
       }
-      
+
       fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/Loja,Ecuador?unitGroup=metric&lang=es&key=${apiKey}&contentType=json`)
         .then(res => {
           if (!res.ok) throw new Error('Error al obtener los datos del clima.')
@@ -415,7 +415,7 @@ export default function Dashboard() {
     { id: 'Configuracion', icon: <IconSettings />, label: 'CONFIGURACIÓN' },
   ] : [
     { id: 'Dashboard', icon: <IconDashboard />, label: 'PANEL PRINCIPAL', badge: 'PIONERO' },
-    { id: 'Eventos', icon: <IconEvents />, label: 'MIS EVENTOS'},
+    { id: 'Eventos', icon: <IconEvents />, label: 'MIS EVENTOS' },
     { id: 'Clima', icon: <IconSettings />, label: 'MÉTRICAS CLIMA' },
     { id: 'Perfil', icon: <IconUsers />, label: 'MI PERFIL' },
   ]
@@ -634,7 +634,7 @@ export default function Dashboard() {
                         </div>
                       );
                     })}
-                    {!weatherData?.days && Array.from({length: 15}, (_, i) => (
+                    {!weatherData?.days && Array.from({ length: 15 }, (_, i) => (
                       <div key={i} style={{ flex: 1, background: 'var(--border)', height: `${40 + Math.sin(i) * 20}%`, position: 'relative', minHeight: '4px' }}>
                         <span style={{ position: 'absolute', bottom: '-20px', left: '50%', transform: 'translateX(-50%)', fontSize: '9px', fontWeight: '700', color: 'var(--text-muted)' }}>
                           --
@@ -966,7 +966,7 @@ export default function Dashboard() {
 
           {activeTab === 'Sensores' && (
             <div className="animate-fade-in">
-              
+
             </div>
           )}
 
@@ -1095,7 +1095,7 @@ export default function Dashboard() {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div style={{ background: 'var(--bg-card)', padding: '40px', borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
                 <h2 style={{ margin: '0 0 24px 0', fontSize: '24px', fontWeight: '800', color: 'var(--text-main)' }}>Configuración Global del Sistema</h2>
-                
+
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
                   {/* Tarjeta de Seguridad */}
                   <div style={{ padding: '24px', border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--bg-app)' }}>
@@ -1120,7 +1120,7 @@ export default function Dashboard() {
 
                   {/* Preferencias de la Interfaz */}
                   <div style={{ padding: '24px', border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--bg-app)' }}>
-                     <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <IconEvents /> Preferencias
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
