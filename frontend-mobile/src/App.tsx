@@ -10,6 +10,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
+import logoImg from './img/logo.png';
 import { 
   BarChart3, 
   Smartphone, 
@@ -647,12 +648,12 @@ const DashboardView = ({
         {/* Branding Title Block & Decorative Node Line */}
         <div className="p-8 pb-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-[#0F766E] rounded-none flex items-center justify-center p-2 shadow-lg">
-              <Database className="w-6 h-6 text-white stroke-[2.5]" />
+            <div className="w-10 h-10 rounded-none flex items-center justify-center p-0.5 shadow-lg bg-white overflow-hidden">
+              <img src={logoImg} alt="UNL Cloud Connect" className="w-full h-full object-contain" />
             </div>
             <div>
               <h2 className={cn("text-xl font-black tracking-tighter uppercase leading-none", theme === 'light' ? "text-zinc-900" : "text-white")}>
-                UNL<span className="text-[#0F766E]">Connect</span>
+                UNL<span className="text-[#0F766E]">-CLOUD</span>
               </h2>
               <span className="text-[8px] uppercase tracking-[0.3em] font-extrabold text-zinc-500 block">Console {isAdmin ? "Admin" : "Participante"}</span>
             </div>
