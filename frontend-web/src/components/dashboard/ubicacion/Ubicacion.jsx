@@ -222,10 +222,6 @@ export default function Ubicacion({ userRole }) {
             <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '6px', letterSpacing: '0.5px' }}>NOMBRE DEL LUGAR *</label>
             <input name="nombre_lugar" value={form.nombre_lugar} onChange={handleChange} required placeholder="Ej: Parque Central" style={{ width: '100%', padding: '10px 12px', border: '1px solid #DBE3E0', borderRadius: '6px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
           </div>
-          <div style={{ marginBottom: '16px' }}>
-            <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '6px', letterSpacing: '0.5px' }}>DIRECCIÓN ALFANUMÉRICA</label>
-            <input name="direccion_alfa_numerica" value={form.direccion_alfa_numerica} onChange={handleChange} placeholder="Ej: Calle 10 y Av. Universitaria" style={{ width: '100%', padding: '10px 12px', border: '1px solid #DBE3E0', borderRadius: '6px', fontSize: '13px', outline: 'none', boxSizing: 'border-box' }} />
-          </div>
           {modalMode === 'create' && (
           <div style={{ marginBottom: '16px' }}>
             <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '6px', letterSpacing: '0.5px' }}>VINCULAR SENSOR IOT (OPCIONAL)</label>
@@ -351,9 +347,8 @@ export default function Ubicacion({ userRole }) {
               <thead>
                 <tr style={{ background: 'var(--bg-app)', borderBottom: '1px solid #DBE3E0' }}>
                   <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>LUGAR</th>
-                  <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>DIRECCIÓN</th>
-                  <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>UBICACIÓN</th>
-                  <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>CALLES</th>
+                  <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>LATITUD</th>
+                  <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>LONGITUD</th>
                   {isSuperAdmin && (
                     <>
                       <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>ROL</th>
@@ -376,14 +371,11 @@ export default function Ubicacion({ userRole }) {
                       <td style={{ padding: '16px 24px', fontWeight: '700', color: 'var(--text-main)' }}>
                         {loc.nombre_lugar}
                       </td>
-                      <td style={{ padding: '16px 24px', fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500' }}>
-                        {loc.direccion_alfa_numerica || '—'}
+                      <td style={{ padding: '16px 24px', fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500', fontFamily: 'monospace' }}>
+                        {loc.latitud || '—'}
                       </td>
-                      <td style={{ padding: '16px 24px', fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500' }}>
-                        {dir?.display || '—'}
-                      </td>
-                      <td style={{ padding: '16px 24px', fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500' }}>
-                        {dir?.road || '—'}
+                      <td style={{ padding: '16px 24px', fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500', fontFamily: 'monospace' }}>
+                        {loc.longitud || '—'}
                       </td>
                       {isSuperAdmin && (
                         <>
