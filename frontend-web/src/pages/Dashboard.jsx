@@ -163,8 +163,8 @@ export default function Dashboard() {
           const ahora = new Date()
           const diferenciaMinutos = (ahora - fechaDato) / (1000 * 60)
 
-          // Solo usamos el sensor si el dato es de hace menos de 30 minutos
-          if (diferenciaMinutos <= 30) {
+          // Solo usamos el sensor si el dato es de hace menos de 1 minuto (para pruebas)
+          if (diferenciaMinutos <= 1) {
             setWeatherData({
               currentConditions: {
                 temp: localData.temperatura,
