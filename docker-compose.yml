@@ -4,9 +4,8 @@ services:
     image: postgres:15-alpine
     container_name: unl_postgres_db
     restart: always
-    environment:
-      POSTGRES_USER: postgres_admin
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?ERROR: Define POSTGRES_PASSWORD en tu entorno}
+    env_file:
+      - ./infraestructura/postgres/.env  # POSTGRES_USER y POSTGRES_PASSWORD vienen de aquí
     ports:
       - "5433:5432"
     volumes:
@@ -159,9 +158,8 @@ services:
     restart: always
     ports:
       - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?ERROR: Define GRAFANA_ADMIN_PASSWORD en tu entorno}
+    env_file:
+      - ./infraestructura/grafana/.env  # GF_SECURITY_ADMIN_USER y GF_SECURITY_ADMIN_PASSWORD vienen de aquí
     volumes:
       - grafana_data:/var/lib/grafana
     depends_on:
