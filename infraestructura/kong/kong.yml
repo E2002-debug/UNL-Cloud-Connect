@@ -36,34 +36,5 @@ services:
         strip_path: false
 
 # ==========================================
-# PLUGINS GLOBALES
+# FIN DE CONFIGURACIÓN
 # ==========================================
-plugins:
-  # Habilitamos CORS globalmente en el Gateway
-  - name: cors
-    config:
-      origins:
-        - "*"
-      methods:
-        - GET
-        - POST
-        - PUT
-        - PATCH
-        - DELETE
-        - OPTIONS
-      headers:
-        - Accept
-        - Accept-Version
-        - Content-Length
-        - Content-MD5
-        - Content-Type
-        - Date
-        - Authorization
-        - x-user-role
-        - x-user-id
-      exposed_headers:
-        - Authorization
-        - x-user-role
-        - x-user-id
-      credentials: true
-      max_age: 3600
