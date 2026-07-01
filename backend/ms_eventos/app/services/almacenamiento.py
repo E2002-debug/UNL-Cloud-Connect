@@ -3,6 +3,8 @@ import os
 from minio import Minio
 from minio.error import S3Error
 from fastapi import UploadFile, HTTPException, status
+import io
+from PIL import Image
 from app.core.config import settings
 
 # Inicializamos el cliente de MinIO usando las variables del docker-compose
@@ -22,6 +24,29 @@ def subir_imagen_minio(file: UploadFile) -> str:
         # 1. Reiniciar el cursor de lectura (Vital para la integración con la HU_05)
         file.file.seek(0)
         
+        # Strip EXIF data to prevent privacy leaks
+        try:
+            image = Image.open(file.file)
+            # Remove EXIF if present
+            if "exif" in image.info:
+                del image.info["exif"]
+            
+            output = io.BytesIO()
+            img_format = image.format or "JPEG"
+            if img_format == "JPEG" and image.mode in ("RGBA", "P"):
+                image = image.convert("RGB")
+            
+            image.save(output, format=img_format)
+            file_size = output.tell()
+            output.seek(0)
+            file_data = output
+        except Exception as e:
+            print(f"[Pillow ERROR] Fallo al limpiar EXIF: {e}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="El archivo proporcionado no es una imagen válida o está corrupto."
+            )
+        
         # 2. Generamos un nombre único (UUID + extensión original)
         extension = os.path.splitext(file.filename)[1]
         nombre_unico = f"{uuid.uuid4()}{extension}"
@@ -30,8 +55,8 @@ def subir_imagen_minio(file: UploadFile) -> str:
         minio_client.put_object(
             bucket_name=settings.MINIO_BUCKET_NAME,  # Ej: "unl-eventos-media"
             object_name=nombre_unico,
-            data=file.file,
-            length=file.size,
+            data=file_data,
+            length=file_size,
             content_type=file.content_type
         )
         

@@ -22,7 +22,7 @@ class Settings(BaseSettings):
         "http://localhost:8000",   # Kong Gateway
         "http://localhost",        # Contenedores internos
         "http://127.0.0.1:5173",   # Loopback
-        "*"                        # (Recuerda quitar el '*' en producción)
+        # ⚠️  En producción añade aquí tu dominio real o usa la variable BACKEND_CORS_ORIGINS en .env
     ]
 
     # Variables para la Autenticación y Base de Datos
@@ -32,8 +32,9 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 día de duración
     DATABASE_URL: str  # Pydantic la jalará automáticamente del .env
 
-    # Variable necesaria para validar la sesión de Google
-    GOOGLE_CLIENT_ID: str = "" 
+    # Variable necesaria para validar la sesión de Google.
+    # IMPORTANTE: Debe definirse en el .env. Sin este valor, el login con Google fallará.
+    GOOGLE_CLIENT_ID: str
 
     # URL del frontend (para enlaces en correos de recuperación, etc.)
     FRONTEND_URL: str = "http://localhost:5173"

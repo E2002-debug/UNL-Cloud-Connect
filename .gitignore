@@ -156,6 +156,18 @@ ENV/
 env.bak/
 venv.bak/
 
+# ⚠️  SEGURIDAD: NUNCA subir archivos .env con credenciales reales
+.env
+.env.*
+!.env.example
+!.env.*.example
+backend/**/.env
+backend/**/.env.*
+frontend-web/.env
+frontend-web/.env.*
+frontend-mobile/.env
+frontend-mobile/.env.*
+
 # Spyder project settings
 .spyderproject
 .spyproject

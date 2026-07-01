@@ -8,10 +8,7 @@
       "distribution": "internal"
     },
     "preview": {
-      "distribution": "internal",
-      "env": {
-        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "883175682519-tv0t5ndf3185sdimdjd6ro9hack12m7r.apps.googleusercontent.com"
-      }
+      "distribution": "internal"
     },
     "production": {}
   },

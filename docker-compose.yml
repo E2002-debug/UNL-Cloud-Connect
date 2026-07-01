@@ -6,7 +6,7 @@ services:
     restart: always
     environment:
       POSTGRES_USER: postgres_admin
-      POSTGRES_PASSWORD: postgres123456
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?ERROR: Define POSTGRES_PASSWORD en tu entorno}
     ports:
       - "5433:5432"
     volumes:
@@ -22,7 +22,8 @@ services:
       - "1884:1883" # Puerto para la comunicación del ESP32
       - "9003:9001" # Puerto para WebSockets
     volumes:
-      - ./infraestructura/mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./infraestructura/mosquitto/config/mosquitto_secure.conf:/mosquitto/config/mosquitto.conf:ro
+      - ./infraestructura/mosquitto/config/passwd:/mosquitto/config/passwd:ro
       - ./infraestructura/mosquitto/data:/mosquitto/data
       - ./infraestructura/mosquitto/log:/mosquitto/log
 
@@ -59,7 +60,7 @@ services:
     restart: always
     # Se agrega asyncpg a las instalaciones en caliente para conectar con PostgreSQL de forma asíncrona
     command: >
-      sh -c "pip install --no-cache-dir --break-system-packages --upgrade email-validator==2.1.1 fastapi-mail==1.4.1 dnspython==2.6.1 asyncpg &&  uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+      sh -c "pip install --no-cache-dir --break-system-packages --upgrade email-validator==2.1.1 fastapi-mail==1.4.1 dnspython==2.6.1 asyncpg && uvicorn app.main:app --host 0.0.0.0 --port 8000"
     volumes:
       - ./backend/ms_gestion_usuarios/app:/app/app
     env_file:
@@ -74,7 +75,7 @@ services:
       dockerfile: Dockerfile
     container_name: unl_ms_clima
     restart: always
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     volumes:
       - ./backend/ms_clima/app:/app/app
     env_file:
@@ -92,7 +93,7 @@ services:
       dockerfile: Dockerfile
     container_name: unl_ms_eventos
     restart: always
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     volumes:
       - ./backend/ms_eventos/app:/app/app
     env_file:
@@ -107,7 +108,7 @@ services:
       dockerfile: Dockerfile
     container_name: unl_ms_notificaciones
     restart: always
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     volumes:
       - ./backend/ms_notificaciones/app:/app/app
 
@@ -122,11 +123,12 @@ services:
       KONG_PROXY_ACCESS_LOG: /dev/stdout
       KONG_PROXY_ERROR_LOG: /dev/stderr
       KONG_PROXY_LISTEN: 0.0.0.0:8000
-      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+      KONG_ADMIN_LISTEN: 127.0.0.1:8001  # Solo accesible dentro del contenedor (VULN-11 fix)
       KONG_CLIENT_MAX_BODY_SIZE: 5m
     ports:
       - "8000:8000" # Puerto expuesto para el Frontend
-      - "8001:8001" # Puerto de administración de Kong
+      # ⚠️  SEGURIDAD: Puerto 8001 (Kong Admin) NO expuesto al exterior.
+      # Para acceder internamente: docker exec -it unl_api_gateway kong reload
     volumes:
       - ./infraestructura/kong/kong.yml:/kong/declarative/kong.yml
     depends_on:
@@ -142,8 +144,8 @@ services:
       dockerfile: Dockerfile
       args:
         VITE_API_BASE: /api
-        VITE_GOOGLE_CLIENT_ID: 883175682519-tv0t5ndf3185sdimdjd6ro9hack12m7r.apps.googleusercontent.com
-        VITE_WEATHER_API_KEY: 55XRUAGTP4TFSKN476BELXZDD
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID:?ERROR: Define VITE_GOOGLE_CLIENT_ID en tu entorno}
+        VITE_WEATHER_API_KEY: ${VITE_WEATHER_API_KEY:?ERROR: Define VITE_WEATHER_API_KEY en tu entorno}
     container_name: unl_frontend_web
     restart: always
     ports:
@@ -158,8 +160,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin # Te pedirá cambiarla al primer inicio
+      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-admin}
+      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:?ERROR: Define GRAFANA_ADMIN_PASSWORD en tu entorno}
     volumes:
       - grafana_data:/var/lib/grafana
     depends_on:

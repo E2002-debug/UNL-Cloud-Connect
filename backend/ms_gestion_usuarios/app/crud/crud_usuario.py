@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.models.usuario import Usuario
 from app.schemas.usuario import UsuarioCreate
 from app.core.security import obtener_hash_clave
+from sqlalchemy.exc import IntegrityError
 
 def obtener_usuario_por_correo(db: Session, correo: str):
     """
@@ -48,8 +49,16 @@ def crear_usuario(db: Session, usuario: UsuarioCreate, verificado: bool = False)
     
     # Persistir en la base de datos
     db.add(db_usuario)
-    db.commit()
-    db.refresh(db_usuario)
+    try:
+        db.commit()
+        db.refresh(db_usuario)
+    except IntegrityError:
+        db.rollback()
+        from fastapi import HTTPException, status
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Error de integridad: Ya existe un registro con estos datos únicos (ej. correo duplicado)."
+        )
     
     return db_usuario
 

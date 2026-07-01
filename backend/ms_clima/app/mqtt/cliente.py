@@ -8,7 +8,15 @@ from app.database.session import SessionLocal
 from app.crud import crud_sensor, crud_clima
 from app.schemas.clima import ClimaPayload
 
+import os
+
 cliente_mqtt = MQTTClient("unl-backend-fastapi")
+
+# Credenciales de autenticación MQTT (requeridas por Mosquitto — VULN-10 fix)
+_MQTT_USER = os.getenv("MQTT_USERNAME", "ms-clima")
+_MQTT_PASS = os.getenv("MQTT_PASSWORD", "")
+if _MQTT_PASS:
+    cliente_mqtt.set_auth_credentials(_MQTT_USER, _MQTT_PASS)
 
 REGISTRO_SENSORES = {}
 
@@ -90,6 +98,7 @@ cliente_mqtt.on_disconnect = on_disconnect
 async def iniciar_mqtt():
     try:
         await cliente_mqtt.connect(settings.MQTT_BROKER_HOST, 1883, keepalive=60)
+        print(f"[MQTT] Conectado a {settings.MQTT_BROKER_HOST} como usuario '{_MQTT_USER}'")
     except Exception as e:
         print(f"[MQTT-CRÍTICO] No se pudo conectar al broker Mosquitto: {e}")
 

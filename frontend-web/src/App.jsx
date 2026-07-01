@@ -18,7 +18,15 @@ import MobileOnly from './pages/MobileOnly'
  */
 const GuardedRoute = ({ element: Element }) => {
   const token = localStorage.getItem('access_token')
-  const idRol = localStorage.getItem('id_rol')
+  let idRol = null
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      idRol = payload.id_rol || localStorage.getItem('id_rol')
+    } catch (e) {
+      idRol = localStorage.getItem('id_rol')
+    }
+  }
 
   // 1. Si no hay token, directo al login
   if (!token) {
@@ -42,7 +50,15 @@ const GuardedRoute = ({ element: Element }) => {
 
 export default function App() {
   const token = localStorage.getItem('access_token')
-  const idRol = localStorage.getItem('id_rol')
+  let idRol = null
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      idRol = payload.id_rol || localStorage.getItem('id_rol')
+    } catch (e) {
+      idRol = localStorage.getItem('id_rol')
+    }
+  }
 
   // Admin (1) y Superadmin (3) van al dashboard; Participante (2) va a página móvil
   const isAdmin = token && (String(idRol) === '1' || String(idRol) === '3')
