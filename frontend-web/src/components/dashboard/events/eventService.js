@@ -33,6 +33,13 @@ export const deleteEvento = async (id) => {
   return response.data;
 };
 
+export const deleteFisicoEvento = async (id) => {
+  const response = await api.delete(`/eventos/${id}/fisico`, {
+    headers: { ...getUserHeaders() },
+  });
+  return response.data;
+};
+
 export const getUbicaciones = async () => {
   const response = await api.get("/eventos/ubicaciones/");
   return response.data;

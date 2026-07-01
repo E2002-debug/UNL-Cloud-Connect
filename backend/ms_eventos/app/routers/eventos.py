@@ -130,6 +130,9 @@ def actualizar_datos_evento(
     if not evento_existente:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se puede actualizar. Evento no encontrado.")
     
+    if evento_existente.id_usuario != id_usuario:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No eres el dueño de este evento, por eso no se puede modificar.")
+    
     return crud_evento.actualizar_evento(db, db_evento=evento_existente, evento_in=evento_in)
 
 @router.delete("/{id_evento}", response_model=EventoResponse, status_code=status.HTTP_200_OK)
@@ -148,11 +151,36 @@ def cancelar_evento(
     if not evento_existente:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se puede cancelar. Evento no encontrado.")
     
+    if evento_existente.id_usuario != id_usuario:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No eres el dueño de este evento, por eso no se puede cancelar.")
+    
     # Previene la sobreescritura si el evento ya fue dado de baja previamente
     if evento_existente.estado == ProgresoEvento.CANCELADO:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El evento ya se encuentra en estado cancelado.")
         
     return crud_evento.eliminar_evento(db, db_evento=evento_existente)
+
+@router.delete("/{id_evento}/fisico", status_code=status.HTTP_200_OK)
+def eliminar_evento_fisicamente(
+    id_evento: int,
+    db: Session = Depends(get_db),
+    id_usuario: int = Depends(obtener_id_usuario_gateway),
+    rol_validado: int = Depends(verificar_rol_administrador)
+):
+    """
+    Realiza un borrado físico (Hard Delete).
+    Elimina permanentemente el evento de la base de datos.
+    """
+    evento_existente = crud_evento.obtener_evento_por_id(db, id_evento)
+    if not evento_existente:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se puede eliminar. Evento no encontrado.")
+    
+    if evento_existente.id_usuario != id_usuario:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No eres el dueño de este evento, por eso no se puede eliminar.")
+    
+    crud_evento.borrar_evento_fisico(db, db_evento=evento_existente)
+    return {"mensaje": "Evento eliminado permanentemente."}
+
 
 # ==========================================
 # VALIDACIONES DE LA ADUANA (HU_05)

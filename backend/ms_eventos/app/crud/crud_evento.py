@@ -111,3 +111,10 @@ def eliminar_evento(db: Session, db_evento: Evento):
     db.refresh(db_evento)
     
     return db_evento
+def borrar_evento_fisico(db: Session, db_evento: Evento):
+    """
+    Eliminación física del evento en la base de datos (Hard Delete).
+    """
+    db.delete(db_evento)
+    db.commit()
+    return True

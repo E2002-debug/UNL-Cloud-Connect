@@ -15,7 +15,7 @@ import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import EventTable from "./EventTable";
 import EventModal from "./EventModal";
-import { getEventos, createEvento, updateEvento, deleteEvento, uploadImage } from "./eventService";
+import { getEventos, createEvento, updateEvento, deleteEvento, deleteFisicoEvento, uploadImage } from "./eventService";
 
 // Iconos SVG integrados para no depender de librerías externas
 const IconPlus = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>;
@@ -94,6 +94,18 @@ export default function Events() {
     } catch (error) {
       console.error("Error al cancelar evento:", error);
       toast.error("Error al cancelar el evento");
+    }
+  };
+
+  const eliminarFisicamente = async (id) => {
+    if (!window.confirm("¡ATENCIÓN! ¿Está seguro de que desea ELIMINAR permanentemente este evento? Esta acción no se puede deshacer.")) return;
+    try {
+      await deleteFisicoEvento(id);
+      cargarEventos();
+      toast.success("Evento eliminado de forma permanente");
+    } catch (error) {
+      console.error("Error al eliminar evento físicamente:", error);
+      toast.error("Error al eliminar el evento");
     }
   };
 
@@ -210,7 +222,7 @@ export default function Events() {
         </div>
 
         {/* COMPONENTE TABLA */}
-        <EventTable eventos={eventosPorTab} onEdit={openEdit} onDelete={eliminarEvento} />
+        <EventTable eventos={eventosPorTab} onEdit={openEdit} onDelete={eliminarEvento} onDeleteFisico={eliminarFisicamente} />
       </div>
 
       <EventModal open={openModal} onClose={() => { setOpenModal(false); setEditando(null); }} onSave={guardarEvento} editando={editando} />
