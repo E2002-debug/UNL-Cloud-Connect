@@ -1,3 +1,9 @@
+# Autor: Miguel Luna
+# Fecha: 07/07/2026
+# Version: 1.1
+# Historial:
+# 07/07/2026 v1.1 - Miguel Luna: Endurecimiento de seguridad del entorno Docker. Securización de puertos a 127.0.0.1, permisos de solo lectura para cAdvisor, y ofuscación de credenciales en contenedor init de MinIO.
+
 services:
   # 1. Base de Datos Relacional (PostgreSQL)
   db:
@@ -7,7 +13,7 @@ services:
     env_file:
       - ./infraestructura/postgres/.env  # POSTGRES_USER y POSTGRES_PASSWORD vienen de aquí
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infraestructura/postgres/init.sh:/docker-entrypoint-initdb.d/init.sh
@@ -32,8 +38,8 @@ services:
     container_name: unl_minio_storage
     restart: always
     ports:
-      - "9005:9000" # Puerto de la API de MinIO
-      - "9002:9001" # Consola Web de administración
+      - "127.0.0.1:9005:9000" # Puerto de la API de MinIO
+      - "127.0.0.1:9002:9001" # Consola Web de administración
     env_file:
       - ./backend/ms_eventos/.env
     command: server /data --console-address ":9001"
@@ -49,7 +55,7 @@ services:
     env_file:
       - ./backend/ms_eventos/.env # <-- También inyectamos las variables aquí
     entrypoint: >
-      /bin/sh -c " sleep 5; mc alias set myminio http://minio:9000 $$MINIO_ROOT_USER $$MINIO_ROOT_PASSWORD; mc mb myminio/$$MINIO_BUCKET_NAME --ignore-existing; mc anonymous set download myminio/$$MINIO_BUCKET_NAME; exit 0; "
+      /bin/sh -c " sleep 5; export MC_HOST_myminio=http://$$MINIO_ROOT_USER:$$MINIO_ROOT_PASSWORD@minio:9000; mc mb myminio/$$MINIO_BUCKET_NAME --ignore-existing; mc anonymous set download myminio/$$MINIO_BUCKET_NAME; exit 0; "
   # 4. Microservicio de Identidad (Login, Registro, Roles)
   ms-gestion-usuarios:
     build:
@@ -157,7 +163,7 @@ services:
     container_name: unl_grafana
     restart: always
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"
     env_file:
       - ./infraestructura/grafana/.env  # GF_SECURITY_ADMIN_USER y GF_SECURITY_ADMIN_PASSWORD vienen de aquí
     volumes:
@@ -172,7 +178,7 @@ services:
     container_name: unl_prometheus
     restart: always
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
     volumes:
       - ./infraestructura/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
       - prometheus_data:/prometheus
@@ -183,7 +189,7 @@ services:
     container_name: unl_node_exporter
     restart: always
     ports:
-      - "9100:9100"
+      - "127.0.0.1:9100:9100"
 
   # 13. Agente de Monitoreo de Contenedores (cAdvisor)
   cadvisor:
@@ -191,10 +197,10 @@ services:
     container_name: unl_cadvisor
     restart: always
     ports:
-      - "8081:8080" # El puerto 8080 está ocupado por Kong, exponemos en el 8081
+      - "127.0.0.1:8081:8080" # El puerto 8080 está ocupado por Kong, exponemos en el 8081
     volumes:
       - /:/rootfs:ro
-      - /var/run:/var/run:rw
+      - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
 

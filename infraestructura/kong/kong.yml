@@ -1,3 +1,9 @@
+# Autor: Miguel Luna
+# Fecha: 07/07/2026
+# Version: 1.1
+# Historial:
+# 07/07/2026 v1.1 - Miguel Luna: Integración de la ruta para ms-notificaciones y configuración del plugin request-transformer para mitigación de vulnerabilidad RBAC (Strip Headers).
+
 _format_version: "3.0"
 _transform: true
 
@@ -27,12 +33,28 @@ services:
 
   # 3. Servicio de Eventos 
   - name: servicio-eventos
-    url: http://unl_ms_eventos:8000 # Nombre del contenedor en docker-compose
+    url: http://ms-eventos:8000 
     routes:
       - name: ruta-eventos
         paths:
           - /api/eventos  
           - /api/imagenes
+        strip_path: false
+    plugins:
+      - name: request-transformer
+        config:
+          remove:
+            headers:
+              - x-user-id
+              - x-user-role
+
+  # 4. Servicio de Notificaciones
+  - name: servicio-notificaciones
+    url: http://ms-notificaciones:8000
+    routes:
+      - name: ruta-notificaciones
+        paths:
+          - /api/notificaciones
         strip_path: false
 
 # ==========================================

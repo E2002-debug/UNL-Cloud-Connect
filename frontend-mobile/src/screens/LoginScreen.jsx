@@ -1,13 +1,15 @@
 // Autor: David Guamán
-// Fecha: 27/06/2026
-// Version: 0.1
+// Fecha: 07/07/2026
+// Version: 0.2
 // Historial:
 // 27/06/2026 v0.1 - David Guamán: Implementación de la pantalla de inicio de sesión con soporte para autenticación estándar y botón integrado con el logo vectorial oficial de Google.
+// 07/07/2026 v0.2 - Miguel Luna: Implementación de captura y registro de Expo Push Token en los flujos de login.
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, TextInput, Image } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
+import * as Notifications from 'expo-notifications';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import { login, loginGoogle } from '../services/api';
@@ -44,6 +46,29 @@ try {
   statusCodes = GoogleModule.statusCodes;
 } catch (error) {
   console.warn("Google Sign-In native module not found or not linked. Running Google Auth in simulation mode.");
+}
+
+async function registerForPushNotificationsAsync() {
+  // Pide permiso al usuario
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+  
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+  
+  if (finalStatus !== 'granted') {
+    alert('Failed to get push token for push notification!');
+    return null;
+  }
+  
+  // Obtiene el token único de este teléfono
+  const token = (await Notifications.getExpoPushTokenAsync({
+    projectId: process.env.EXPO_PUBLIC_PROJECT_ID || 'unl-cloud-connect'
+  })).data;
+  console.log("Mi Expo Push Token es:", token);
+  return token;
 }
 
 export default function LoginScreen({ navigation }) {
@@ -90,6 +115,14 @@ export default function LoginScreen({ navigation }) {
         email: res.correo || username,
         token: res.access_token,
       };
+
+      // Obtener token push al iniciar sesión
+      const pushToken = await registerForPushNotificationsAsync();
+      if (pushToken) {
+        // AQUÍ: Enviar este token a tu backend para guardarlo en la Base de Datos
+        // await api.post('/auth/guardar-token', { expo_push_token: pushToken });
+        console.log("Token a enviar al backend:", pushToken);
+      }
 
       navigation.replace('Participant', { user: userProfile });
     } catch (err) {
@@ -149,6 +182,14 @@ export default function LoginScreen({ navigation }) {
         email: res.correo,
         token: res.access_token,
       };
+
+      // Obtener token push al iniciar sesión con Google
+      const pushToken = await registerForPushNotificationsAsync();
+      if (pushToken) {
+        // AQUÍ: Enviar este token a tu backend
+        // await api.post('/auth/guardar-token', { expo_push_token: pushToken });
+        console.log("Token a enviar al backend:", pushToken);
+      }
 
       navigation.replace('Participant', { user: userProfile });
     } catch (err) {
