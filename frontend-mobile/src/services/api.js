@@ -77,8 +77,8 @@ export const resetPassword = async (payload) => {
 };
 
 // --- EVENTS & CLIMATE ENDPOINTS ---
-export const getEventos = async () => {
-  const res = await api.get('/eventos/activos');
+export const getEventos = async (skip = 0, limit = 10) => {
+  const res = await api.get(`/eventos/activos?skip=${skip}&limit=${limit}`);
   return res.data;
 };
 

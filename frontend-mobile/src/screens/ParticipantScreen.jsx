@@ -59,6 +59,11 @@ export default function ParticipantScreen({ route, navigation }) {
   // Feed States
   const [events, setEvents] = useState([]);
   const [loadingEvents, setLoadingEvents] = useState(false);
+  const [loadingMoreEvents, setLoadingMoreEvents] = useState(false);
+  const [hasMoreEvents, setHasMoreEvents] = useState(true);
+  const [eventsSkip, setEventsSkip] = useState(0);
+  const EVENTS_LIMIT = 10;
+  
   const [selectedStatusFilter, setSelectedStatusFilter] = useState('TODOS');
   const [eventsReactions, setEventsReactions] = useState({});
   
@@ -75,32 +80,69 @@ export default function ParticipantScreen({ route, navigation }) {
     loadWeather();
   }, []);
 
+  const fetchReactionsForEvents = async (data, resetReactions = false) => {
+    const reactionsData = {};
+    await Promise.all(
+      data.map(async (evt) => {
+        const coverImg = evt.imagenes?.find(img => img.id_usuario === evt.id_usuario);
+        if (coverImg) {
+          try {
+            const res = await obtenerReaccionesImagen(coverImg.id_imagen);
+            reactionsData[coverImg.id_imagen] = res;
+          } catch (err) {
+            console.error(`Error loading reactions for cover image ${coverImg.id_imagen}:`, err);
+          }
+        }
+      })
+    );
+    if (resetReactions) {
+      setEventsReactions(reactionsData);
+    } else {
+      setEventsReactions(prev => ({ ...prev, ...reactionsData }));
+    }
+  };
+
   const loadEvents = async () => {
     try {
       setLoadingEvents(true);
-      const data = await getEventos();
+      setEventsSkip(0);
+      setHasMoreEvents(true);
+      
+      const data = await getEventos(0, EVENTS_LIMIT);
+      
+      if (data.length < EVENTS_LIMIT) setHasMoreEvents(false);
+      
       setEvents(data);
-
-      // Fetch reactions for the cover image of each event in parallel
-      const reactionsData = {};
-      await Promise.all(
-        data.map(async (evt) => {
-          const coverImg = evt.imagenes?.find(img => img.id_usuario === evt.id_usuario);
-          if (coverImg) {
-            try {
-              const res = await obtenerReaccionesImagen(coverImg.id_imagen);
-              reactionsData[coverImg.id_imagen] = res;
-            } catch (err) {
-              console.error(`Error loading reactions for cover image ${coverImg.id_imagen}:`, err);
-            }
-          }
-        })
-      );
-      setEventsReactions(reactionsData);
+      await fetchReactionsForEvents(data, true);
     } catch (err) {
       console.error('Error al cargar eventos:', err);
     } finally {
       setLoadingEvents(false);
+    }
+  };
+
+  const loadMoreEvents = async () => {
+    if (loadingMoreEvents || !hasMoreEvents || loadingEvents) return;
+    
+    try {
+      setLoadingMoreEvents(true);
+      const nextSkip = eventsSkip + EVENTS_LIMIT;
+      const data = await getEventos(nextSkip, EVENTS_LIMIT);
+      
+      if (data.length === 0) {
+        setHasMoreEvents(false);
+        return;
+      }
+      
+      if (data.length < EVENTS_LIMIT) setHasMoreEvents(false);
+      
+      setEvents(prev => [...prev, ...data]);
+      setEventsSkip(nextSkip);
+      await fetchReactionsForEvents(data, false);
+    } catch (err) {
+      console.error('Error al cargar más eventos:', err);
+    } finally {
+      setLoadingMoreEvents(false);
     }
   };
 
@@ -317,6 +359,13 @@ export default function ParticipantScreen({ route, navigation }) {
           contentContainerStyle={styles.listContainer}
           refreshing={loadingEvents}
           onRefresh={loadEvents}
+          onEndReached={loadMoreEvents}
+          onEndReachedThreshold={0.5}
+          ListFooterComponent={
+            loadingMoreEvents ? (
+              <ActivityIndicator size="small" color="#0F766E" style={{ marginVertical: 16 }} />
+            ) : null
+          }
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Info size={40} color="#9CA3AF" />
