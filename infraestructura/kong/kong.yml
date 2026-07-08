@@ -7,6 +7,33 @@
 _format_version: "3.0"
 _transform: true
 
+plugins:
+  - name: cors
+    config:
+      origins:
+        - "http://localhost:5173"
+        - "http://127.0.0.1:5173"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      headers:
+        - Accept
+        - Accept-Version
+        - Content-Length
+        - Content-MD5
+        - Content-Type
+        - Date
+        - X-Auth-Token
+        - Authorization
+        - x-user-id
+        - x-user-role
+      credentials: true
+      max_age: 3600
+
 # ==========================================
 # DEFINICIÓN DE SERVICIOS (Tus Microservicios)
 # ==========================================
@@ -40,13 +67,7 @@ services:
           - /api/eventos  
           - /api/imagenes
         strip_path: false
-    plugins:
-      - name: request-transformer
-        config:
-          remove:
-            headers:
-              - x-user-id
-              - x-user-role
+
 
   # 4. Servicio de Notificaciones
   - name: servicio-notificaciones

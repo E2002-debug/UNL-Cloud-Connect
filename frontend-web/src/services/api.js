@@ -12,19 +12,28 @@ const api = axios.create({
   withCredentials: true  // Incluir cookies y credenciales en las peticiones
 })
 
+// Función para decodificar JWT sin librerías externas
+const decodeJWT = (token) => {
+  try {
+    return JSON.parse(atob(token.split('.')[1]));
+  } catch (e) {
+    return null;
+  }
+};
+
 // Interceptor para inyectar el token JWT en todas las peticiones
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
+    
+    // Inyectar headers para ms_eventos decodificando el JWT
+    const payload = decodeJWT(token);
+    if (payload) {
+      config.headers['x-user-role'] = payload.id_rol ? String(payload.id_rol) : '1';
+      config.headers['x-user-id'] = payload.id_usuario ? String(payload.id_usuario) : '1';
+    }
   }
-  
-  // Inyectar headers para ms_eventos (ya que confía ciegamente en ellos según AGENTS.md)
-  const idRol = localStorage.getItem('id_rol')
-  const idUsuario = localStorage.getItem('id_usuario')
-  
-  if (idRol) config.headers['x-user-role'] = idRol
-  if (idUsuario) config.headers['x-user-id'] = idUsuario
   
   return config
 }, (error) => {

@@ -34,11 +34,18 @@ export default function Login() {
   // Redirigir si el usuario ya está autenticado (evita acceso manual a /login)
   useEffect(() => {
     const token = localStorage.getItem('access_token')
-    const idRol = localStorage.getItem('id_rol')
-    if (token && (String(idRol) === '1' || String(idRol) === '3') && !searchParams.get('logout')) {
-      navigate('/dashboard', { replace: true })
-    } else if (token && String(idRol) === '2' && !searchParams.get('logout')) {
-      navigate('/solo-app-movil', { replace: true })
+    if (token && !searchParams.get('logout')) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]))
+        const idRol = String(payload.id_rol)
+        if (idRol === '1' || idRol === '3') {
+          navigate('/dashboard', { replace: true })
+        } else if (idRol === '2') {
+          navigate('/solo-app-movil', { replace: true })
+        }
+      } catch (e) {
+        localStorage.removeItem('access_token')
+      }
     }
   }, [navigate, searchParams])
 
@@ -69,13 +76,8 @@ export default function Login() {
       return
     }
 
-    // Persistencia síncrona inmediata en el cliente
+    // Persistencia síncrona inmediata en el cliente SOLO DEL TOKEN DE ACCESO
     localStorage.setItem('access_token', String(tokenFinal))
-    localStorage.setItem('id_usuario', String(idUsuario))
-    localStorage.setItem('id_rol', String(userRole))
-    localStorage.setItem('nombre', String(nombre))
-    localStorage.setItem('apellido', String(apellido))
-    localStorage.setItem('correo', String(correo))
 
     toast.success(`Bienvenido de nuevo, ${nombre}`)
 

@@ -10,7 +10,7 @@ from .schemas import PushRequest, EventoNotificacionRequest
 from .services import enviar_push_expo, procesar_notificacion_evento
 from .config import settings
 from gmqtt import Client as MQTTClient
-from gmqtt.mqtt.constants import MQTT_v311
+from gmqtt.mqtt.constants import MQTTv311
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -37,11 +37,17 @@ def on_message(client, topic, payload, qos, properties):
 
 mqtt_client.on_message = on_message
 
+import os
+_MQTT_USER = os.getenv("MQTT_USERNAME", "ms-clima")
+_MQTT_PASS = os.getenv("MQTT_PASSWORD", "")
+if _MQTT_PASS:
+    mqtt_client.set_auth_credentials(_MQTT_USER, _MQTT_PASS)
+
 @app.on_event("startup")
 async def startup_event():
     logger.info(f"Conectando al Broker MQTT en {settings.MQTT_BROKER_HOST}:{settings.MQTT_BROKER_PORT}")
     try:
-        await mqtt_client.connect(settings.MQTT_BROKER_HOST, settings.MQTT_BROKER_PORT, version=MQTT_v311)
+        await mqtt_client.connect(settings.MQTT_BROKER_HOST, settings.MQTT_BROKER_PORT, version=MQTTv311)
         mqtt_client.subscribe("clima/alerta")
         logger.info("Suscripción a 'clima/alerta' exitosa")
     except Exception as e:

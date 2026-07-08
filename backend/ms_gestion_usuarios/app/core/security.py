@@ -38,7 +38,7 @@ def verificar_clave(clave_plana: str, clave_hasheada: str) -> bool:
 def obtener_hash_clave(clave: str) -> str:
     return pwd_context.hash(clave)
 
-def crear_token_acceso(sujeto: Any, id_rol: int = None, tiempo_expiracion: timedelta = None) -> str:
+def crear_token_acceso(sujeto: Any, id_rol: int = None, id_usuario: int = None, nombre: str = None, apellido: str = None, tiempo_expiracion: timedelta = None) -> str:
     """
     Genera un token JWT firmado para el usuario autenticado.
     """
@@ -52,6 +52,12 @@ def crear_token_acceso(sujeto: Any, id_rol: int = None, tiempo_expiracion: timed
     to_encode = {"exp": expire, "sub": str(sujeto)}
     if id_rol is not None:
         to_encode["id_rol"] = id_rol
+    if id_usuario is not None:
+        to_encode["id_usuario"] = id_usuario
+    if nombre is not None:
+        to_encode["nombre"] = nombre
+    if apellido is not None:
+        to_encode["apellido"] = apellido
     
     # Firmamos el token usando los secretos de config.py
     encoded_jwt = jwt.encode(to_encode, settings.SECRET_KEY, algorithm=settings.ALGORITHM)

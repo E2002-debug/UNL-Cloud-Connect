@@ -243,3 +243,7 @@ frontend-mobile/.expo/
 
 # VS Code project settings
 .vscode/
+
+# Mosquitto
+infraestructura/mosquitto/data/
+infraestructura/mosquitto/log/

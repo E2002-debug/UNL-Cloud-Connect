@@ -1,9 +1,6 @@
 import api from './api';
 
-const adminHeaders = () => ({
-  'x-user-role': localStorage.getItem('id_rol'),
-  'x-user-id': localStorage.getItem('id_usuario'),
-});
+
 
 export const listarUbicaciones = async () => {
   const res = await api.get('/eventos/ubicaciones/');
@@ -11,23 +8,17 @@ export const listarUbicaciones = async () => {
 };
 
 export const crearUbicacion = async (data) => {
-  const res = await api.post('/eventos/ubicaciones/', data, {
-    headers: adminHeaders(),
-  });
+  const res = await api.post('/eventos/ubicaciones/', data);
   return res.data;
 };
 
 export const actualizarUbicacion = async (id, data) => {
-  const res = await api.put(`/eventos/ubicaciones/${id}`, data, {
-    headers: adminHeaders(),
-  });
+  const res = await api.put(`/eventos/ubicaciones/${id}`, data);
   return res.data;
 };
 
 export const eliminarUbicacion = async (id) => {
-  const res = await api.delete(`/eventos/ubicaciones/${id}`, {
-    headers: adminHeaders(),
-  });
+  const res = await api.delete(`/eventos/ubicaciones/${id}`);
   return res.data;
 };
 

@@ -11,16 +11,21 @@ services:
     container_name: unl_postgres_db
     restart: always
     env_file:
-      - ./infraestructura/postgres/.env  # POSTGRES_USER y POSTGRES_PASSWORD vienen de aquí
+      - ./infraestructura/postgres/.env # POSTGRES_USER y POSTGRES_PASSWORD vienen de aquí
     ports:
       - "127.0.0.1:5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infraestructura/postgres/init.sh:/docker-entrypoint-initdb.d/init.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   # 2. Broker MQTT para Telemetría IoT (Mosquitto)
   mqtt-broker:
-    image: eclipse-mosquitto:1.6
+    image: eclipse-mosquitto:2.0
     container_name: unl_mqtt_broker
     restart: always
     ports:
@@ -71,7 +76,8 @@ services:
     env_file:
       - ./backend/ms_gestion_usuarios/.env
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   # 5. Microservicio de Telemetría (ESP32-CAM, IoT)
   ms-clima:
@@ -88,8 +94,10 @@ services:
     environment:
       - MQTT_BROKER_HOST=mqtt-broker
     depends_on:
-      - db
-      - mqtt-broker
+      db:
+        condition: service_healthy
+      mqtt-broker:
+        condition: service_started
 
   # 6. Microservicio de Eventos (Gestión de Eventos y Notificaciones)
   ms-eventos:
@@ -104,7 +112,8 @@ services:
     env_file:
       - ./backend/ms_eventos/.env # <-- Apuntamos a tu nuevo archivo seguro
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   # 7. Microservicio de Notificaciones (Módulo Transversal Aislado)
   ms-notificaciones:
@@ -128,7 +137,7 @@ services:
       KONG_PROXY_ACCESS_LOG: /dev/stdout
       KONG_PROXY_ERROR_LOG: /dev/stderr
       KONG_PROXY_LISTEN: 0.0.0.0:8000
-      KONG_ADMIN_LISTEN: 127.0.0.1:8001  # Solo accesible dentro del contenedor (VULN-11 fix)
+      KONG_ADMIN_LISTEN: 127.0.0.1:8001 # Solo accesible dentro del contenedor (VULN-11 fix)
       KONG_CLIENT_MAX_BODY_SIZE: 5m
     ports:
       - "8000:8000" # Puerto expuesto para el Frontend
@@ -165,7 +174,7 @@ services:
     ports:
       - "127.0.0.1:3000:3000"
     env_file:
-      - ./infraestructura/grafana/.env  # GF_SECURITY_ADMIN_USER y GF_SECURITY_ADMIN_PASSWORD vienen de aquí
+      - ./infraestructura/grafana/.env # GF_SECURITY_ADMIN_USER y GF_SECURITY_ADMIN_PASSWORD vienen de aquí
     volumes:
       - grafana_data:/var/lib/grafana
     depends_on:

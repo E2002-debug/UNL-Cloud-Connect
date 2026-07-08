@@ -32,8 +32,18 @@ const IconFlag = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="non
 
 export default function Dashboard() {
   const [user, setUser] = useState(null)
+  const getTokenPayload = () => {
+    const token = localStorage.getItem('access_token')
+    if (!token) return null
+    try {
+      return JSON.parse(atob(token.split('.')[1]))
+    } catch(e) { return null }
+  }
+  
+  const tokenPayload = getTokenPayload()
+  const initialIdRol = tokenPayload ? String(tokenPayload.id_rol) : null
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'claro')
-  const [activeTab, setActiveTab] = useState(localStorage.getItem('id_rol') === '3' ? 'Usuarios' : 'Dashboard')
+  const [activeTab, setActiveTab] = useState(initialIdRol === '3' ? 'Usuarios' : 'Dashboard')
   const navigate = useNavigate()
 
   // Gestión de Usuarios State
@@ -212,27 +222,34 @@ export default function Dashboard() {
   }, [])
 
   useEffect(() => {
-    const nombre = localStorage.getItem('nombre')
-    const apellido = localStorage.getItem('apellido')
-    const correo = localStorage.getItem('correo')
-    const id_rol = localStorage.getItem('id_rol')
     const token = localStorage.getItem('access_token')
-
     if (!token) {
       navigate('/login')
       return
     }
 
+    let payload = {}
+    try {
+      payload = JSON.parse(atob(token.split('.')[1]))
+    } catch (e) {
+      console.error("Token inválido")
+    }
+
+    const nombre = payload.nombre || 'Usuario'
+    const apellido = payload.apellido || ''
+    const correo = payload.sub || ''
+    const id_rol = payload.id_rol
+
     setUser({
-      nombre: nombre || 'Usuario',
-      apellido: apellido || '',
-      correo: correo || '',
+      nombre: nombre,
+      apellido: apellido,
+      correo: correo,
       id_rol: String(id_rol)
     })
 
     setProfileData({
-      nombre: nombre || '',
-      apellido: apellido || '',
+      nombre: nombre,
+      apellido: apellido,
       clave: ''
     })
 

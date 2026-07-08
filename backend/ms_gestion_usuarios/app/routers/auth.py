@@ -302,7 +302,13 @@ def iniciar_sesion(
         detalles="Inicio de sesión manual"
     ))
         
-    token_acceso = security.crear_token_acceso(sujeto=usuario.correo, id_rol=usuario.id_rol)
+    token_acceso = security.crear_token_acceso(
+        sujeto=usuario.correo, 
+        id_rol=usuario.id_rol,
+        id_usuario=usuario.id_usuario,
+        nombre=usuario.nombre,
+        apellido=usuario.apellido
+    )
     
     return {
         "access_token": token_acceso,
@@ -406,7 +412,13 @@ def iniciar_sesion_google(credenciales: TokenGoogleLogin, request: Request, db: 
     ))
         
     # 3. Generación del token de la app agregando el id_rol para el control de accesos del frontend
-    token_acceso = security.crear_token_acceso(sujeto=usuario.correo, id_rol=usuario.id_rol)
+    token_acceso = security.crear_token_acceso(
+        sujeto=usuario.correo, 
+        id_rol=usuario.id_rol,
+        id_usuario=usuario.id_usuario,
+        nombre=usuario.nombre,
+        apellido=usuario.apellido
+    )
     
     return {
         "access_token": token_acceso,

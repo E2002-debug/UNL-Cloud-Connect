@@ -76,10 +76,7 @@ export default function EventModal({ open, onClose, onSave, editando }) {
 
   const fileInputRef = React.useRef(null);
 
-  const adminHeaders = {
-    "x-user-id": localStorage.getItem("id_usuario") || "1",
-    "x-user-role": localStorage.getItem("id_rol") || "1",
-  };
+
 
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
@@ -296,10 +293,10 @@ export default function EventModal({ open, onClose, onSave, editando }) {
 
       let response;
       if (editandoUbicacion) {
-        response = await api.put(`/eventos/ubicaciones/${editandoUbicacion.id_ubicacion}`, payloadUbicacion, { headers: adminHeaders });
+        response = await api.put(`/eventos/ubicaciones/${editandoUbicacion.id_ubicacion}`, payloadUbicacion);
         toast.success("Ubicación actualizada correctamente");
       } else {
-        response = await api.post("/eventos/ubicaciones/", payloadUbicacion, { headers: adminHeaders });
+        response = await api.post("/eventos/ubicaciones/", payloadUbicacion);
         toast.success("Ubicación creada correctamente");
       }
 
