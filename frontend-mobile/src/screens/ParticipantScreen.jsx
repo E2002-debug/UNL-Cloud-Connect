@@ -155,7 +155,7 @@ export default function ParticipantScreen({ route, navigation }) {
         humedad: data.humidity,
         alerta: false,
         detalles_alerta: data.description || 'Despejado / Soleado',
-        fuente: 'VisualCrossing API'
+        fuente: 'API'
       });
     } catch (err) {
       console.error('Error al cargar clima:', err);
@@ -544,16 +544,7 @@ export default function ParticipantScreen({ route, navigation }) {
             <Text style={styles.roleBadge}>Participante Acreditado</Text>
           </View>
 
-          <View style={styles.profileStats}>
-            <View style={styles.statBox}>
-              <Text style={styles.statVal}>Activo</Text>
-              <Text style={styles.statLabel}>Estado</Text>
-            </View>
-            <View style={styles.statBox}>
-              <Text style={styles.statVal}>Kong</Text>
-              <Text style={styles.statLabel}>Gateway</Text>
-            </View>
-          </View>
+
 
           {/* Settings / Information Menu */}
           <View style={styles.settingsMenu}>

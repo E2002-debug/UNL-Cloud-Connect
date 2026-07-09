@@ -6,7 +6,7 @@
 // 07/07/2026 v0.2 - Miguel Luna: Implementación de captura y registro de Expo Push Token en los flujos de login.
 
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, TextInput, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, TextInput, Image, Platform } from 'react-native';
 import { Eye, EyeOff } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
 import * as Notifications from 'expo-notifications';
@@ -49,6 +49,9 @@ try {
 }
 
 async function registerForPushNotificationsAsync() {
+  if (Platform.OS === 'web') {
+    return null;
+  }
   // Pide permiso al usuario
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;

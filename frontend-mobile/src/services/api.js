@@ -8,6 +8,9 @@ import { Platform } from 'react-native';
 const CLOUD_BACKEND_URL = 'https://unl-cloud-connect.me/api';
 
 const getBaseUrl = () => {
+  if (Platform.OS === 'web') {
+    return 'http://localhost:8000/api';
+  }
   // Si corres en emulador de Android local, 10.0.2.2 redirige al localhost de la PC
   if (__DEV__ && Platform.OS === 'android') {
     // return 'http://10.0.2.2:8000/api';
