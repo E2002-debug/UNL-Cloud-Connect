@@ -1,9 +1,10 @@
 // Autor: David Guamán
 // Fecha: 07/07/2026
-// Version: 0.2
+// Version: 0.3
 // Historial:
 // 27/06/2026 v0.1 - David Guamán: Implementación de la pantalla de inicio de sesión con soporte para autenticación estándar y botón integrado con el logo vectorial oficial de Google.
 // 07/07/2026 v0.2 - Miguel Luna: Implementación de captura y registro de Expo Push Token en los flujos de login.
+// 08/07/2026 v0.3 - Isabel: Fix - registro de push token envuelto en try/catch propio para que un fallo ahí (Expo Go / Web) no rompa el login exitoso.
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, TextInput, Image, Platform } from 'react-native';
@@ -55,17 +56,17 @@ async function registerForPushNotificationsAsync() {
   // Pide permiso al usuario
   const { status: existingStatus } = await Notifications.getPermissionsAsync();
   let finalStatus = existingStatus;
-  
+
   if (existingStatus !== 'granted') {
     const { status } = await Notifications.requestPermissionsAsync();
     finalStatus = status;
   }
-  
+
   if (finalStatus !== 'granted') {
     alert('Failed to get push token for push notification!');
     return null;
   }
-  
+
   // Obtiene el token único de este teléfono
   const token = (await Notifications.getExpoPushTokenAsync({
     projectId: process.env.EXPO_PUBLIC_PROJECT_ID || 'unl-cloud-connect'
@@ -105,12 +106,12 @@ export default function LoginScreen({ navigation }) {
     try {
       const res = await login({ username: username.trim(), password });
       setLoading(false);
-      
+
       if (res.id_rol !== 2) {
         Alert.alert('Acceso Denegado', 'Esta aplicación móvil es de uso exclusivo para participantes.');
         return;
       }
-      
+
       const userProfile = {
         id_usuario: res.id_usuario,
         id_rol: res.id_rol,
@@ -119,12 +120,19 @@ export default function LoginScreen({ navigation }) {
         token: res.access_token,
       };
 
-      // Obtener token push al iniciar sesión
-      const pushToken = await registerForPushNotificationsAsync();
-      if (pushToken) {
-        // AQUÍ: Enviar este token a tu backend para guardarlo en la Base de Datos
-        // await api.post('/auth/guardar-token', { expo_push_token: pushToken });
-        console.log("Token a enviar al backend:", pushToken);
+      // Obtener token push al iniciar sesión.
+      // Envuelto en su propio try/catch: si falla (normal en Expo Go o Web,
+      // donde las notificaciones push remotas no están soportadas desde SDK 51),
+      // NO debe bloquear ni cancelar el login que ya fue exitoso.
+      try {
+        const pushToken = await registerForPushNotificationsAsync();
+        if (pushToken) {
+          // AQUÍ: Enviar este token a tu backend para guardarlo en la Base de Datos
+          // await api.post('/auth/guardar-token', { expo_push_token: pushToken });
+          console.log("Token a enviar al backend:", pushToken);
+        }
+      } catch (pushError) {
+        console.warn('No se pudo registrar el push token (normal en Expo Go/Web):', pushError.message);
       }
 
       navigation.replace('Participant', { user: userProfile });
@@ -186,12 +194,17 @@ export default function LoginScreen({ navigation }) {
         token: res.access_token,
       };
 
-      // Obtener token push al iniciar sesión con Google
-      const pushToken = await registerForPushNotificationsAsync();
-      if (pushToken) {
-        // AQUÍ: Enviar este token a tu backend
-        // await api.post('/auth/guardar-token', { expo_push_token: pushToken });
-        console.log("Token a enviar al backend:", pushToken);
+      // Obtener token push al iniciar sesión con Google.
+      // Envuelto en su propio try/catch por la misma razón que en submit().
+      try {
+        const pushToken = await registerForPushNotificationsAsync();
+        if (pushToken) {
+          // AQUÍ: Enviar este token a tu backend
+          // await api.post('/auth/guardar-token', { expo_push_token: pushToken });
+          console.log("Token a enviar al backend:", pushToken);
+        }
+      } catch (pushError) {
+        console.warn('No se pudo registrar el push token (normal en Expo Go/Web):', pushError.message);
       }
 
       navigation.replace('Participant', { user: userProfile });
@@ -224,15 +237,15 @@ export default function LoginScreen({ navigation }) {
       <View style={styles.card}>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-        <Input 
-          label="Correo institucional" 
-          value={username} 
-          onChangeText={setUsername} 
-          placeholder="usuario.apellido@unl.edu.ec" 
+        <Input
+          label="Correo institucional"
+          value={username}
+          onChangeText={setUsername}
+          placeholder="usuario.apellido@unl.edu.ec"
           keyboardType="email-address"
           autoCapitalize="none"
         />
-        
+
         <View style={styles.inputGroup}>
           <Text style={styles.label}>Contraseña</Text>
           <View style={styles.passwordInputContainer}>
@@ -244,7 +257,7 @@ export default function LoginScreen({ navigation }) {
               secureTextEntry={!showPassword}
               autoCapitalize="none"
             />
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setShowPassword(!showPassword)}
               style={styles.passwordToggle}
             >
@@ -262,23 +275,23 @@ export default function LoginScreen({ navigation }) {
         ) : (
           <View style={styles.buttonContainer}>
             <Button onPress={submit}>Iniciar sesión</Button>
-            
+
             <View style={styles.dividerContainer}>
               <View style={styles.dividerLine} />
               <Text style={styles.dividerText}>o</Text>
               <View style={styles.dividerLine} />
             </View>
 
-            <TouchableOpacity 
-              onPress={signInWithGoogle} 
+            <TouchableOpacity
+              onPress={signInWithGoogle}
               style={styles.googleButton}
             >
               <GoogleIcon />
               <Text style={styles.googleButtonText}>Iniciar sesión con Google</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity 
-              onPress={() => navigation.navigate('Register')} 
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Register')}
               style={styles.registerLink}
             >
               <Text style={styles.registerLinkText}>¿No tienes cuenta? Regístrate aquí</Text>

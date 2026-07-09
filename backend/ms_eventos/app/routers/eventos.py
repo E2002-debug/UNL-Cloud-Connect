@@ -401,28 +401,67 @@ def listar_imagenes_reportadas(
 # ==========================================
 # ENDPOINT ADMIN: Eliminar imagen (físico + DB)
 # ==========================================
+# @router.delete("/imagenes/{id_imagen}", status_code=status.HTTP_200_OK)
+# def eliminar_imagen_endpoint(
+#     id_imagen: int,
+#     db: Session = Depends(get_db),
+#     id_usuario: int = Depends(obtener_id_usuario_gateway),
+#     rol_validado: int = Depends(verificar_rol_administrador)
+# ):
+#     """
+#     Elimina físicamente la imagen de MinIO y su registro de la base de datos.
+#     Poder absoluto del administrador.
+#     """
+#     imagen = crud_imagen.obtener_imagen_por_id(db, id_imagen)
+#     if not imagen:
+#         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La imagen no existe.")
+
+#     url_minio = crud_imagen.eliminar_registro_imagen(db, id_imagen)
+#     if url_minio:
+#         eliminar_imagen_minio(url_minio)
+
+#     return {"mensaje": "Imagen eliminada permanentemente.", "id_imagen": id_imagen}
+# ==========================================
+# ENDPOINT: Eliminar imagen (participante o administrador)
+# ==========================================
 @router.delete("/imagenes/{id_imagen}", status_code=status.HTTP_200_OK)
 def eliminar_imagen_endpoint(
     id_imagen: int,
     db: Session = Depends(get_db),
     id_usuario: int = Depends(obtener_id_usuario_gateway),
-    rol_validado: int = Depends(verificar_rol_administrador)
+    x_user_role: str = Header(..., alias="x-user-role", description="Rol inyectado por Kong")
 ):
     """
-    Elimina físicamente la imagen de MinIO y su registro de la base de datos.
-    Poder absoluto del administrador.
+    - Participante: solo puede eliminar SUS PROPIAS imágenes (no la portada del evento).
+    - Administrador: puede eliminar imágenes de cualquier participante y las suyas,
+      pero NUNCA la imagen de portada del evento (subida por el creador).
     """
     imagen = crud_imagen.obtener_imagen_por_id(db, id_imagen)
     if not imagen:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La imagen no existe.")
+
+    # La portada es la imagen subida por el creador del evento -> nadie puede borrarla aquí
+    es_portada_evento = imagen.id_usuario == imagen.evento.id_usuario
+    if es_portada_evento:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No se puede eliminar la imagen de portada del evento."
+        )
+
+    es_administrador = x_user_role == "1"
+    es_dueño_de_la_imagen = imagen.id_usuario == id_usuario
+
+    if not es_administrador and not es_dueño_de_la_imagen:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes permiso para eliminar esta imagen."
+        )
 
     url_minio = crud_imagen.eliminar_registro_imagen(db, id_imagen)
     if url_minio:
         eliminar_imagen_minio(url_minio)
 
     return {"mensaje": "Imagen eliminada permanentemente.", "id_imagen": id_imagen}
-
-
 # ==========================================
 # ENDPOINT ADMIN: Descartar reporte
 # ==========================================

@@ -111,6 +111,8 @@ services:
       - ./backend/ms_eventos/app:/app/app
     env_file:
       - ./backend/ms_eventos/.env # <-- Apuntamos a tu nuevo archivo seguro
+    environment:
+    - PYTHONUNBUFFERED=1
     depends_on:
       db:
         condition: service_healthy
