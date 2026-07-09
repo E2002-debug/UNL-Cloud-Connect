@@ -1,3 +1,7 @@
+//Autor:Isabel Morocho
+//Fecha:08/07/2026
+//Version 1.1:
+//Version 1.2: Agregación para reportar imagen en mobile
 import axios from 'axios';
 import { Platform } from 'react-native';
 
@@ -6,13 +10,21 @@ import { Platform } from 'react-native';
 // Ejemplo: 'http://3.12.45.150:8000/api' o 'https://tu-dominio.com/api'
 // Para la versión en producción, apuntamos al API Gateway protegido con HTTPS
 const CLOUD_BACKEND_URL = 'https://unl-cloud-connect.me/api';
+const LOCAL_BACKEND_URL = 'http://localhost:8000/api';
 
 const getBaseUrl = () => {
-  // Si corres en emulador de Android local, 10.0.2.2 redirige al localhost de la PC
-  if (__DEV__ && Platform.OS === 'android') {
-    // return 'http://10.0.2.2:8000/api';
+  if (__DEV__) {
+    if (Platform.OS === 'android') {
+      return 'http://10.0.2.2:8000/api'; // Emulador Android
+    }
+    if (Platform.OS === 'web') {
+      return LOCAL_BACKEND_URL; // Expo Web en el navegador
+    }
+    if (Platform.OS === 'ios') {
+      return LOCAL_BACKEND_URL; // Simulador iOS (localhost funciona igual que en Mac)
+    }
   }
-  return CLOUD_BACKEND_URL;
+  return CLOUD_BACKEND_URL; // Producción
 };
 
 const api = axios.create({
@@ -119,13 +131,39 @@ export const getClimaActual = async () => {
   }
 };
 
+// export const uploadImage = async (idEvento, fileUri) => {
+//   const formData = new FormData();
+//   formData.append('imagen', {
+//     uri: fileUri,
+//     name: `photo_${Date.now()}.jpg`,
+//     type: 'image/jpeg'
+//   });
+
+//   const res = await api.post(`/eventos/${idEvento}/imagenes/`, formData, {
+//     headers: {
+//       'Content-Type': 'multipart/form-data'
+//     }
+//   });
+//   return res.data;
+// };
+
 export const uploadImage = async (idEvento, fileUri) => {
   const formData = new FormData();
-  formData.append('imagen', {
-    uri: fileUri,
-    name: `photo_${Date.now()}.jpg`,
-    type: 'image/jpeg'
-  });
+
+  if (Platform.OS === 'web') {
+    // En web, fileUri es un blob: URL — hay que convertirlo a un File real
+    const response = await fetch(fileUri);
+    const blob = await response.blob();
+    const file = new File([blob], `photo_${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' });
+    formData.append('imagen', file);
+  } else {
+    // En iOS/Android nativo, este formato sí funciona
+    formData.append('imagen', {
+      uri: fileUri,
+      name: `photo_${Date.now()}.jpg`,
+      type: 'image/jpeg'
+    });
+  }
 
   const res = await api.post(`/eventos/${idEvento}/imagenes/`, formData, {
     headers: {
@@ -142,6 +180,17 @@ export const reaccionarAImagen = async (idImagen, tipoReaccion) => {
 
 export const obtenerReaccionesImagen = async (idImagen) => {
   const res = await api.get(`/eventos/imagenes/${idImagen}/reacciones`);
+  return res.data;
+};
+
+
+export const reportarImagen = async (idImagen, motivoReporte) => {
+  const res = await api.post(`/eventos/imagenes/${idImagen}/reportar`, { motivo_reporte: motivoReporte });
+  return res.data;
+};
+
+export const eliminarImagen = async (idImagen) => {
+  const res = await api.delete(`/eventos/imagenes/${idImagen}`);
   return res.data;
 };
 

@@ -4,6 +4,10 @@
 # Historial:
 # 07/07/2026 v1.1 - Miguel Luna: Integración de la ruta para ms-notificaciones y configuración del plugin request-transformer para mitigación de vulnerabilidad RBAC (Strip Headers).
 
+#Autor:Isabel Morocho
+#Fecha:08/07/2026
+#Implementación de plugings
+
 _format_version: "3.0"
 _transform: true
 
@@ -13,6 +17,8 @@ plugins:
       origins:
         - "http://localhost:5173"
         - "http://127.0.0.1:5173"
+        - "http://localhost:8082"
+        - "http://127.0.0.1:8082"
       methods:
         - GET
         - POST

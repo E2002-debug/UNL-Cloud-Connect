@@ -1,43 +1,49 @@
 // Autor: David Guamán
 // Fecha: 27/06/2026
-// Version: 0.1
+// Version: 0.3
 // Historial:
 // 27/06/2026 v0.1 - David Guamán: Creación de la pantalla de detalles del evento con foto de portada diferenciada y con barra de reacciones, límite estricto de 3 fotos de evidencia por participante, captura de fotos exclusiva por cámara (sin editor de recorte para subir en resolución completa original), lista modal interactiva de reacciones, visor de clima del campus y unificación de imágenes de portada y evidencias al formato fotográfico 4:3 (250px).
+// 07/07/2026 v0.2 - Isabel Morocho: Se agrega opción de reportar imágenes de participantes (movido desde la web, exclusivo para app móvil).
+// 08/07/2026 v0.3 - Isabel Morocho: Se agrega opción de eliminar las fotos propias del participante (no la imagen de portada del evento).
 
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  Image, 
-  ScrollView, 
-  TouchableOpacity, 
-  ActivityIndicator, 
-  Alert, 
+import {
+  View,
+  Text,
+  StyleSheet,
+  Image,
+  ScrollView,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+  Platform,
   FlatList,
-  Modal
+  Modal,
+  TextInput
 } from 'react-native';
-import { 
-  ArrowLeft, 
-  Calendar, 
-  MapPin, 
-  Camera, 
-  Image as ImageIcon, 
-  ThumbsUp, 
-  ThumbsDown, 
+import {
+  ArrowLeft,
+  Calendar,
+  MapPin,
+  Camera,
+  Image as ImageIcon,
+  ThumbsUp,
+  ThumbsDown,
   Clock,
   User,
   Info,
   X,
   Sun,
-  CloudRain
+  CloudRain,
+  Flag,
+  Trash2
 } from 'lucide-react-native';
 import * as ImagePicker from 'expo-image-picker';
-import api, { uploadImage, reaccionarAImagen, obtenerReaccionesImagen, getClimaActual } from '../services/api';
+import api, { uploadImage, reaccionarAImagen, obtenerReaccionesImagen, getClimaActual, reportarImagen, eliminarImagen } from '../services/api';
 
 export default function EventDetailScreen({ route, navigation }) {
   const { eventId, user } = route.params;
-  
+
   const [event, setEvent] = useState(null);
   const [loadingEvent, setLoadingEvent] = useState(true);
   const [reactions, setReactions] = useState({});
@@ -48,10 +54,115 @@ export default function EventDetailScreen({ route, navigation }) {
   const [weather, setWeather] = useState(null);
   const [fullscreenImage, setFullscreenImage] = useState(null);
 
+  // --- Estado para reportar imágenes ---
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportTargetId, setReportTargetId] = useState(null);
+  const [reportMotivo, setReportMotivo] = useState('');
+  const [reportando, setReportando] = useState(false);
+
   const openReactionsList = (imgReactions) => {
     setSelectedImageReactions(imgReactions);
     setShowReactionsModal(true);
   };
+
+  const openReportModal = (idImagen) => {
+    setReportTargetId(idImagen);
+    setReportMotivo('');
+    setShowReportModal(true);
+  };
+
+  const closeReportModal = () => {
+    setShowReportModal(false);
+    setReportTargetId(null);
+    setReportMotivo('');
+  };
+
+  const handleReportar = async () => {
+    if (!reportMotivo.trim()) {
+      Alert.alert('Falta el motivo', 'Por favor escribe un motivo para el reporte.');
+      return;
+    }
+    setReportando(true);
+    try {
+      await reportarImagen(reportTargetId, reportMotivo.trim());
+      Alert.alert('Reporte enviado', 'Un administrador lo revisará.');
+      closeReportModal();
+    } catch (err) {
+      console.error('Error al reportar imagen:', err);
+      const msg = err.response?.data?.detail || 'No se pudo enviar el reporte.';
+      Alert.alert('Error', msg);
+    } finally {
+      setReportando(false);
+    }
+  };
+
+  // const handleEliminarImagen = (idImagen) => {
+  //   Alert.alert(
+  //     'Eliminar imagen',
+  //     '¿Estás seguro de eliminar esta foto? Esta acción no se puede deshacer.',
+  //     [
+  //       { text: 'Cancelar', style: 'cancel' },
+  //       {
+  //         text: 'Eliminar',
+  //         style: 'destructive',
+  //         onPress: async () => {
+  //           try {
+  //             await eliminarImagen(idImagen);
+  //             Alert.alert('Listo', 'Imagen eliminada correctamente.');
+  //             fetchEventDetails();
+  //           } catch (err) {
+  //             console.error('Error al eliminar imagen:', err);
+  //             const msg = err.response?.data?.detail || 'No se pudo eliminar la imagen.';
+  //             Alert.alert('Error', msg);
+  //           }
+  //         }
+  //       }
+  //     ]
+  //   );
+  // };
+
+  const confirmarAccion = (titulo, mensaje) => {
+    return new Promise((resolve) => {
+      if (Platform.OS === 'web') {
+        const ok = window.confirm(`${titulo}\n\n${mensaje}`);
+        resolve(ok);
+      } else {
+        Alert.alert(titulo, mensaje, [
+          { text: 'Cancelar', style: 'cancel', onPress: () => resolve(false) },
+          { text: 'Eliminar', style: 'destructive', onPress: () => resolve(true) },
+        ]);
+      }
+    });
+  };
+
+  const handleEliminarImagen = async (idImagen) => {
+    console.log('handleEliminarImagen llamado con:', idImagen);
+
+    const confirmado = await confirmarAccion(
+      'Eliminar imagen',
+      '¿Estás seguro de eliminar esta foto? Esta acción no se puede deshacer.'
+    );
+
+    if (!confirmado) return;
+
+    try {
+      const resultado = await eliminarImagen(idImagen);
+      console.log('Eliminado OK:', resultado);
+      Alert.alert('Listo', 'Imagen eliminada correctamente.');
+      fetchEventDetails();
+    } catch (err) {
+      console.log('ERROR STATUS:', err.response?.status);
+      console.log('ERROR DATA:', err.response?.data);
+      console.log('ERROR MESSAGE:', err.message);
+      const msg = err.response?.data?.detail || 'No se pudo eliminar la imagen.';
+      Alert.alert('Error', msg);
+    }
+  };
+
+
+
+
+
 
   const resolveUserName = async (idUsuario) => {
     if (userNames[idUsuario]) return;
@@ -148,11 +259,61 @@ export default function EventDetailScreen({ route, navigation }) {
             )}
 
             {/* Modal Footer */}
-            <TouchableOpacity 
-              style={styles.closeButtonModal} 
+            <TouchableOpacity
+              style={styles.closeButtonModal}
               onPress={() => setShowReactionsModal(false)}
             >
               <Text style={styles.closeButtonModalText}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    );
+  };
+
+  const renderReportModal = () => {
+    return (
+      <Modal
+        visible={showReportModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={closeReportModal}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            {/* Modal Header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>🚩 Reportar imagen</Text>
+              <TouchableOpacity onPress={closeReportModal} style={styles.closeModalBtn}>
+                <X size={20} color="#374151" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Modal Body */}
+            <Text style={styles.reportHelperText}>
+              ¿Por qué consideras que esta imagen debería ser revisada?
+            </Text>
+            <TextInput
+              style={styles.reportTextInput}
+              placeholder="Ej: contenido inapropiado, no pertenece al evento..."
+              placeholderTextColor="#9CA3AF"
+              value={reportMotivo}
+              onChangeText={(text) => setReportMotivo(text.slice(0, 500))}
+              multiline
+              numberOfLines={4}
+              maxLength={500}
+            />
+            <Text style={styles.reportCharCount}>{reportMotivo.length}/500</Text>
+
+            {/* Modal Footer */}
+            <TouchableOpacity
+              style={[styles.closeButtonModal, styles.reportSubmitBtn]}
+              onPress={handleReportar}
+              disabled={reportando}
+            >
+              <Text style={styles.closeButtonModalText}>
+                {reportando ? 'Enviando...' : 'Reportar'}
+              </Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -169,7 +330,7 @@ export default function EventDetailScreen({ route, navigation }) {
       setLoadingEvent(true);
       const res = await api.get(`/eventos/${eventId}`);
       setEvent(res.data);
-      
+
       const userIdsToResolve = new Set();
       if (res.data.imagenes) {
         res.data.imagenes.forEach(img => userIdsToResolve.add(img.id_usuario));
@@ -183,7 +344,7 @@ export default function EventDetailScreen({ route, navigation }) {
             try {
               const reactionsRes = await obtenerReaccionesImagen(img.id_imagen);
               reactionsData[img.id_imagen] = reactionsRes;
-              
+
               if (reactionsRes.usuarios_me_gusta) {
                 reactionsRes.usuarios_me_gusta.forEach(uid => userIdsToResolve.add(uid));
               }
@@ -309,7 +470,7 @@ export default function EventDetailScreen({ route, navigation }) {
 
     if (permissionResult.status !== 'granted') {
       Alert.alert(
-        'Permiso denegado', 
+        'Permiso denegado',
         `Necesitamos acceso a la ${useCamera ? 'cámara' : 'galería'} para tomar la evidencia.`
       );
       return;
@@ -443,7 +604,7 @@ export default function EventDetailScreen({ route, navigation }) {
 
       coverReactionsBar = (
         <View style={styles.coverReactionsBar}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.reactionBtn, isLiked && styles.reactionBtnActiveLike]}
             onPress={() => handleReaction(coverImage.id_imagen, 'ME_GUSTA')}
           >
@@ -453,7 +614,7 @@ export default function EventDetailScreen({ route, navigation }) {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={[styles.reactionBtn, isDisliked && styles.reactionBtnActiveDislike]}
             onPress={() => handleReaction(coverImage.id_imagen, 'NO_ME_GUSTA')}
           >
@@ -463,7 +624,7 @@ export default function EventDetailScreen({ route, navigation }) {
             </Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.viewReactionsBtn}
             onPress={() => openReactionsList(imgReactions)}
           >
@@ -478,13 +639,13 @@ export default function EventDetailScreen({ route, navigation }) {
       <View style={styles.eventInfoSection}>
         {coverImage && (
           <View style={styles.coverImageContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               onPress={() => setFullscreenImage(coverImage.url_minio)}
               activeOpacity={0.9}
             >
-              <Image 
-                source={{ uri: coverImage.url_minio }} 
-                style={styles.coverImage} 
+              <Image
+                source={{ uri: coverImage.url_minio }}
+                style={styles.coverImage}
               />
             </TouchableOpacity>
             {coverReactionsBar}
@@ -495,7 +656,7 @@ export default function EventDetailScreen({ route, navigation }) {
           <Text style={styles.eventTitle}>{event.nombre}</Text>
           {renderStatusBadge(event.estado)}
         </View>
-        
+
         <View style={styles.metaRow}>
           <Calendar size={14} color="#0F766E" />
           <Text style={styles.metaText}>{formatDate(event.fecha_hora_inicio)} - {formatDate(event.fecha_hora_final)}</Text>
@@ -569,6 +730,7 @@ export default function EventDetailScreen({ route, navigation }) {
 
           const isLiked = imgReactions.usuarios_me_gusta.includes(user.id_usuario);
           const isDisliked = imgReactions.usuarios_no_me_gusta.includes(user.id_usuario);
+          const esPropia = item.id_usuario === user.id_usuario;
 
           return (
             <View style={styles.pubCard}>
@@ -584,7 +746,7 @@ export default function EventDetailScreen({ route, navigation }) {
                 </View>
               </View>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 onPress={() => setFullscreenImage(item.url_minio)}
                 activeOpacity={0.9}
               >
@@ -592,7 +754,7 @@ export default function EventDetailScreen({ route, navigation }) {
               </TouchableOpacity>
 
               <View style={styles.reactionsBar}>
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.reactionBtn, isLiked && styles.reactionBtnActiveLike]}
                   onPress={() => handleReaction(item.id_imagen, 'ME_GUSTA')}
                 >
@@ -602,7 +764,7 @@ export default function EventDetailScreen({ route, navigation }) {
                   </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.reactionBtn, isDisliked && styles.reactionBtnActiveDislike]}
                   onPress={() => handleReaction(item.id_imagen, 'NO_ME_GUSTA')}
                 >
@@ -612,19 +774,36 @@ export default function EventDetailScreen({ route, navigation }) {
                   </Text>
                 </TouchableOpacity>
 
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={styles.viewReactionsBtn}
                   onPress={() => openReactionsList(imgReactions)}
                 >
                   <Info size={14} color="#0F766E" />
                   <Text style={styles.viewReactionsText}>¿Quién reaccionó?</Text>
                 </TouchableOpacity>
+
+                {esPropia ? (
+                  <TouchableOpacity
+                    style={styles.deleteBtn}
+                    onPress={() => handleEliminarImagen(item.id_imagen)}
+                  >
+                    <Trash2 size={14} color="#EF4444" />
+                  </TouchableOpacity>
+                ) : (
+                  <TouchableOpacity
+                    style={styles.reportBtn}
+                    onPress={() => openReportModal(item.id_imagen)}
+                  >
+                    <Flag size={14} color="#EF4444" />
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
           );
         }}
       />
       {renderReactionsModal()}
+      {renderReportModal()}
 
       {/* Fullscreen Image Viewer Modal */}
       <Modal
@@ -634,17 +813,17 @@ export default function EventDetailScreen({ route, navigation }) {
         onRequestClose={() => setFullscreenImage(null)}
       >
         <View style={styles.fullscreenContainer}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.fullscreenCloseBtn}
             onPress={() => setFullscreenImage(null)}
             activeOpacity={0.8}
           >
             <X size={24} color="#fff" />
           </TouchableOpacity>
-          
+
           {fullscreenImage && (
-            <Image 
-              source={{ uri: fullscreenImage }} 
+            <Image
+              source={{ uri: fullscreenImage }}
               style={styles.fullscreenImage}
               resizeMode="contain"
             />
@@ -892,6 +1071,22 @@ const styles = StyleSheet.create({
   reactionTextActive: {
     color: '#fff',
   },
+  reportBtn: {
+    padding: 6,
+    borderRadius: 16,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    marginLeft: 'auto',
+  },
+  deleteBtn: {
+    padding: 6,
+    borderRadius: 16,
+    backgroundColor: '#FEF2F2',
+    borderWidth: 1,
+    borderColor: '#FECACA',
+    marginLeft: 'auto',
+  },
   statusBadge: {
     paddingHorizontal: 6,
     paddingVertical: 1.5,
@@ -1004,7 +1199,6 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    marginLeft: 'auto',
     paddingVertical: 6,
     paddingHorizontal: 10,
   },
@@ -1056,5 +1250,31 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#E5E7EB',
     marginTop: 4,
+  },
+  reportHelperText: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginBottom: 10,
+    lineHeight: 17,
+  },
+  reportTextInput: {
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+    borderRadius: 10,
+    padding: 12,
+    fontSize: 13,
+    color: '#1F2937',
+    textAlignVertical: 'top',
+    minHeight: 90,
+  },
+  reportCharCount: {
+    fontSize: 10,
+    color: '#9CA3AF',
+    textAlign: 'right',
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  reportSubmitBtn: {
+    backgroundColor: '#EF4444',
   },
 });

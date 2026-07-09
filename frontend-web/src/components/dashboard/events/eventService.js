@@ -86,6 +86,13 @@ export const reportarImagen = async (id_imagen, motivo_reporte) => {
   return response.data;
 };
 
+export const eliminarImagen = async (id_imagen) => {
+  const response = await api.delete(`/eventos/imagenes/${id_imagen}`, {
+    headers: { ...getUserHeaders() },
+  });
+  return response.data;
+};
+
 export const obtenerImagenesReportadas = async () => {
   const response = await api.get("/eventos/imagenes/reportadas", {
     headers: { ...getUserHeaders() },
