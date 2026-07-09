@@ -86,40 +86,43 @@ export const getEventos = async (skip = 0, limit = 10) => {
 };
 
 export const getClimaActual = async () => {
+  let w = null;
+  try {
+    const { getLojaWeather } = await import('./weatherService');
+    w = await getLojaWeather();
+  } catch (e) {
+    w = { temp: 18.5, humidity: 62, description: 'Estación fuera de línea', icon: 'clear-day', feelsLike: 18, windSpeed: 10, rainChance: 0, uvIndex: 0 };
+  }
+
   try {
     const res = await api.get('/clima/actual');
     const data = res.data;
     const fechaDato = new Date(data.fecha_captura + 'Z');
     const ahora = new Date();
     const diferenciaMinutos = (ahora - fechaDato) / (1000 * 60);
-    if (diferenciaMinutos <= 1) {
-      return data;
+    if (diferenciaMinutos <= 5) {
+      return {
+        ...w,
+        temperatura: data.temperatura,
+        humedad: data.humedad,
+        fuente: 'ESP32',
+        alerta: data.alerta || false,
+        detalles_alerta: data.alerta ? '¡Alerta local!' : w.description,
+      };
     }
     console.warn(`[CLIMA] Dato IoT antiguo (${Math.round(diferenciaMinutos)} min). Usando fallback...`);
   } catch (error) {
     console.log('[CLIMA] Sensor local no disponible, usando fallback...');
   }
-  try {
-    const { getLojaWeather } = await import('./weatherService');
-    const w = await getLojaWeather();
-    return {
-      temperatura: w.temp,
-      humedad: w.humidity,
-      fuente: 'VisualCrossing',
-      alerta: false,
-      detalles_alerta: w.description,
-      fecha_captura: new Date().toISOString(),
-    };
-  } catch (e) {
-    return {
-      temperatura: 18.5,
-      humedad: 62,
-      fuente: 'Fallback',
-      alerta: false,
-      detalles_alerta: 'Estación fuera de línea temporalmente',
-      fecha_captura: new Date().toISOString(),
-    };
-  }
+  
+  return {
+    ...w,
+    temperatura: w.temp,
+    humedad: w.humidity,
+    fuente: 'API',
+    alerta: false,
+    detalles_alerta: w.description,
+  };
 };
 
 export const uploadImage = async (idEvento, fileUri) => {
