@@ -477,10 +477,13 @@ export default function EventDetailScreen({ route, navigation }) {
     }
 
     let result;
+    const remainingCount = 3 - uploadedCount;
     const pickerOptions = {
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: false,
       quality: 0.9,
+      allowsMultipleSelection: !useCamera,
+      selectionLimit: remainingCount > 0 ? remainingCount : 1,
     };
 
     if (useCamera) {
@@ -490,15 +493,17 @@ export default function EventDetailScreen({ route, navigation }) {
     }
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
-      const imageUri = result.assets[0].uri;
-      uploadEvidence(imageUri);
+      const uris = result.assets.slice(0, remainingCount).map(a => a.uri);
+      uploadEvidence(uris);
     }
   };
 
-  const uploadEvidence = async (uri) => {
+  const uploadEvidence = async (uris) => {
     try {
       setUploading(true);
-      await uploadImage(eventId, uri);
+      for (const uri of uris) {
+        await uploadImage(eventId, uri);
+      }
       Alert.alert('Éxito', '¡Evidencia visual agregada y publicada con éxito!');
       fetchEventDetails(); // Reload event details and images
     } catch (err) {
@@ -587,8 +592,8 @@ export default function EventDetailScreen({ route, navigation }) {
   const renderHeader = () => {
     // Find the cover image uploaded by the event creator
     const coverImage = event.imagenes?.find(img => img.id_usuario === event.id_usuario);
-    // Count participant publications (excluding creator)
-    const participantImagesCount = event.imagenes?.filter(img => img.id_usuario !== event.id_usuario).length || 0;
+    // Count participant publications (excluding the specific cover image)
+    const participantImagesCount = event.imagenes?.filter(img => img.id_imagen !== coverImage?.id_imagen).length || 0;
 
     let coverReactionsBar = null;
     if (coverImage) {
@@ -688,7 +693,11 @@ export default function EventDetailScreen({ route, navigation }) {
           <View style={styles.actionButtons}>
             <TouchableOpacity style={styles.cameraBtn} onPress={() => selectImageAndUpload(true)}>
               <Camera size={18} color="#fff" />
-              <Text style={styles.actionBtnText}>Tomar Foto (Cámara)</Text>
+              <Text style={styles.actionBtnText}>Cámara</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.galleryBtn} onPress={() => selectImageAndUpload(false)}>
+              <ImageIcon size={18} color="#0F766E" />
+              <Text style={styles.galleryBtnText}>Galería</Text>
             </TouchableOpacity>
           </View>
         )}
@@ -709,7 +718,10 @@ export default function EventDetailScreen({ route, navigation }) {
       </View>
 
       <FlatList
-        data={event.imagenes?.filter(img => img.id_usuario !== event.id_usuario) || []}
+        data={event.imagenes?.filter(img => {
+          const coverImage = event.imagenes?.find(i => i.id_usuario === event.id_usuario);
+          return img.id_imagen !== coverImage?.id_imagen;
+        }) || []}
         keyExtractor={(item) => String(item.id_imagen)}
         ListHeaderComponent={renderHeader}
         contentContainerStyle={styles.listContainer}

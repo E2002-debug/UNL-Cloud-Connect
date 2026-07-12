@@ -16,6 +16,7 @@ import Recover from './src/screens/RecoverScreen';
 import ResetPassword from './src/screens/ResetPasswordScreen';
 import Participant from './src/screens/ParticipantScreen';
 import EventDetail from './src/screens/EventDetailScreen';
+import { useFonts } from 'expo-font';
 
 const Stack = createNativeStackNavigator();
 
@@ -36,6 +37,14 @@ const linking = {
 };
 
 export default function App() {
+  let [fontsLoaded, fontError] = useFonts({
+    'AbrilFatface_400Regular': require('./assets/fonts/AbrilFatface-Regular.ttf'),
+  });
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
   return (
     <SafeAreaProvider style={styles.container}>
       <View style={styles.container}>

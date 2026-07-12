@@ -3,16 +3,17 @@
 // Version: 0.3
 // Historial:
 // 27/06/2026 v0.1 - David Guamán: Implementación de la pantalla de inicio de sesión con soporte para autenticación estándar y botón integrado con el logo vectorial oficial de Google.
-// 07/07/2026 v0.2 - Miguel Luna: Implementación de captura y registro de Expo Push Token en los flujos de login.
+// 07/07/2026 v0.2 - Implementación de captura y registro de Expo Push Token en los flujos de login.
 // 08/07/2026 v0.3 - Isabel: Fix - registro de push token envuelto en try/catch propio para que un fallo ahí (Expo Go / Web) no rompa el login exitoso.
 
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ActivityIndicator, Alert, TextInput, Image, Platform } from 'react-native';
-import { Eye, EyeOff } from 'lucide-react-native';
+import { Eye, EyeOff, Mail, Lock, ArrowRight, ShieldCheck } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
 import * as Notifications from 'expo-notifications';
 import Input from '../components/Input';
 import Button from '../components/Button';
+import BackgroundLayout from '../components/BackgroundLayout';
 import { login, loginGoogle } from '../services/api';
 
 const GoogleIcon = () => (
@@ -50,30 +51,27 @@ try {
 }
 
 async function registerForPushNotificationsAsync() {
-  if (Platform.OS === 'web') {
-    return null;
-  }
-  // Pide permiso al usuario
-  const { status: existingStatus } = await Notifications.getPermissionsAsync();
-  let finalStatus = existingStatus;
-
-  if (existingStatus !== 'granted') {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-
-  if (finalStatus !== 'granted') {
-    alert('Failed to get push token for push notification!');
-    return null;
-  }
-
-  // Obtiene el token único de este teléfono
-  const token = (await Notifications.getExpoPushTokenAsync({
-    projectId: process.env.EXPO_PUBLIC_PROJECT_ID || 'unl-cloud-connect'
-  })).data;
-  console.log("Mi Expo Push Token es:", token);
-  return token;
+  // Omitido porque getExpoPushTokenAsync se queda colgado (hangs) si app.json está vacío.
+  return null;
 }
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
+const showPushNotification = async (title, body) => {
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title,
+      body,
+    },
+    trigger: null,
+  });
+};
 
 export default function LoginScreen({ navigation }) {
   const [username, setUsername] = useState('');
@@ -148,25 +146,6 @@ export default function LoginScreen({ navigation }) {
     setError('');
     setLoading(true);
 
-    // --- FALLBACK SIMULATION MODE (For Expo Go testing) ---
-    if (!GoogleSignin) {
-      setTimeout(() => {
-        setLoading(false);
-        const simulatedProfile = {
-          id_usuario: 99,
-          id_rol: 2,
-          name: 'Miguel Luna (Simulado)',
-          email: 'migue.luna@unl.edu.ec',
-          token: 'SIMULATED_JWT_TOKEN',
-        };
-        Alert.alert(
-          'Simulador Google Auth',
-          'Estás corriendo en Expo Go (sin módulos nativos). Iniciando sesión en modo de simulación.',
-          [{ text: 'Entrar', onPress: () => navigation.replace('Participant', { user: simulatedProfile }) }]
-        );
-      }, 1000);
-      return;
-    }
 
     // --- NATIVE GOOGLE SIGN-IN MODE (For Android Emulator / Physical Device with Dev Client) ---
     try {
@@ -207,7 +186,9 @@ export default function LoginScreen({ navigation }) {
         console.warn('No se pudo registrar el push token (normal en Expo Go/Web):', pushError.message);
       }
 
-      navigation.replace('Participant', { user: userProfile });
+      Alert.alert('¡Bienvenido!', `Hola, ${userProfile.name}`, [
+        { text: 'Entrar', onPress: () => navigation.replace('Participant', { user: userProfile }) }
+      ]);
     } catch (err) {
       setLoading(false);
       let msg = 'Error al iniciar sesión con Google.';
@@ -226,36 +207,55 @@ export default function LoginScreen({ navigation }) {
   };
 
   return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={{ height: 40, width: 200, marginBottom: 8 }}>
+    <BackgroundLayout>
+      <View style={styles.container}>
+        <View style={styles.header}>
+        <View style={{ height: 90, width: 180, marginBottom: 12 }}>
           <Image source={require('../img/logo.png')} style={{ width: '100%', height: '100%', resizeMode: 'contain' }} />
         </View>
+        <Text style={styles.title}>¡Bienvenido!</Text>
         <Text style={styles.subtitle}>Accede con tu correo institucional</Text>
       </View>
 
       <View style={styles.card}>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
-        <Input
-          label="Correo institucional"
-          value={username}
-          onChangeText={setUsername}
-          placeholder="usuario.apellido@unl.edu.ec"
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
+        <View style={styles.inputGroup}>
+          <View style={styles.labelRow}>
+            <View style={styles.iconCircle}>
+              <Mail size={16} color="#059669" />
+            </View>
+            <Text style={styles.label}>Correo institucional</Text>
+          </View>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.inputText}
+              value={username}
+              onChangeText={setUsername}
+              placeholder="usuario.apellido@unl.edu.ec"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
+        </View>
 
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Contraseña</Text>
-          <View style={styles.passwordInputContainer}>
+          <View style={styles.labelRow}>
+            <View style={styles.iconCircle}>
+              <Lock size={16} color="#059669" />
+            </View>
+            <Text style={styles.label}>Contraseña</Text>
+          </View>
+          <View style={styles.inputContainer}>
             <TextInput
-              style={styles.passwordInput}
+              style={styles.inputText}
               value={password}
               onChangeText={setPassword}
               placeholder="••••••••"
               secureTextEntry={!showPassword}
               autoCapitalize="none"
+              placeholderTextColor="#9CA3AF"
             />
             <TouchableOpacity
               onPress={() => setShowPassword(!showPassword)}
@@ -274,7 +274,10 @@ export default function LoginScreen({ navigation }) {
           <ActivityIndicator size="large" color="#0F766E" style={styles.loader} />
         ) : (
           <View style={styles.buttonContainer}>
-            <Button onPress={submit}>Iniciar sesión</Button>
+            <TouchableOpacity style={styles.primaryButton} onPress={submit}>
+              <Text style={styles.primaryButtonText}>Iniciar sesión</Text>
+              <ArrowRight size={20} color="#fff" style={{ position: 'absolute', right: 20 }} />
+            </TouchableOpacity>
 
             <View style={styles.dividerContainer}>
               <View style={styles.dividerLine} />
@@ -294,20 +297,26 @@ export default function LoginScreen({ navigation }) {
               onPress={() => navigation.navigate('Register')}
               style={styles.registerLink}
             >
-              <Text style={styles.registerLinkText}>¿No tienes cuenta? Regístrate aquí</Text>
+              <Text style={styles.registerLinkText}>¿No tienes cuenta? <Text style={styles.registerLinkTextBlue}>Regístrate aquí</Text></Text>
             </TouchableOpacity>
           </View>
         )}
       </View>
-    </View>
+      
+      <View style={styles.footerContainer}>
+        <ShieldCheck size={16} color="#059669" />
+        <Text style={styles.footerText}>Tu información está segura con nosotros.</Text>
+      </View>
+      </View>
+    </BackgroundLayout>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
-    backgroundColor: '#F9FAFB',
+    padding: 24,
+    backgroundColor: 'transparent',
     justifyContent: 'center',
   },
   header: {
@@ -316,24 +325,23 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 28,
-    fontWeight: '900',
-    color: '#0F766E',
-    letterSpacing: -0.5,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: 4,
   },
   subtitle: {
-    color: '#6B7280',
-    marginTop: 6,
-    fontSize: 14,
+    color: '#64748B',
+    fontSize: 15,
   },
   card: {
     backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 16,
+    padding: 24,
+    borderRadius: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
+    shadowRadius: 20,
+    elevation: 4,
   },
   errorText: {
     color: '#EF4444',
@@ -342,9 +350,48 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontWeight: '600',
   },
+  inputGroup: {
+    marginBottom: 20,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  iconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#ECFDF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    borderColor: '#E2E8F0',
+    borderWidth: 1,
+  },
+  inputText: {
+    flex: 1,
+    padding: 14,
+    color: '#1E293B',
+    fontSize: 15,
+  },
+  passwordToggle: {
+    padding: 12,
+  },
   forgotButton: {
     alignSelf: 'flex-end',
-    marginBottom: 16,
+    marginBottom: 20,
   },
   forgotText: {
     color: '#0F766E',
@@ -355,74 +402,74 @@ const styles = StyleSheet.create({
     marginVertical: 12,
   },
   buttonContainer: {
-    marginTop: 8,
+    marginTop: 4,
+  },
+  primaryButton: {
+    backgroundColor: '#0F766E',
+    paddingVertical: 16,
+    borderRadius: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
   },
   dividerContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: 14,
+    marginVertical: 24,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: '#E5E7EB',
+    backgroundColor: '#E2E8F0',
   },
   dividerText: {
-    paddingHorizontal: 10,
-    color: '#9CA3AF',
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  registerLink: {
-    marginTop: 16,
-    alignItems: 'center',
-  },
-  registerLinkText: {
-    color: '#4B5563',
-    fontSize: 13,
-    fontWeight: '500',
-  },
-  inputGroup: {
-    marginBottom: 4,
-  },
-  label: {
+    paddingHorizontal: 12,
+    color: '#64748B',
     fontSize: 14,
-    color: '#0F172A',
-    marginBottom: 6,
-  },
-  passwordInputContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    borderColor: '#E6EDF8',
-    borderWidth: 1,
-    marginBottom: 12,
-  },
-  passwordInput: {
-    flex: 1,
-    padding: 12,
-    color: '#1F2937',
-    fontSize: 14,
-  },
-  passwordToggle: {
-    padding: 12,
+    fontWeight: '700',
   },
   googleButton: {
     flexDirection: 'row',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff',
     borderWidth: 1,
-    borderColor: '#E6EDF8',
-    marginTop: 10,
+    borderColor: '#E2E8F0',
   },
   googleButtonText: {
     color: '#0F172A',
-    fontWeight: '600',
-    fontSize: 14,
+    fontWeight: '700',
+    fontSize: 15,
   },
+  registerLink: {
+    marginTop: 24,
+    alignItems: 'center',
+  },
+  registerLinkText: {
+    color: '#64748B',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  registerLinkTextBlue: {
+    color: '#0F766E',
+    fontWeight: '600',
+  },
+  footerContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: 32,
+  },
+  footerText: {
+    color: '#64748B',
+    fontSize: 13,
+    marginLeft: 6,
+  }
 });

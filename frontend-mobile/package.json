@@ -10,6 +10,8 @@
     "web": "expo start --web"
   },
   "dependencies": {
+    "@expo-google-fonts/caveat-brush": "^0.4.1",
+    "@expo-google-fonts/luckiest-guy": "^0.4.1",
     "@expo/metro-runtime": "~3.2.3",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@react-native-google-signin/google-signin": "^11.0.1",
@@ -19,7 +21,9 @@
     "axios": "^1.7.2",
     "expo": "~51.0.0",
     "expo-dev-client": "~4.0.29",
+    "expo-font": "~12.0.10",
     "expo-image-picker": "~15.1.0",
+    "expo-linear-gradient": "^57.0.0",
     "expo-notifications": "~0.28.19",
     "expo-status-bar": "~1.12.1",
     "lucide-react-native": "^0.395.0",

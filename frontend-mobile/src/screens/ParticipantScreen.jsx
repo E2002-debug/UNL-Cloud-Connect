@@ -5,21 +5,9 @@
 // 27/06/2026 v0.1 - David Guamán: Creación del feed de participantes con filtrado por estados (chips), insignias de estado, clima en tiempo real integrado al lado del estado, likes/dislikes directos en tarjetas, reubicación del botón a un enlace inline de incentivo "Ver y aportar" y rediseño del Perfil con avatar de iniciales y menú de soporte.
 
 import React, { useState, useEffect } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  ScrollView, 
-  FlatList, 
-  Image, 
-  ActivityIndicator, 
-  Alert, 
-  TextInput, 
-  Platform,
-  Modal,
-  ImageBackground
-} from 'react-native';
+import { StyleSheet, View, Text, TouchableOpacity, FlatList, Image, Dimensions, ScrollView, Modal, Alert, Platform, ActivityIndicator, TextInput, KeyboardAvoidingView, ImageBackground, Switch, Linking } from 'react-native';
+import * as Notifications from 'expo-notifications';
+import { LinearGradient } from 'expo-linear-gradient';
 import * as ImagePicker from 'expo-image-picker';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { 
@@ -41,10 +29,32 @@ import {
   Shield,
   Thermometer,
   Droplets,
-  Wind
+  Wind,
+  ChevronRight,
+  BadgeCheck
 } from 'lucide-react-native';
 import { getEventos, getClimaActual, setAuthHeaders, reaccionarAImagen, obtenerReaccionesImagen, uploadImage } from '../services/api';
 import { getLojaWeather } from '../services/weatherService';
+
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: false,
+  }),
+});
+
+const showPushNotification = async (title, body) => {
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title,
+      body,
+    },
+    trigger: null,
+  });
+};
+
+const { width } = Dimensions.get('window');
 
 export default function ParticipantScreen({ route, navigation }) {
   const { user } = route.params || { user: { name: 'Invitado', email: 'invitado@unl.edu.ec', id_usuario: 1, id_rol: 2 } };
@@ -78,6 +88,13 @@ export default function ParticipantScreen({ route, navigation }) {
 
   // Fullscreen Image States
   const [fullscreenImage, setFullscreenImage] = useState(null);
+  const [logoutModalVisible, setLogoutModalVisible] = useState(false);
+  
+  // Settings States
+  const [notificationsModalVisible, setNotificationsModalVisible] = useState(false);
+  const [pushEnabled, setPushEnabled] = useState(true);
+  const [emailEnabled, setEmailEnabled] = useState(true);
+  const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
 
   // Load Initial Data
   useEffect(() => {
@@ -168,7 +185,7 @@ export default function ParticipantScreen({ route, navigation }) {
       if (!result.canceled) {
         setLoadingEvents(true);
         await uploadImage(eventId, result.assets[0].uri);
-        Alert.alert('¡Éxito!', 'Tu foto ha sido subida correctamente.');
+        Alert.alert('¡Foto Subida!', 'Tu imagen se ha guardado y publicado en el evento.');
         loadEvents();
       }
     } catch (err) {
@@ -247,10 +264,7 @@ export default function ParticipantScreen({ route, navigation }) {
 
 
   const handleLogout = () => {
-    Alert.alert('Cerrar Sesión', '¿Estás seguro de que quieres salir?', [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Salir', onPress: () => navigation.replace('Login') }
-    ]);
+    setLogoutModalVisible(true);
   };
 
   const formatDate = (dateStr) => {
@@ -424,7 +438,7 @@ export default function ParticipantScreen({ route, navigation }) {
                 </View>
 
                 <View style={styles.premiumTitleContainer}>
-                   <Text style={styles.premiumTitle} numberOfLines={3}>{item.nombre.toUpperCase()}</Text>
+                   <Text style={styles.premiumTitle} numberOfLines={3}>{item.nombre || ''}</Text>
                 </View>
 
                 <View style={styles.premiumImageFooter}>
@@ -536,10 +550,8 @@ export default function ParticipantScreen({ route, navigation }) {
 
     return (
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.weatherContainerNew}>
-        <Text style={styles.weatherEngineSub}>MOTOR CLIMÁTICO V2.0</Text>
-
         {/* Main Card */}
-        <View style={styles.weatherEngineCard}>
+        <LinearGradient colors={["#27436B", "#111B33"]} style={styles.weatherEngineCard}>
           <View style={styles.weatherEngineHeader}>
             <View>
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -553,61 +565,84 @@ export default function ParticipantScreen({ route, navigation }) {
               </Text>
             </View>
             <View style={styles.mapIconBtn}>
-              <MapPin size={14} color="#9CA3AF" />
+              <MapPin size={16} color="#FFFFFF" />
             </View>
           </View>
 
           <View style={styles.weatherEngineBody}>
             <View style={styles.weatherEngineTempCol}>
               <Text style={styles.weatherEngineTemp}>
-                {weather.temperatura ? weather.temperatura.toFixed(1) : '18.5'}°C
+                {weather.temperatura ? weather.temperatura.toFixed(1) : '15.5'}°C
               </Text>
               <Text style={styles.weatherEngineFeelsLike}>
-                {(weather.temperatura || 18.5).toFixed(1)}°C / {((weather.temperatura || 18.5) + 3).toFixed(1)}°C
+                {(weather.temperatura || 15.5).toFixed(1)}°C / {((weather.temperatura || 15.5) + 3).toFixed(1)}°C
               </Text>
-              <Text style={styles.weatherEngineDesc}>{weather.detalles_alerta.toUpperCase()}</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
+                <CloudRain size={14} color="#FFFFFF" style={{ marginRight: 6 }} />
+                <Text style={styles.weatherEngineDesc}>{weather.detalles_alerta.toUpperCase()}</Text>
+              </View>
             </View>
             <Image 
               source={{ uri: getIconUrl(weather.icon) }} 
               style={styles.weatherEngineIconBig} 
             />
           </View>
-        </View>
+        </LinearGradient>
 
         {/* Metrics List */}
         <View style={styles.weatherMetricsList}>
           <View style={styles.weatherMetricRow}>
-             <View style={styles.weatherMetricLeft}><Thermometer size={16} color="#4B5563" /><Text style={styles.weatherMetricLabel}>SENSACIÓN TÉRMICA</Text></View>
-             <Text style={styles.weatherMetricValue}>{weather.feelsLike ? weather.feelsLike.toFixed(1) : '18.5'}°C</Text>
+             <View style={styles.weatherMetricLeft}>
+               <View style={[styles.weatherMetricIconBox, { backgroundColor: '#EFF6FF' }]}><Thermometer size={16} color="#3B82F6" /></View>
+               <Text style={styles.weatherMetricLabel}>SENSACIÓN TÉRMICA</Text>
+             </View>
+             <Text style={styles.weatherMetricValue}>{weather.feelsLike ? weather.feelsLike.toFixed(1) : '13.0'}°C</Text>
           </View>
           <View style={styles.weatherMetricRow}>
-             <View style={styles.weatherMetricLeft}><CloudRain size={16} color="#4B5563" /><Text style={styles.weatherMetricLabel}>PROB. DE LLUVIA</Text></View>
-             <Text style={styles.weatherMetricValue}>{weather.rainChance || 0}%</Text>
+             <View style={styles.weatherMetricLeft}>
+               <View style={[styles.weatherMetricIconBox, { backgroundColor: '#ECFDF5' }]}><CloudRain size={16} color="#10B981" /></View>
+               <Text style={styles.weatherMetricLabel}>PROB. DE LLUVIA</Text>
+             </View>
+             <Text style={styles.weatherMetricValue}>{weather.rainChance || 87}%</Text>
           </View>
           <View style={styles.weatherMetricRow}>
-             <View style={styles.weatherMetricLeft}><Wind size={16} color="#4B5563" /><Text style={styles.weatherMetricLabel}>VELOCIDAD VIENTO</Text></View>
-             <Text style={styles.weatherMetricValue}>{weather.windSpeed || 11.2} km/h</Text>
+             <View style={styles.weatherMetricLeft}>
+               <View style={[styles.weatherMetricIconBox, { backgroundColor: '#F5F3FF' }]}><Wind size={16} color="#8B5CF6" /></View>
+               <Text style={styles.weatherMetricLabel}>VELOCIDAD VIENTO</Text>
+             </View>
+             <Text style={styles.weatherMetricValue}>{weather.windSpeed || 25.6} km/h</Text>
           </View>
           <View style={styles.weatherMetricRow}>
-             <View style={styles.weatherMetricLeft}><Droplets size={16} color="#4B5563" /><Text style={styles.weatherMetricLabel}>HUMEDAD DEL AIRE</Text></View>
-             <Text style={styles.weatherMetricValue}>{weather.humedad || 88.2}%</Text>
+             <View style={styles.weatherMetricLeft}>
+               <View style={[styles.weatherMetricIconBox, { backgroundColor: '#EFF6FF' }]}><Droplets size={16} color="#3B82F6" /></View>
+               <Text style={styles.weatherMetricLabel}>HUMEDAD DEL AIRE</Text>
+             </View>
+             <Text style={styles.weatherMetricValue}>{weather.humedad || 87}%</Text>
           </View>
           <View style={styles.weatherMetricRowBorderNone}>
-             <View style={styles.weatherMetricLeft}><Sun size={16} color="#4B5563" /><Text style={styles.weatherMetricLabel}>ÍNDICE UV</Text></View>
-             <Text style={styles.weatherMetricValue}>{weather.uvIndex || 0}</Text>
+             <View style={styles.weatherMetricLeft}>
+               <View style={[styles.weatherMetricIconBox, { backgroundColor: '#FFFBEB' }]}><Sun size={16} color="#F59E0B" /></View>
+               <Text style={styles.weatherMetricLabel}>ÍNDICE UV</Text>
+             </View>
+             <Text style={styles.weatherMetricValue}>{weather.uvIndex || 6}</Text>
           </View>
         </View>
 
         {/* 5-Day Mini Forecast */}
         <View style={styles.forecastGrid}>
-          {['MAR', 'MIE', 'JUE', 'VIE', 'SAB'].map((day, i) => (
-             <View key={i} style={[styles.forecastCol, i === 0 && styles.forecastColActive]}>
-               <Text style={[styles.forecastDay, i === 0 && { color: '#0F766E' }]}>{day}</Text>
-               <CloudRain size={16} color={i === 0 ? "#0F766E" : "#60A5FA"} style={{ marginVertical: 8 }} />
-               <Text style={[styles.forecastTempMax, i === 0 && { color: '#fff' }]}>18°</Text>
-               <Text style={styles.forecastTempMin}>13°</Text>
-             </View>
-          ))}
+          {[0, 1, 2, 3, 4].map((offset) => {
+             const d = new Date();
+             d.setDate(d.getDate() + offset);
+             const day = d.toLocaleDateString('es-ES', { weekday: 'short' }).substring(0, 3).toUpperCase();
+             return (
+               <View key={offset} style={[styles.forecastCol, offset === 0 && styles.forecastColActive]}>
+                 <Text style={[styles.forecastDay, offset === 0 && { color: '#0F766E' }]}>{day}</Text>
+                 <CloudRain size={20} color={offset === 0 ? "#FFFFFF" : "#60A5FA"} style={{ marginVertical: 8 }} />
+                 <Text style={[styles.forecastTempMax, offset === 0 && { color: '#FFFFFF' }]}>18°</Text>
+                 <Text style={[styles.forecastTempMin, offset === 0 && { color: '#9CA3AF' }]}>13°</Text>
+               </View>
+             );
+          })}
         </View>
 
         {/* Climatology Analytics Chart Mock */}
@@ -670,7 +705,10 @@ export default function ParticipantScreen({ route, navigation }) {
           <Text style={styles.profileEmail}>{user.email}</Text>
 
           <View style={styles.badgeRow}>
-            <Text style={styles.roleBadge}>Participante Acreditado</Text>
+            <View style={styles.roleBadgeContainer}>
+              <BadgeCheck size={14} color="#059669" style={{ marginRight: 4 }} />
+              <Text style={styles.roleBadge}>Participante Acreditado</Text>
+            </View>
           </View>
 
 
@@ -679,34 +717,43 @@ export default function ParticipantScreen({ route, navigation }) {
           <View style={styles.settingsMenu}>
             <Text style={styles.settingsSectionTitle}>Ajustes y Soporte</Text>
             
-            <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7} onPress={() => Alert.alert('Notificaciones', 'Configuración de notificaciones en desarrollo.')}>
+            <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7} onPress={() => setNotificationsModalVisible(true)}>
               <View style={styles.settingsItemLeft}>
                 <View style={[styles.settingsIconContainer, { backgroundColor: '#E0F2FE' }]}>
-                  <Bell size={18} color="#0369A1" />
+                  <Bell size={20} color="#0369A1" />
                 </View>
-                <Text style={styles.settingsItemText}>Notificaciones</Text>
+                <View>
+                  <Text style={styles.settingsItemText}>Notificaciones</Text>
+                  <Text style={styles.settingsItemSubtitle}>Gestiona tus preferencias</Text>
+                </View>
               </View>
-              <Text style={styles.settingsItemArrow}>→</Text>
+              <ChevronRight size={20} color="#9CA3AF" />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7} onPress={() => Alert.alert('Privacidad', 'UNL Cloud Connect protege tus datos bajo los lineamientos institucionales.')}>
+            <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7} onPress={() => setPrivacyModalVisible(true)}>
               <View style={styles.settingsItemLeft}>
                 <View style={[styles.settingsIconContainer, { backgroundColor: '#FEE2E2' }]}>
-                  <Shield size={18} color="#B91C1C" />
+                  <Shield size={20} color="#B91C1C" />
                 </View>
-                <Text style={styles.settingsItemText}>Seguridad y Privacidad</Text>
+                <View>
+                  <Text style={styles.settingsItemText}>Seguridad y Privacidad</Text>
+                  <Text style={styles.settingsItemSubtitle}>Protege tu información personal</Text>
+                </View>
               </View>
-              <Text style={styles.settingsItemArrow}>→</Text>
+              <ChevronRight size={20} color="#9CA3AF" />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7} onPress={() => Alert.alert('Soporte', 'Para soporte técnico, escribe a: soporte.cloudconnect@unl.edu.ec')}>
+            <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7} onPress={() => Linking.openURL('mailto:soporte.cloudconnect@unl.edu.ec')}>
               <View style={styles.settingsItemLeft}>
                 <View style={[styles.settingsIconContainer, { backgroundColor: '#E6F4F1' }]}>
-                  <Info size={18} color="#0F766E" />
+                  <Info size={20} color="#0F766E" />
                 </View>
-                <Text style={styles.settingsItemText}>Soporte Técnico</Text>
+                <View>
+                  <Text style={styles.settingsItemText}>Soporte Técnico</Text>
+                  <Text style={styles.settingsItemSubtitle}>Obtén ayuda y soporte</Text>
+                </View>
               </View>
-              <Text style={styles.settingsItemArrow}>→</Text>
+              <ChevronRight size={20} color="#9CA3AF" />
             </TouchableOpacity>
           </View>
 
@@ -719,15 +766,62 @@ export default function ParticipantScreen({ route, navigation }) {
     );
   };
 
+  const renderAlertas = () => {
+    const mockAlerts = [
+      { id: '1', title: 'Alerta de Lluvia Fuerte', description: 'El sensor IoT detectó alta probabilidad de lluvia en Campus Sur.', time: 'Hace 5 min', icon: CloudRain, color: '#3B82F6', unread: true },
+      { id: '2', title: 'Evento Programado', description: 'El evento "Feria de Ciencias" ha sido confirmado para el 15 de Agosto.', time: 'Hace 1 hora', icon: Calendar, color: '#059669', unread: true },
+      { id: '3', title: 'Recordatorio', description: 'No olvides registrar tu asistencia al Simposio de IA hoy a las 15:00.', time: 'Ayer', icon: Bell, color: '#F59E0B', unread: false },
+      { id: '4', title: 'Nueva Reacción', description: 'A 5 personas les gustó la foto que subiste en "Prueba de Fuego".', time: 'Ayer', icon: ThumbsUp, color: '#8B5CF6', unread: false },
+    ];
+
+    return (
+      <View style={styles.alertsContainer}>
+        <Text style={styles.alertsHeader}>Tus Alertas</Text>
+        <ScrollView contentContainerStyle={styles.alertsList}>
+          {mockAlerts.map((alerta) => {
+            const IconComponent = alerta.icon;
+            return (
+              <View key={alerta.id} style={[styles.alertCard, alerta.unread && styles.alertCardUnread]}>
+                <View style={[styles.alertIconWrapper, { backgroundColor: alerta.color + '1A' }]}>
+                  <IconComponent size={24} color={alerta.color} />
+                </View>
+                <View style={styles.alertContent}>
+                  <View style={styles.alertTitleRow}>
+                    <Text style={[styles.alertTitle, alerta.unread && styles.alertTitleUnread]}>{alerta.title}</Text>
+                    {alerta.unread && <View style={styles.unreadDot} />}
+                  </View>
+                  <Text style={styles.alertDescription}>{alerta.description}</Text>
+                  <Text style={styles.alertTime}>{alerta.time}</Text>
+                </View>
+              </View>
+            );
+          })}
+        </ScrollView>
+      </View>
+    );
+  };
+
   return (
-    <SafeAreaView style={styles.safeContainer} edges={['top']}>
+    <SafeAreaView style={[styles.safeContainer, activeTab === 'profile' && { backgroundColor: '#F8FAFF' }]} edges={['top']}>
+      {activeTab === 'profile' && (
+        <View style={[StyleSheet.absoluteFillObject, { overflow: 'hidden' }]}>
+          <LinearGradient
+            colors={["#EEF4FF", "#F8FAFF", "#F3F4F6"]}
+            style={StyleSheet.absoluteFillObject}
+          />
+          <View style={styles.topCircleProfile} />
+          <View style={styles.bottomCircleProfile} />
+        </View>
+      )}
+
       {/* App Header */}
       <View style={styles.header}>
-        <View style={{ height: 30, width: 120 }}>
+        <View style={{ height: 55, width: 110, marginLeft: -15 }}>
           <Image source={require('../img/logo.png')} style={{ width: '100%', height: '100%', resizeMode: 'contain' }} />
         </View>
-        <TouchableOpacity style={styles.bellBtn}>
-          <Bell size={20} color="#0F766E" />
+        <TouchableOpacity style={styles.bellBtn} activeOpacity={0.8}>
+          <Bell size={22} color="#0F766E" />
+          <View style={styles.bellDot} />
         </TouchableOpacity>
       </View>
 
@@ -736,53 +830,38 @@ export default function ParticipantScreen({ route, navigation }) {
         {activeTab === 'feed' && renderFeed()}
         {activeTab === 'weather' && renderWeather()}
         {activeTab === 'profile' && renderProfile()}
-        {activeTab === 'alertas' && (
-          <View style={[styles.weatherEmpty, { flex: 1, justifyContent: 'center' }]}>
-            <Bell size={40} color="#9CA3AF" />
-            <Text style={styles.weatherEmptyText}>Módulo de Alertas en construcción.</Text>
-          </View>
-        )}
+        {activeTab === 'alertas' && renderAlertas()}
       </View>
 
       {/* Custom Bottom Tab Bar */}
-      <View style={styles.tabBar}>
-        {[
-          { id: 'feed', label: 'INICIO', icon: Calendar },
-          { id: 'weather', label: 'CLIMA', icon: Droplets },
-          { id: 'alertas', label: 'ALERTAS', icon: Bell, isDark: true },
-          { id: 'profile', label: 'PERFIL', icon: User },
-        ].map((tab) => {
-          const Icon = tab.icon;
-          const isActive = activeTab === tab.id;
-          
-          if (tab.isDark) {
+      <View style={styles.tabBarWrapper}>
+        <View style={styles.tabBar}>
+          {[
+            { id: 'feed', label: 'INICIO', icon: Calendar },
+            { id: 'weather', label: 'CLIMA', icon: Droplets },
+            { id: 'alertas', label: 'ALERTAS', icon: Bell },
+            { id: 'profile', label: 'PERFIL', icon: User },
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+
             return (
               <TouchableOpacity 
                 key={tab.id}
-                style={[styles.tabItem, { backgroundColor: '#1A1C1E' }]}
+                style={styles.tabItem}
                 onPress={() => setActiveTab(tab.id)}
               >
-                <Icon size={22} color="#FFFFFF" />
-                <Text style={[styles.tabLabel, { color: '#FFFFFF', marginTop: 4, fontSize: 9, fontWeight: '800' }]}>
+                <View>
+                  <Icon size={22} color={isActive ? '#059669' : '#6B7280'} />
+                  {isActive && <View style={styles.activeTabIndicator} />}
+                </View>
+                <Text style={[styles.tabLabel, { color: isActive ? '#059669' : '#6B7280', marginTop: 4, fontSize: 9, fontWeight: '800' }]}>
                   {tab.label}
                 </Text>
               </TouchableOpacity>
             );
-          }
-
-          return (
-            <TouchableOpacity 
-              key={tab.id}
-              style={styles.tabItem}
-              onPress={() => setActiveTab(tab.id)}
-            >
-              <Icon size={22} color={isActive ? '#1A1C1E' : '#64748B'} />
-              <Text style={[styles.tabLabel, { color: isActive ? '#1A1C1E' : '#64748B', marginTop: 4, fontSize: 9, fontWeight: '800' }]}>
-                {tab.label}
-              </Text>
-            </TouchableOpacity>
-          );
-        })}
+          })}
+        </View>
       </View>
 
       {/* Fullscreen Image Viewer Modal */}
@@ -810,6 +889,86 @@ export default function ParticipantScreen({ route, navigation }) {
           )}
         </View>
       </Modal>
+
+      {/* Notifications Modal */}
+      <Modal
+        visible={notificationsModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setNotificationsModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.settingsModalCard}>
+            <Text style={styles.settingsModalTitle}>Preferencias de Notificación</Text>
+            
+            <View style={styles.settingsToggleRow}>
+               <Text style={styles.settingsToggleText}>Notificaciones Push (Alertas IoT)</Text>
+               <Switch value={pushEnabled} onValueChange={setPushEnabled} trackColor={{ false: '#D1D5DB', true: '#059669' }} />
+            </View>
+            <View style={styles.settingsToggleRow}>
+               <Text style={styles.settingsToggleText}>Correos Electrónicos (Eventos)</Text>
+               <Switch value={emailEnabled} onValueChange={setEmailEnabled} trackColor={{ false: '#D1D5DB', true: '#059669' }} />
+            </View>
+            
+            <TouchableOpacity style={styles.settingsModalBtn} onPress={() => setNotificationsModalVisible(false)}>
+               <Text style={styles.settingsModalBtnText}>Guardar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Privacy Modal */}
+      <Modal
+        visible={privacyModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setPrivacyModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.settingsModalCard}>
+            <Text style={styles.settingsModalTitle}>Seguridad y Privacidad</Text>
+            <Text style={styles.settingsModalDesc}>Tu cuenta y progreso están protegidos. Solo tú y el administrador tienen acceso a la información personal.</Text>
+            
+            <View style={styles.privacyInfoBox}>
+              <Text style={styles.privacyInfoLabel}>Correo encriptado:</Text>
+              <Text style={styles.privacyInfoValue}>{user.email}</Text>
+            </View>
+            
+            <TouchableOpacity style={[styles.settingsModalBtn, { backgroundColor: '#F3F4F6' }]} onPress={() => setPrivacyModalVisible(false)}>
+               <Text style={[styles.settingsModalBtnText, { color: '#374151' }]}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Custom Logout Modal */}
+      <Modal
+        visible={logoutModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setLogoutModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.logoutModalContainer}>
+            <View style={styles.logoutModalIconContainer}>
+              <LogOut size={32} color="#EF4444" />
+            </View>
+            <Text style={styles.logoutModalTitle}>Cerrar Sesión</Text>
+            <Text style={styles.logoutModalText}>¿Estás seguro de que quieres salir de tu cuenta?</Text>
+            <View style={styles.logoutModalButtons}>
+              <TouchableOpacity style={styles.logoutModalBtnCancel} onPress={() => setLogoutModalVisible(false)}>
+                <Text style={styles.logoutModalBtnCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.logoutModalBtnConfirm} onPress={() => {
+                setLogoutModalVisible(false);
+                navigation.replace('Login');
+              }}>
+                <Text style={styles.logoutModalBtnConfirmText}>Salir</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -817,23 +976,22 @@ export default function ParticipantScreen({ route, navigation }) {
 const styles = StyleSheet.create({
   profileScrollContainer: {
     padding: 16,
+    paddingBottom: 120,
   },
   profileContainer: {
     flex: 1,
     padding: 16,
   },
   profileCard: {
-    backgroundColor: '#fff',
-    borderRadius: 20,
+    backgroundColor: '#ffffff',
+    borderRadius: 24,
     padding: 24,
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
+    shadowRadius: 20,
+    elevation: 4,
   },
   avatarContainer: {
     position: 'relative',
@@ -886,16 +1044,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     marginBottom: 20,
   },
-  roleBadge: {
+  roleBadgeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: '#E6F4F1',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+  },
+  roleBadge: {
     color: '#0F766E',
-    fontSize: 10,
+    fontSize: 12,
     fontWeight: '800',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
-    textTransform: 'uppercase',
-    letterSpacing: 0.3,
   },
   profileStats: {
     flexDirection: 'row',
@@ -943,13 +1103,18 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 12,
-    marginBottom: 8,
-    backgroundColor: '#F9FAFB',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    backgroundColor: '#ffffff',
     borderWidth: 1,
     borderColor: '#F3F4F6',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.02,
+    shadowRadius: 8,
+    elevation: 2,
   },
   settingsItemLeft: {
     flexDirection: 'row',
@@ -957,16 +1122,21 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   settingsIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
   },
   settingsItemText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#374151',
+    fontSize: 14,
+    fontWeight: '800',
+    color: '#1F2937',
+  },
+  settingsItemSubtitle: {
+    fontSize: 12,
+    color: '#6B7280',
+    marginTop: 2,
   },
   settingsItemArrow: {
     fontSize: 14,
@@ -981,11 +1151,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#E5E7EB',
-    backgroundColor: '#fff',
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: 'transparent',
   },
   headerSubtitle: {
     fontSize: 9,
@@ -1003,9 +1171,28 @@ const styles = StyleSheet.create({
     color: '#0F766E',
   },
   bellBtn: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+  },
+  bellDot: {
+    position: 'absolute',
+    top: 10,
+    right: 12,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#059669',
+    borderWidth: 1.5,
+    borderColor: '#ffffff',
   },
   mainContent: {
     flex: 1,
@@ -1013,8 +1200,87 @@ const styles = StyleSheet.create({
   listContainer: {
     padding: 16,
   },
+  alertsContainer: {
+    flex: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  alertsHeader: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#1F2937',
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 10,
+  },
+  alertsList: {
+    padding: 16,
+    paddingBottom: 100,
+  },
+  alertCard: {
+    flexDirection: 'row',
+    backgroundColor: '#fff',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'transparent',
+  },
+  alertCardUnread: {
+    backgroundColor: '#F0FDF4',
+    borderColor: '#D1FAE5',
+  },
+  alertIconWrapper: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  alertContent: {
+    flex: 1,
+  },
+  alertTitleRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  alertTitle: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#4B5563',
+  },
+  alertTitleUnread: {
+    color: '#111827',
+    fontWeight: '800',
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#059669',
+  },
+  alertDescription: {
+    fontSize: 13,
+    color: '#6B7280',
+    marginBottom: 6,
+    lineHeight: 18,
+  },
+  alertTime: {
+    fontSize: 11,
+    color: '#9CA3AF',
+    fontWeight: '500',
+  },
   weatherContainerNew: {
     padding: 16,
+    paddingBottom: 120,
     backgroundColor: '#F9FAFB',
     flexGrow: 1,
   },
@@ -1435,17 +1701,39 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 18,
   },
+  tabBarWrapper: {
+    position: 'absolute',
+    bottom: Platform.OS === 'ios' ? 24 : 16,
+    left: 16,
+    right: 16,
+  },
   tabBar: {
     flexDirection: 'row',
-    borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
     backgroundColor: '#fff',
-    height: 64,
+    borderRadius: 24,
+    height: 76,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 8,
+    alignItems: 'center',
+    paddingHorizontal: 6,
   },
   tabItem: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    height: '100%',
+  },
+  activeTabIndicator: {
+    position: 'absolute',
+    top: -2,
+    right: -6,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: '#059669',
   },
   tabLabel: {
     fontSize: 10,
@@ -1454,7 +1742,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   tabLabelActive: {
-    color: '#0F766E',
+    color: '#059669',
     fontWeight: '800',
   },
   scrollContainer: {
@@ -1816,8 +2104,8 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   filterPill: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
     borderRadius: 20,
     backgroundColor: '#F3F4F6',
     borderWidth: 1,
@@ -1828,7 +2116,7 @@ const styles = StyleSheet.create({
     borderColor: '#0F766E',
   },
   filterPillText: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '600',
     color: '#4B5563',
   },
@@ -1934,16 +2222,14 @@ const styles = StyleSheet.create({
   },
   premiumTitleContainer: {
     flex: 1,
-    justifyContent: 'center',
-    paddingVertical: 20,
+    justifyContent: 'flex-end',
+    paddingBottom: 16,
   },
   premiumTitle: {
     color: '#FFFFFF',
     fontSize: 32,
-    fontWeight: '900',
-    fontStyle: 'italic',
-    lineHeight: 34,
-    textTransform: 'uppercase',
+    fontFamily: 'AbrilFatface_400Regular',
+    lineHeight: 36,
   },
   premiumImageFooter: {
     flexDirection: 'row',
@@ -1998,5 +2284,174 @@ const styles = StyleSheet.create({
     color: '#4B5563',
     fontSize: 13,
     lineHeight: 18,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  logoutModalContainer: {
+    width: '100%',
+    maxWidth: 340,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 24,
+    padding: 24,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  logoutModalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FEE2E2',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  logoutModalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1F2937',
+    marginBottom: 8,
+  },
+  logoutModalText: {
+    fontSize: 15,
+    color: '#6B7280',
+    textAlign: 'center',
+    marginBottom: 24,
+    lineHeight: 22,
+  },
+  logoutModalButtons: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    width: '100%',
+    gap: 12,
+  },
+  logoutModalBtnCancel: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#F3F4F6',
+    alignItems: 'center',
+  },
+  logoutModalBtnCancelText: {
+    color: '#4B5563',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  logoutModalBtnConfirm: {
+    flex: 1,
+    paddingVertical: 14,
+    borderRadius: 12,
+    backgroundColor: '#EF4444',
+    alignItems: 'center',
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
+  },
+  logoutModalBtnConfirmText: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+  settingsModalCard: {
+    backgroundColor: '#FFFFFF',
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: 24,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 10,
+  },
+  settingsModalTitle: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#111827',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  settingsModalDesc: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginBottom: 20,
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+  settingsToggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+  },
+  settingsToggleText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#374151',
+    flex: 1,
+    marginRight: 12,
+  },
+  privacyInfoBox: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: '#E5E7EB',
+  },
+  privacyInfoLabel: {
+    fontSize: 12,
+    color: '#6B7280',
+    fontWeight: '700',
+    marginBottom: 4,
+  },
+  privacyInfoValue: {
+    fontSize: 14,
+    color: '#111827',
+    fontWeight: '800',
+  },
+  settingsModalBtn: {
+    backgroundColor: '#0F766E',
+    paddingVertical: 14,
+    borderRadius: 12,
+    alignItems: 'center',
+  },
+  settingsModalBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  topCircleProfile: {
+    position: 'absolute',
+    top: -150,
+    right: -100,
+    width: 400,
+    height: 400,
+    borderRadius: 200,
+    backgroundColor: '#FFFFFF',
+    opacity: 0.4,
+  },
+  bottomCircleProfile: {
+    position: 'absolute',
+    top: 200,
+    left: -150,
+    width: 300,
+    height: 300,
+    borderRadius: 150,
+    backgroundColor: '#EEF4FF',
+    opacity: 0.6,
   },
 });

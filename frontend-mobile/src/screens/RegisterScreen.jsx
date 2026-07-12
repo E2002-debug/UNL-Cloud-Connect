@@ -9,7 +9,9 @@ import {
   TouchableOpacity, 
   Modal, 
   TextInput, 
-  Pressable 
+  Pressable,
+  Platform,
+  Image
 } from 'react-native';
 import { 
   Calendar as CalendarIcon, 
@@ -18,9 +20,14 @@ import {
   Eye, 
   EyeOff, 
   ChevronLeft, 
-  ChevronRight 
+  ChevronRight,
+  User,
+  Mail,
+  Lock,
+  ArrowLeft
 } from 'lucide-react-native';
 import Button from '../components/Button';
+import BackgroundLayout from '../components/BackgroundLayout';
 import { register } from '../services/api';
 
 const MONTHS = [
@@ -42,6 +49,7 @@ export default function RegisterScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showSuccessModal, setShowSuccessModal] = useState(false);
 
   // Date Picker States
   const [showDatePicker, setShowDatePicker] = useState(false);
@@ -220,11 +228,7 @@ export default function RegisterScreen({ navigation }) {
 
       await register(payload);
       setLoading(false);
-      Alert.alert(
-        'Verificación Pendiente', 
-        'Tu solicitud de registro ha sido recibida. Ten en cuenta que tu cuenta NO se creará en la base de datos hasta que la verifiques.\n\nPor favor, revisa tu correo institucional para encontrar el enlace de activación.',
-        [{ text: 'Entendido, ir al Login', onPress: () => navigation.navigate('Login') }]
-      );
+      setShowSuccessModal(true);
     } catch (err) {
       setLoading(false);
       let msg = 'Error al registrarse. Intente más tarde.';
@@ -243,7 +247,12 @@ export default function RegisterScreen({ navigation }) {
         msg = err.message;
       }
       setError(msg);
-      Alert.alert('Error de Registro', msg);
+      setError(msg);
+      if (Platform.OS === 'web') {
+        window.alert('Error de Registro: ' + msg);
+      } else {
+        Alert.alert('Error de Registro', msg);
+      }
     }
   };
 
@@ -318,59 +327,100 @@ export default function RegisterScreen({ navigation }) {
   };
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.card}>
-        <Text style={styles.title}>Crear Cuenta UNL</Text>
-        <Text style={styles.subtitle}>Ingresa tus datos institucionales</Text>
+    <BackgroundLayout>
+      <ScrollView contentContainerStyle={styles.container}>
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <ArrowLeft size={20} color="#1E293B" />
+      </TouchableOpacity>
 
+      <View style={styles.header}>
+        <View style={{ height: 90, width: 180, marginBottom: 12 }}>
+          <Image source={require('../img/logo.png')} style={{ width: '100%', height: '100%', resizeMode: 'contain' }} />
+        </View>
+        <Text style={styles.title}>Crear cuenta UNL</Text>
+        <Text style={styles.subtitle}>Ingresa tus datos institucionales</Text>
+      </View>
+
+      <View style={styles.card}>
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
         {/* Nombre */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Nombre *</Text>
-          <TextInput
-            style={styles.textInput}
-            value={form.nombre}
-            onChangeText={(v) => setForm({ ...form, nombre: v })}
-            placeholder="Ej: Juan"
-          />
+          <View style={styles.labelRow}>
+            <View style={styles.iconCircle}>
+              <User size={16} color="#059669" />
+            </View>
+            <Text style={styles.label}>Nombre *</Text>
+          </View>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.inputText}
+              value={form.nombre}
+              onChangeText={(v) => setForm({ ...form, nombre: v })}
+              placeholder="Ej: Juan"
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
         </View>
         
         {/* Apellido */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Apellido *</Text>
-          <TextInput
-            style={styles.textInput}
-            value={form.apellido}
-            onChangeText={(v) => setForm({ ...form, apellido: v })}
-            placeholder="Ej: Pérez"
-          />
+          <View style={styles.labelRow}>
+            <View style={styles.iconCircle}>
+              <User size={16} color="#059669" />
+            </View>
+            <Text style={styles.label}>Apellido *</Text>
+          </View>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.inputText}
+              value={form.apellido}
+              onChangeText={(v) => setForm({ ...form, apellido: v })}
+              placeholder="Ej: Pérez"
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
         </View>
         
         {/* Correo */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Correo institucional *</Text>
-          <TextInput
-            style={styles.textInput}
-            value={form.correo}
-            onChangeText={(v) => setForm({ ...form, correo: v })}
-            placeholder="juan.perez@unl.edu.ec"
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
+          <View style={styles.labelRow}>
+            <View style={styles.iconCircle}>
+              <Mail size={16} color="#059669" />
+            </View>
+            <Text style={styles.label}>Correo institucional *</Text>
+          </View>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.inputText}
+              value={form.correo}
+              onChangeText={(v) => setForm({ ...form, correo: v })}
+              placeholder="juan.perez@unl.edu.ec"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              placeholderTextColor="#9CA3AF"
+            />
+          </View>
         </View>
         
         {/* Contraseña */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Contraseña *</Text>
-          <View style={styles.passwordInputContainer}>
+          <View style={styles.labelRow}>
+            <View style={styles.iconCircle}>
+              <Lock size={16} color="#059669" />
+            </View>
+            <Text style={styles.label}>Contraseña *</Text>
+          </View>
+          <View style={styles.inputContainer}>
             <TextInput
-              style={styles.passwordInput}
+              style={styles.inputText}
               value={form.clave}
               onChangeText={(v) => setForm({ ...form, clave: v })}
               placeholder="••••••••"
               secureTextEntry={!showPassword}
               maxLength={12}
+              autoCapitalize="none"
+              placeholderTextColor="#9CA3AF"
             />
             <TouchableOpacity 
               onPress={() => setShowPassword(!showPassword)}
@@ -418,11 +468,11 @@ export default function RegisterScreen({ navigation }) {
                 <View key={rule.key} style={styles.ruleRow}>
                   {satisfied ? (
                     <View style={[styles.ruleIndicator, styles.indicatorChecked]}>
-                      <Check size={10} color="#fff" />
+                      <Check size={10} color="#059669" />
                     </View>
                   ) : (
                     <View style={[styles.ruleIndicator, styles.indicatorUnchecked]}>
-                      <X size={10} color="#9CA3AF" />
+                      <Check size={10} color="#9CA3AF" />
                     </View>
                   )}
                   <Text style={[styles.ruleText, satisfied && styles.ruleTextChecked]}>
@@ -436,16 +486,23 @@ export default function RegisterScreen({ navigation }) {
         
         {/* Fecha Nacimiento */}
         <View style={styles.inputGroup}>
-          <Text style={styles.label}>Fecha de nacimiento *</Text>
+          <View style={styles.labelRow}>
+            <View style={styles.iconCircle}>
+              <CalendarIcon size={16} color="#059669" />
+            </View>
+            <Text style={styles.label}>Fecha de nacimiento *</Text>
+          </View>
           <TouchableOpacity 
-            style={styles.dateSelectorButton} 
+            style={styles.inputContainer} 
             onPress={openDatePicker}
             activeOpacity={0.8}
           >
-            <Text style={[styles.dateSelectorText, !form.fecha_nacimiento && styles.dateSelectorTextPlaceholder]}>
+            <Text style={[styles.inputText, !form.fecha_nacimiento && {color: '#9CA3AF'}]}>
               {form.fecha_nacimiento ? form.fecha_nacimiento : 'Seleccionar fecha (17 a 60 años)'}
             </Text>
-            <CalendarIcon size={18} color="#0F766E" />
+            <View style={{padding: 12}}>
+              <CalendarIcon size={18} color="#1E293B" />
+            </View>
           </TouchableOpacity>
         </View>
 
@@ -453,12 +510,14 @@ export default function RegisterScreen({ navigation }) {
           <ActivityIndicator size="large" color="#0F766E" style={styles.loader} />
         ) : (
           <View style={styles.buttonContainer}>
-            <Button onPress={submit}>Crear cuenta</Button>
+            <TouchableOpacity style={styles.primaryButton} onPress={submit}>
+              <Text style={styles.primaryButtonText}>Crear cuenta</Text>
+            </TouchableOpacity>
             <TouchableOpacity 
               onPress={() => navigation.navigate('Login')} 
               style={styles.loginLink}
             >
-              <Text style={styles.loginLinkText}>¿Ya tienes cuenta? Inicia sesión aquí</Text>
+              <Text style={styles.loginLinkText}>¿Ya tienes cuenta? <Text style={styles.loginLinkTextBlue}>Inicia sesión aquí</Text></Text>
             </TouchableOpacity>
           </View>
         )}
@@ -557,71 +616,137 @@ export default function RegisterScreen({ navigation }) {
           </Pressable>
         </Pressable>
       </Modal>
-    </ScrollView>
+
+      {/* CUSTOM SUCCESS MODAL */}
+      <Modal
+        visible={showSuccessModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => {
+          setShowSuccessModal(false);
+          navigation.navigate('Login');
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalContent, { alignItems: 'center', paddingVertical: 30 }]}>
+            <View style={{
+              width: 60, height: 60, borderRadius: 30, backgroundColor: '#D1FAE5',
+              justifyContent: 'center', alignItems: 'center', marginBottom: 16
+            }}>
+              <Check size={30} color="#059669" />
+            </View>
+            <Text style={[styles.modalTitle, { fontSize: 18 }]}>Verificación Pendiente</Text>
+            <Text style={[styles.modalSubtitle, { fontSize: 14, marginTop: 8, marginBottom: 24, lineHeight: 20 }]}>
+              Tu solicitud de registro ha sido recibida. Ten en cuenta que tu cuenta NO se creará en la base de datos hasta que la verifiques.{'\n\n'}Por favor, revisa tu correo institucional para encontrar el enlace de activación.
+            </Text>
+            <TouchableOpacity 
+              style={[styles.modalConfirmBtn, { width: '100%' }]}
+              onPress={() => {
+                setShowSuccessModal(false);
+                navigation.navigate('Login');
+              }}
+            >
+              <Text style={styles.modalConfirmBtnText}>Entendido, ir al Login</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+      </ScrollView>
+    </BackgroundLayout>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flexGrow: 1,
-    padding: 20,
-    backgroundColor: '#F9FAFB',
+    padding: 24,
+    backgroundColor: 'transparent',
+    paddingTop: 60,
+    paddingBottom: 40,
+  },
+  backButton: {
+    position: 'absolute',
+    top: 24,
+    left: 24,
+    width: 40,
+    height: 40,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    alignItems: 'center',
     justifyContent: 'center',
+    zIndex: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  header: {
+    marginBottom: 24,
+    alignItems: 'center',
+    marginTop: 20,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#1E293B',
+    marginBottom: 4,
+  },
+  subtitle: {
+    color: '#64748B',
+    fontSize: 14,
   },
   card: {
     backgroundColor: '#fff',
-    padding: 20,
-    borderRadius: 16,
+    padding: 24,
+    borderRadius: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
+    shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.05,
-    shadowRadius: 10,
-    elevation: 3,
-    marginVertical: 10,
+    shadowRadius: 20,
+    elevation: 4,
   },
-  title: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: '#0F766E',
-    marginBottom: 4,
-    textAlign: 'center',
-  },
-  subtitle: {
+  errorText: {
+    color: '#EF4444',
     fontSize: 13,
-    color: '#6B7280',
-    marginBottom: 20,
+    marginBottom: 12,
     textAlign: 'center',
+    fontWeight: '600',
   },
   inputGroup: {
-    marginBottom: 16,
+    marginBottom: 20,
+  },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  iconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: '#ECFDF5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
   },
   label: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: '#374151',
-    marginBottom: 6,
-  },
-  textInput: {
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 12,
-    borderColor: '#E5E7EB',
-    borderWidth: 1,
-    color: '#1F2937',
     fontSize: 14,
+    fontWeight: '700',
+    color: '#0F172A',
   },
-  passwordInputContainer: {
+  inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#fff',
     borderRadius: 12,
-    borderColor: '#E5E7EB',
+    borderColor: '#E2E8F0',
     borderWidth: 1,
   },
-  passwordInput: {
+  inputText: {
     flex: 1,
-    padding: 12,
-    color: '#1F2937',
+    padding: 14,
+    color: '#1E293B',
     fontSize: 14,
   },
   passwordToggle: {
@@ -649,12 +774,10 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   rulesContainer: {
-    marginTop: 10,
-    backgroundColor: '#F9FAFB',
-    padding: 10,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
+    marginTop: 12,
+    backgroundColor: '#F3FBF7',
+    padding: 12,
+    borderRadius: 12,
   },
   ruleRow: {
     flexDirection: 'row',
@@ -663,17 +786,20 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   ruleIndicator: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    width: 16,
+    height: 16,
+    borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
   },
   indicatorChecked: {
-    backgroundColor: '#10B981',
+    borderColor: '#059669',
+    backgroundColor: '#fff',
   },
   indicatorUnchecked: {
-    backgroundColor: '#E5E7EB',
+    borderColor: '#9CA3AF',
+    backgroundColor: '#fff',
   },
   ruleText: {
     fontSize: 11,
@@ -681,47 +807,38 @@ const styles = StyleSheet.create({
   },
   ruleTextChecked: {
     color: '#1F2937',
-    textDecorationLine: 'line-through',
-  },
-  dateSelectorButton: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#fff',
-    padding: 12,
-    borderRadius: 12,
-    borderColor: '#E5E7EB',
-    borderWidth: 1,
-  },
-  dateSelectorText: {
-    fontSize: 14,
-    color: '#1F2937',
-    fontWeight: '500',
-  },
-  dateSelectorTextPlaceholder: {
-    color: '#9CA3AF',
-  },
-  errorText: {
-    color: '#EF4444',
-    fontSize: 13,
-    marginBottom: 14,
-    textAlign: 'center',
-    fontWeight: '600',
+    textDecorationLine: 'none',
   },
   loader: {
     marginVertical: 12,
   },
   buttonContainer: {
-    marginTop: 12,
+    marginTop: 8,
+  },
+  primaryButton: {
+    backgroundColor: '#0F766E',
+    paddingVertical: 16,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  primaryButtonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
   },
   loginLink: {
-    marginTop: 16,
+    marginTop: 20,
     alignItems: 'center',
   },
   loginLinkText: {
-    color: '#4B5563',
-    fontSize: 13,
+    color: '#64748B',
+    fontSize: 14,
     fontWeight: '500',
+  },
+  loginLinkTextBlue: {
+    color: '#0F766E',
+    fontWeight: '600',
   },
 
   // Modal Styles

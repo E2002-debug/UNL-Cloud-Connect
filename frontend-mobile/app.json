@@ -12,7 +12,8 @@
     "plugins": [
       [
         "@react-native-google-signin/google-signin"
-      ]
+      ],
+      "expo-font"
     ],
     "android": {
       "package": "com.unl.cloudconnect",

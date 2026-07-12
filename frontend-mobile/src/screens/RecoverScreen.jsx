@@ -60,7 +60,7 @@ export default function RecoverScreen({ navigation }) {
           <ActivityIndicator size="large" color="#0F766E" style={styles.loader} />
         ) : (
           <View style={styles.buttonContainer}>
-            <Button onPress={submit}>Enviar Token</Button>
+            <Button onPress={submit}>Recuperar</Button>
             <TouchableOpacity 
               onPress={() => navigation.navigate('Login')} 
               style={styles.backLink}
