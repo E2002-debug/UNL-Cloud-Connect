@@ -13,6 +13,9 @@ const CLOUD_BACKEND_URL = 'https://unl-cloud-connect.me/api';
 const LOCAL_BACKEND_URL = 'http://localhost:8000/api';
 
 const getBaseUrl = () => {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
   if (__DEV__) {
     if (Platform.OS === 'android') {
       return 'http://10.0.2.2:8000/api'; // Emulador Android

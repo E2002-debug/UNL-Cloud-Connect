@@ -61,21 +61,8 @@ export default function ModerationPanel() {
     ? "¿Estás seguro de eliminar esta imagen permanentemente? Se borrará del servidor y la base de datos."
     : "";
 
-  const container = {
-    background: "var(--bg-card)",
-    borderRadius: "12px",
-    border: "1px solid #DBE3E0",
-    boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)",
-    overflow: "hidden",
-  };
-
-  const header = {
-    padding: "24px",
-    borderBottom: "1px solid #DBE3E0",
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  };
+  const IconFlag = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>;
+  const IconFilter = () => <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>;
 
   const th = {
     padding: "16px 20px",
@@ -96,39 +83,62 @@ export default function ModerationPanel() {
   };
 
   return (
-    <div style={container}>
-      <div style={header}>
-        <div>
-          <h3 style={{ margin: "0 0 4px 0", fontSize: "18px", fontWeight: "800", color: "var(--text-main)" }}>
-            🚩 MODERACIÓN DE CONTENIDO
-          </h3>
-          <p style={{ margin: 0, fontSize: "12px", fontWeight: "600", color: "#0F766E" }}>
-            Imágenes reportadas pendientes de revisión
-          </p>
+    <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: "24px", boxSizing: "border-box" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", gap: "16px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "16px" }}>
+          <div style={{ width: "64px", height: "64px", borderRadius: "16px", background: "#ecfdf5", color: "#10b981", display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <IconFlag />
+          </div>
+          <div>
+            <h1 style={{ margin: "0 0 4px 0", fontSize: "22px", fontWeight: "800", color: "var(--text-main)", letterSpacing: "-0.5px" }}>Moderación de contenido</h1>
+            <p style={{ margin: 0, fontSize: "12px", fontWeight: "600", color: "var(--text-muted)", letterSpacing: "0.5px" }}>
+              Revisa los reportes y gestiona el contenido reportado.
+            </p>
+          </div>
         </div>
         <button
           onClick={cargarReportadas}
           style={{
-            padding: "8px 16px", background: "var(--bg-app)", border: "1px solid #DBE3E0",
-            borderRadius: "6px", fontSize: "12px", fontWeight: "600", color: "var(--text-muted)",
-            cursor: cargando ? "wait" : "pointer",
+            display: "flex", alignItems: "center", gap: "8px", background: "transparent", 
+            border: "1px solid #10b981", color: "#10b981", padding: "10px 20px", borderRadius: "8px", 
+            fontSize: "12px", fontWeight: "700", cursor: cargando ? "wait" : "pointer" 
           }}
           disabled={cargando}
         >
-          {cargando ? "..." : "RECARGAR"}
+          <IconFilter /> {cargando ? "..." : "FILTRAR"}
         </button>
       </div>
 
+      <div style={{ background: "var(--bg-card)", borderRadius: "12px", border: "1px solid var(--border)", boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.05)", overflow: "hidden" }}>
       {cargando ? (
         <div style={{ padding: "60px", textAlign: "center", color: "var(--text-muted)", fontWeight: "600" }}>
           Cargando imágenes reportadas...
         </div>
       ) : imagenes.length === 0 ? (
-        <div style={{ padding: "60px", textAlign: "center" }}>
-          <div style={{ fontSize: "40px", marginBottom: "12px" }}>✅</div>
-          <p style={{ margin: 0, fontSize: "14px", fontWeight: "600", color: "var(--text-muted)" }}>
-            No hay imágenes reportadas. Todo está en orden.
-          </p>
+        <div style={{ padding: "120px 20px", textAlign: "center", position: "relative", overflow: "hidden" }}>
+          {/* Olas decorativas en el fondo */}
+          <div style={{ position: "absolute", bottom: "-50px", left: 0, right: 0, height: "150px", background: "linear-gradient(180deg, transparent 0%, #f0fdf4 100%)", opacity: 0.5, zIndex: 0, borderRadius: "50% 50% 0 0 / 100% 100% 0 0", transform: "scaleX(1.5)" }}></div>
+          
+          <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
+            <div style={{ position: "relative", marginBottom: "24px" }}>
+              <div style={{ width: "96px", height: "96px", borderRadius: "50%", background: "#f1f5f9", display: "flex", alignItems: "center", justifyContent: "center", margin: "0 auto" }}>
+                <div style={{ width: "48px", height: "48px", borderRadius: "12px", background: "#4ade80", display: "flex", alignItems: "center", justifyContent: "center", color: "white", boxShadow: "0 4px 12px rgba(74, 222, 128, 0.4)" }}>
+                  <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                </div>
+              </div>
+              {/* Sparkles */}
+              <div style={{ position: "absolute", top: "10px", left: "-10px", color: "#34d399" }}>✦</div>
+              <div style={{ position: "absolute", top: "20px", right: "-15px", color: "#6ee7b7", fontSize: "12px" }}>✧</div>
+              <div style={{ position: "absolute", bottom: "15px", left: "10px", color: "#6ee7b7", fontSize: "10px" }}>✦</div>
+              <div style={{ position: "absolute", bottom: "25px", right: "5px", color: "#34d399", fontSize: "14px" }}>✦</div>
+            </div>
+            
+            <h2 style={{ margin: "0 0 12px 0", fontSize: "24px", fontWeight: "800", color: "var(--text-main)" }}>¡Todo en orden!</h2>
+            <p style={{ margin: 0, fontSize: "13px", color: "var(--text-muted)", maxWidth: "400px", lineHeight: "1.6", fontWeight: "500" }}>
+              No hay reportes registrados en este momento.<br />
+              Cuando existan reportes, aparecerán aquí para su revisión.
+            </p>
+          </div>
         </div>
       ) : (
         <div style={{ overflowX: "auto" }}>
@@ -224,6 +234,7 @@ export default function ModerationPanel() {
           </table>
         </div>
       )}
+      </div>
 
       {confirm.open && (
         <div

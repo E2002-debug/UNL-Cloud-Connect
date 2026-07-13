@@ -7,7 +7,7 @@ from app.crud.crud_auditoria import obtener_auditoria
 from app.core.deps import get_current_user
 
 router = APIRouter(
-    prefix="/auditoria",
+    prefix="/usuarios/auditoria",
     tags=["Auditoría de Usuarios"]
 )
 

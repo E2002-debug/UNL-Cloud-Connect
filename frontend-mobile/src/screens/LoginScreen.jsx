@@ -51,8 +51,33 @@ try {
 }
 
 async function registerForPushNotificationsAsync() {
-  // Omitido porque getExpoPushTokenAsync se queda colgado (hangs) si app.json está vacío.
-  return null;
+  let token;
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync('default', {
+      name: 'default',
+      importance: Notifications.AndroidImportance.MAX,
+      vibrationPattern: [0, 250, 250, 250],
+      lightColor: '#FF231F7C',
+    });
+  }
+
+  const { status: existingStatus } = await Notifications.getPermissionsAsync();
+  let finalStatus = existingStatus;
+  if (existingStatus !== 'granted') {
+    const { status } = await Notifications.requestPermissionsAsync();
+    finalStatus = status;
+  }
+  if (finalStatus !== 'granted') {
+    console.warn('Failed to get push token for push notification!');
+    return null;
+  }
+  
+  // Use projectId from app.json or hardcoded to ensure it works in Expo Go and standalone
+  token = (await Notifications.getExpoPushTokenAsync({
+    projectId: '39cba17d-a5da-4180-b30e-58603aa24474',
+  })).data;
+  
+  return token;
 }
 
 Notifications.setNotificationHandler({
@@ -106,7 +131,7 @@ export default function LoginScreen({ navigation }) {
       setLoading(false);
 
       if (res.id_rol !== 2) {
-        Alert.alert('Acceso Denegado', 'Esta aplicación móvil es de uso exclusivo para participantes.');
+        setError('Acceso denegado: La aplicación móvil es solo para estudiantes (participantes). Los administradores deben usar la plataforma web.');
         return;
       }
 
@@ -125,9 +150,12 @@ export default function LoginScreen({ navigation }) {
       try {
         const pushToken = await registerForPushNotificationsAsync();
         if (pushToken) {
-          // AQUÍ: Enviar este token a tu backend para guardarlo en la Base de Datos
-          // await api.post('/auth/guardar-token', { expo_push_token: pushToken });
-          console.log("Token a enviar al backend:", pushToken);
+          // Enviar token al nuevo microservicio de notificaciones
+          await api.post('/notificaciones/guardar-token', {
+            id_usuario: res.id_usuario,
+            expo_push_token: pushToken
+          });
+          console.log("Token guardado en el backend:", pushToken);
         }
       } catch (pushError) {
         console.warn('No se pudo registrar el push token (normal en Expo Go/Web):', pushError.message);
@@ -161,7 +189,7 @@ export default function LoginScreen({ navigation }) {
       setLoading(false);
 
       if (res.id_rol !== 2) {
-        Alert.alert('Acceso Denegado', 'Esta aplicación móvil es de uso exclusivo para participantes.');
+        setError('Acceso denegado: La aplicación móvil es solo para estudiantes (participantes). Los administradores deben usar la plataforma web.');
         return;
       }
 
@@ -178,9 +206,12 @@ export default function LoginScreen({ navigation }) {
       try {
         const pushToken = await registerForPushNotificationsAsync();
         if (pushToken) {
-          // AQUÍ: Enviar este token a tu backend
-          // await api.post('/auth/guardar-token', { expo_push_token: pushToken });
-          console.log("Token a enviar al backend:", pushToken);
+          // Enviar token al nuevo microservicio de notificaciones
+          await api.post('/notificaciones/guardar-token', {
+            id_usuario: res.usuario.id_usuario,
+            expo_push_token: pushToken
+          });
+          console.log("Token guardado en el backend (Google):", pushToken);
         }
       } catch (pushError) {
         console.warn('No se pudo registrar el push token (normal en Expo Go/Web):', pushError.message);

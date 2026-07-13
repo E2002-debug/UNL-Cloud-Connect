@@ -22,9 +22,9 @@ const GuardedRoute = ({ element: Element }) => {
   if (token) {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]))
-      idRol = payload.id_rol || localStorage.getItem('id_rol')
+      idRol = payload.id_rol
     } catch (e) {
-      idRol = localStorage.getItem('id_rol')
+      idRol = null
     }
   }
 
@@ -54,9 +54,9 @@ export default function App() {
   if (token) {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]))
-      idRol = payload.id_rol || localStorage.getItem('id_rol')
+      idRol = payload.id_rol
     } catch (e) {
-      idRol = localStorage.getItem('id_rol')
+      idRol = null
     }
   }
 

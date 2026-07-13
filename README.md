@@ -91,6 +91,13 @@ Si deseas conectarte a la base de datos usando un cliente externo (como DBeaver,
 * **Usuario:** `postgres_admin`
 * **Contraseña:** `postgres123456`
 
+**Conexión base de datos (Notificaciones):**
+* **Host:** `localhost`
+* **Puerto:** `5433`
+* **Base de Datos:** `db_notificaciones`
+* **Usuario:** `postgres_admin`
+* **Contraseña:** `postgres123456`
+
 **Conexión base de datos (Eventos):**
 * **Host:** `localhost`
 * **Puerto:** `5433`

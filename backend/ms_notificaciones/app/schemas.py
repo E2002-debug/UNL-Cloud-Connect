@@ -12,3 +12,7 @@ class EventoNotificacionRequest(BaseModel):
     accion: str  # Ej: 'creado', 'cancelado'
     admin_token: Optional[str] = None
     usuarios_tokens: List[str] = []
+
+class GuardarTokenRequest(BaseModel):
+    id_usuario: int
+    expo_push_token: str

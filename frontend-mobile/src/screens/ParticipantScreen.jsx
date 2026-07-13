@@ -31,7 +31,20 @@ import {
   Droplets,
   Wind,
   ChevronRight,
-  BadgeCheck
+  BadgeCheck,
+  Mail,
+  Save,
+  ShieldCheck,
+  Lock,
+  Clock,
+  FileText,
+  Copy,
+  UserCog,
+  Headset,
+  MessageSquare,
+  HelpCircle,
+  Search,
+  Map
 } from 'lucide-react-native';
 import { getEventos, getClimaActual, setAuthHeaders, reaccionarAImagen, obtenerReaccionesImagen, uploadImage } from '../services/api';
 import { getLojaWeather } from '../services/weatherService';
@@ -95,12 +108,55 @@ export default function ParticipantScreen({ route, navigation }) {
   const [pushEnabled, setPushEnabled] = useState(true);
   const [emailEnabled, setEmailEnabled] = useState(true);
   const [privacyModalVisible, setPrivacyModalVisible] = useState(false);
+  const [supportModalVisible, setSupportModalVisible] = useState(false);
+  const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [faqModalVisible, setFaqModalVisible] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Load Initial Data
   useEffect(() => {
     loadEvents();
     loadWeather();
   }, []);
+
+  const [alerts, setAlerts] = useState([]);
+
+  useEffect(() => {
+    const subscription = Notifications.addNotificationReceivedListener(notification => {
+      const newAlert = {
+        id: String(Date.now()),
+        title: notification.request.content.title || 'Alerta del Sistema',
+        description: notification.request.content.body || 'Tienes una nueva notificación.',
+        time: 'Ahora',
+        icon: Bell,
+        color: '#0F766E',
+        unread: true
+      };
+      setAlerts(prev => [newAlert, ...prev]);
+    });
+    return () => subscription.remove();
+  }, []);
+
+  // Función auxiliar para forzar alertas en Web donde expo-notifications está limitado
+  const triggerSimulatedAlert = (title, body) => {
+    if (Platform.OS !== 'web') {
+      showPushNotification(title, body);
+    } else {
+      // Force append to state on Web
+      setAlerts(prev => [{
+        id: String(Date.now()),
+        title,
+        description: body,
+        time: 'Ahora',
+        icon: Bell,
+        color: '#0F766E',
+        unread: true
+      }, ...prev]);
+      Alert.alert(title, body);
+    }
+  };
+
+  // Funciones de simulación locales removidas en favor del sistema Push real de Backend
 
   const fetchReactionsForEvents = async (data, resetReactions = false) => {
     const reactionsData = {};
@@ -135,9 +191,18 @@ export default function ParticipantScreen({ route, navigation }) {
       if (data.length < EVENTS_LIMIT) setHasMoreEvents(false);
       
       setEvents(data);
+      AsyncStorage.setItem('cached_events', JSON.stringify(data)).catch(() => {});
       await fetchReactionsForEvents(data, true);
     } catch (err) {
       console.error('Error al cargar eventos:', err);
+      // OFFLINE MODE FALLBACK
+      try {
+        const cached = await AsyncStorage.getItem('cached_events');
+        if (cached) {
+          setEvents(JSON.parse(cached));
+          Alert.alert('Modo Offline', 'Mostrando eventos guardados sin conexión.');
+        }
+      } catch (e) {}
     } finally {
       setLoadingEvents(false);
     }
@@ -330,7 +395,18 @@ export default function ParticipantScreen({ route, navigation }) {
     ];
 
     return (
-      <View style={styles.filterBarContainer}>
+      <View style={{ backgroundColor: '#FFFFFF', paddingBottom: 10 }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F3F4F6', borderRadius: 12, marginHorizontal: 20, marginTop: 15, marginBottom: 15, paddingHorizontal: 15, height: 46 }}>
+           <Search size={20} color="#9CA3AF" />
+           <TextInput
+              style={{ flex: 1, marginLeft: 10, fontSize: 15, color: '#1F2937' }}
+              placeholder="Buscar por nombre o lugar..."
+              placeholderTextColor="#9CA3AF"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              returnKeyType="search"
+           />
+        </View>
         <ScrollView 
           horizontal 
           showsHorizontalScrollIndicator={false} 
@@ -369,6 +445,17 @@ export default function ParticipantScreen({ route, navigation }) {
     }
 
     let filteredEvents = events.filter((evt) => {
+      // Búsqueda por nombre o ubicación
+      if (searchQuery.trim().length > 0) {
+        const query = searchQuery.toLowerCase();
+        const eventName = (evt.nombre || '').toLowerCase();
+        const locationName = (evt.ubicacion?.nombre_lugar || '').toLowerCase();
+        if (!eventName.includes(query) && !locationName.includes(query)) {
+          return false;
+        }
+      }
+      
+      // Filtro por estado
       if (selectedStatusFilter === 'TODOS') return true;
       return evt.estado === selectedStatusFilter;
     });
@@ -507,7 +594,43 @@ export default function ParticipantScreen({ route, navigation }) {
                   );
                 })()}
 
-                <View style={styles.moreDetailsContainer}>
+                <View style={[styles.moreDetailsContainer, { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 15 }]}>
+                  <TouchableOpacity 
+                     style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0FDF4', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20 }}
+                     onPress={() => {
+                        const lat = item.ubicacion?.latitud;
+                        const lon = item.ubicacion?.longitud;
+                        let locName = item.ubicacion?.nombre_lugar || 'Loja, Ecuador';
+                        
+                        // Si no hay coordenadas, añadimos contexto universitario para evitar resultados genéricos en la ciudad
+                        if (!lat || !lon) {
+                          if (!locName.toLowerCase().includes('loja')) {
+                            locName += ' Universidad Nacional de Loja';
+                          }
+                        }
+                        
+                        const encodedLoc = encodeURIComponent(locName);
+                        let url = '';
+
+                        if (lat && lon) {
+                          url = Platform.select({
+                            ios: `maps:0,0?ll=${lat},${lon}&q=${encodedLoc}`,
+                            android: `geo:${lat},${lon}?q=${lat},${lon}(${encodedLoc})`,
+                            web: `https://www.google.com/maps/search/?api=1&query=${lat},${lon}`
+                          });
+                        } else {
+                          url = Platform.select({
+                            ios: `maps:0,0?q=${encodedLoc}`,
+                            android: `geo:0,0?q=${encodedLoc}`,
+                            web: `https://www.google.com/maps/search/?api=1&query=${encodedLoc}`
+                          });
+                        }
+                        Linking.openURL(url);
+                     }}
+                  >
+                     <Map size={14} color="#059669" style={{ marginRight: 4 }} />
+                     <Text style={{ fontSize: 12, color: '#059669', fontWeight: '600' }}>Cómo llegar</Text>
+                  </TouchableOpacity>
                   <Text style={styles.moreDetailsText}>Ver más detalles →</Text>
                 </View>
             </View>
@@ -743,7 +866,7 @@ export default function ParticipantScreen({ route, navigation }) {
               <ChevronRight size={20} color="#9CA3AF" />
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7} onPress={() => Linking.openURL('mailto:soporte.cloudconnect@unl.edu.ec')}>
+            <TouchableOpacity style={styles.settingsItem} activeOpacity={0.7} onPress={() => setSupportModalVisible(true)}>
               <View style={styles.settingsItemLeft}>
                 <View style={[styles.settingsIconContainer, { backgroundColor: '#E6F4F1' }]}>
                   <Info size={20} color="#0F766E" />
@@ -767,19 +890,20 @@ export default function ParticipantScreen({ route, navigation }) {
   };
 
   const renderAlertas = () => {
-    const mockAlerts = [
-      { id: '1', title: 'Alerta de Lluvia Fuerte', description: 'El sensor IoT detectó alta probabilidad de lluvia en Campus Sur.', time: 'Hace 5 min', icon: CloudRain, color: '#3B82F6', unread: true },
-      { id: '2', title: 'Evento Programado', description: 'El evento "Feria de Ciencias" ha sido confirmado para el 15 de Agosto.', time: 'Hace 1 hora', icon: Calendar, color: '#059669', unread: true },
-      { id: '3', title: 'Recordatorio', description: 'No olvides registrar tu asistencia al Simposio de IA hoy a las 15:00.', time: 'Ayer', icon: Bell, color: '#F59E0B', unread: false },
-      { id: '4', title: 'Nueva Reacción', description: 'A 5 personas les gustó la foto que subiste en "Prueba de Fuego".', time: 'Ayer', icon: ThumbsUp, color: '#8B5CF6', unread: false },
-    ];
-
     return (
       <View style={styles.alertsContainer}>
         <Text style={styles.alertsHeader}>Tus Alertas</Text>
         <ScrollView contentContainerStyle={styles.alertsList}>
-          {mockAlerts.map((alerta) => {
-            const IconComponent = alerta.icon;
+          {alerts.length === 0 ? (
+            <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 40, padding: 20 }}>
+              <Bell size={48} color="#D1D5DB" style={{ marginBottom: 16 }} />
+              <Text style={{ fontSize: 16, color: '#6B7280', fontWeight: '500', textAlign: 'center' }}>
+                No tienes notificaciones por ahora.
+              </Text>
+            </View>
+          ) : (
+            alerts.map((alerta) => {
+            const IconComponent = alerta.icon || Bell;
             return (
               <View key={alerta.id} style={[styles.alertCard, alerta.unread && styles.alertCardUnread]}>
                 <View style={[styles.alertIconWrapper, { backgroundColor: alerta.color + '1A' }]}>
@@ -795,7 +919,8 @@ export default function ParticipantScreen({ route, navigation }) {
                 </View>
               </View>
             );
-          })}
+          })
+          )}
         </ScrollView>
       </View>
     );
@@ -819,7 +944,7 @@ export default function ParticipantScreen({ route, navigation }) {
         <View style={{ height: 55, width: 110, marginLeft: -15 }}>
           <Image source={require('../img/logo.png')} style={{ width: '100%', height: '100%', resizeMode: 'contain' }} />
         </View>
-        <TouchableOpacity style={styles.bellBtn} activeOpacity={0.8}>
+        <TouchableOpacity style={styles.bellBtn} activeOpacity={0.8} onPress={() => setActiveTab('alertas')}>
           <Bell size={22} color="#0F766E" />
           <View style={styles.bellDot} />
         </TouchableOpacity>
@@ -894,25 +1019,76 @@ export default function ParticipantScreen({ route, navigation }) {
       <Modal
         visible={notificationsModalVisible}
         transparent={true}
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setNotificationsModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.settingsModalCard}>
-            <Text style={styles.settingsModalTitle}>Preferencias de Notificación</Text>
+        <View style={[styles.modalOverlay, { justifyContent: 'flex-end', padding: 0 }]}>
+          <View style={{ backgroundColor: '#FFFFFF', width: '100%', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24 }}>
             
-            <View style={styles.settingsToggleRow}>
-               <Text style={styles.settingsToggleText}>Notificaciones Push (Alertas IoT)</Text>
-               <Switch value={pushEnabled} onValueChange={setPushEnabled} trackColor={{ false: '#D1D5DB', true: '#059669' }} />
-            </View>
-            <View style={styles.settingsToggleRow}>
-               <Text style={styles.settingsToggleText}>Correos Electrónicos (Eventos)</Text>
-               <Switch value={emailEnabled} onValueChange={setEmailEnabled} trackColor={{ false: '#D1D5DB', true: '#059669' }} />
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 15 }}>
+               <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center', top: -12 }}>
+                 <View style={{ width: 40, height: 4, backgroundColor: '#E5E7EB', borderRadius: 2 }} />
+               </View>
+               <TouchableOpacity onPress={() => setNotificationsModalVisible(false)}>
+                 <X size={24} color="#6B7280" />
+               </TouchableOpacity>
             </View>
             
-            <TouchableOpacity style={styles.settingsModalBtn} onPress={() => setNotificationsModalVisible(false)}>
-               <Text style={styles.settingsModalBtnText}>Guardar</Text>
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: '#111827', marginBottom: 5 }}>Preferencias de Notificación</Text>
+            <Text style={{ fontSize: 13, color: '#6B7280', marginBottom: 20 }}>Configura cómo deseas recibir las alertas de tu sistema IoT.</Text>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#F3F4F6', borderRadius: 12, padding: 15, marginBottom: 15, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 }}>
+               <View style={{ backgroundColor: '#ECFDF5', padding: 12, borderRadius: 10, marginRight: 15 }}>
+                 <Bell size={24} color="#059669" />
+               </View>
+               <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>Notificaciones Push</Text>
+                    <View style={{ backgroundColor: pushEnabled ? '#ECFDF5' : '#F3F4F6', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 }}>
+                       <Text style={{ fontSize: 10, color: pushEnabled ? '#059669' : '#6B7280', fontWeight: '600' }}>{pushEnabled ? 'Activadas' : 'Desactivadas'}</Text>
+                    </View>
+                  </View>
+                  <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 10, lineHeight: 16 }}>Recibe alertas instantáneas en tu dispositivo sobre eventos y cambios importantes.</Text>
+                  <View style={{ alignSelf: 'flex-end' }}>
+                     <Switch value={pushEnabled} onValueChange={setPushEnabled} trackColor={{ false: '#D1D5DB', true: '#059669' }} thumbColor="#FFFFFF" />
+                  </View>
+               </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFFFFF', borderWidth: 1, borderColor: '#F3F4F6', borderRadius: 12, padding: 15, marginBottom: 20, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2 }}>
+               <View style={{ backgroundColor: '#ECFDF5', padding: 12, borderRadius: 10, marginRight: 15 }}>
+                 <Mail size={24} color="#059669" />
+               </View>
+               <View style={{ flex: 1 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 5 }}>
+                    <Text style={{ fontSize: 15, fontWeight: '600', color: '#1F2937' }}>Correos Electrónicos</Text>
+                    <View style={{ backgroundColor: emailEnabled ? '#ECFDF5' : '#F3F4F6', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 12 }}>
+                       <Text style={{ fontSize: 10, color: emailEnabled ? '#059669' : '#6B7280', fontWeight: '600' }}>{emailEnabled ? 'Activadas' : 'Desactivadas'}</Text>
+                    </View>
+                  </View>
+                  <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 10, lineHeight: 16 }}>Recibe un resumen de eventos y avisos importantes en tu correo electrónico.</Text>
+                  <View style={{ alignSelf: 'flex-end' }}>
+                     <Switch value={emailEnabled} onValueChange={setEmailEnabled} trackColor={{ false: '#D1D5DB', true: '#059669' }} thumbColor="#FFFFFF" />
+                  </View>
+               </View>
+            </View>
+
+            <View style={{ flexDirection: 'row', backgroundColor: '#F0FDF4', borderRadius: 12, padding: 15, marginBottom: 20 }}>
+               <Info size={20} color="#059669" style={{ marginRight: 10, marginTop: 2 }} />
+               <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '600', color: '#059669', marginBottom: 4 }}>Tu privacidad es importante</Text>
+                  <Text style={{ fontSize: 12, color: '#059669', lineHeight: 16, opacity: 0.8 }}>Solo te enviaremos notificaciones relevantes y nunca compartiremos tu información.</Text>
+               </View>
+            </View>
+
+            <TouchableOpacity 
+              style={{ backgroundColor: '#059669', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 14, borderRadius: 10 }}
+              onPress={() => setNotificationsModalVisible(false)}
+            >
+              <Save size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '600' }}>Guardar cambios</Text>
             </TouchableOpacity>
+
           </View>
         </View>
       </Modal>
@@ -921,26 +1097,291 @@ export default function ParticipantScreen({ route, navigation }) {
       <Modal
         visible={privacyModalVisible}
         transparent={true}
-        animationType="fade"
+        animationType="slide"
         onRequestClose={() => setPrivacyModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.settingsModalCard}>
-            <Text style={styles.settingsModalTitle}>Seguridad y Privacidad</Text>
-            <Text style={styles.settingsModalDesc}>Tu cuenta y progreso están protegidos. Solo tú y el administrador tienen acceso a la información personal.</Text>
+        <View style={[styles.modalOverlay, { justifyContent: 'flex-end', padding: 0 }]}>
+          <View style={{ backgroundColor: '#FFFFFF', width: '100%', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24 }}>
             
-            <View style={styles.privacyInfoBox}>
-              <Text style={styles.privacyInfoLabel}>Correo encriptado:</Text>
-              <Text style={styles.privacyInfoValue}>{user.email}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 15 }}>
+               <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center', top: -12 }}>
+                 <View style={{ width: 40, height: 4, backgroundColor: '#E5E7EB', borderRadius: 2 }} />
+               </View>
+               <TouchableOpacity onPress={() => setPrivacyModalVisible(false)}>
+                 <X size={24} color="#6B7280" />
+               </TouchableOpacity>
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+               <View style={{ backgroundColor: '#ECFDF5', padding: 12, borderRadius: 30, marginRight: 15 }}>
+                 <ShieldCheck size={28} color="#059669" />
+               </View>
+               <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#111827', marginBottom: 4 }}>Seguridad y Privacidad</Text>
+                  <Text style={{ fontSize: 12, color: '#6B7280', lineHeight: 16 }}>Tu cuenta y progreso están protegidos. Solo tú y el administrador tienen acceso a tu información personal.</Text>
+               </View>
+            </View>
+
+            <View style={{ borderBottomWidth: 1, borderBottomColor: '#F3F4F6', paddingBottom: 15, marginBottom: 15, flexDirection: 'row', alignItems: 'center' }}>
+               <View style={{ backgroundColor: '#F3F4F6', padding: 10, borderRadius: 12, marginRight: 15 }}>
+                 <Lock size={20} color="#059669" />
+               </View>
+               <View style={{ flex: 1 }}>
+                 <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 2 }}>Privacidad garantizada</Text>
+                 <Text style={{ fontSize: 12, color: '#6B7280', lineHeight: 16 }}>Tu información personal está cifrada y almacenada de forma segura.</Text>
+               </View>
+               <ShieldCheck size={20} color="#059669" style={{ marginLeft: 10 }} />
+            </View>
+
+            <View style={{ borderBottomWidth: 1, borderBottomColor: '#F3F4F6', paddingBottom: 15, marginBottom: 15, flexDirection: 'row', alignItems: 'center' }}>
+               <View style={{ backgroundColor: '#F3F4F6', padding: 10, borderRadius: 12, marginRight: 15 }}>
+                 <User size={20} color="#059669" />
+               </View>
+               <View style={{ flex: 1 }}>
+                 <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 2 }}>Acceso restringido</Text>
+                 <Text style={{ fontSize: 12, color: '#6B7280', lineHeight: 16 }}>Solo tú y el administrador tienen acceso a tu información.</Text>
+               </View>
+               <UserCog size={20} color="#059669" style={{ marginLeft: 10 }} />
+            </View>
+
+            <View style={{ borderBottomWidth: 1, borderBottomColor: '#F3F4F6', paddingBottom: 20, marginBottom: 20, flexDirection: 'row', alignItems: 'center' }}>
+               <View style={{ backgroundColor: '#F3F4F6', padding: 10, borderRadius: 12, marginRight: 15 }}>
+                 <Clock size={20} color="#059669" />
+               </View>
+               <View style={{ flex: 1 }}>
+                 <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 2 }}>Control de actividad</Text>
+                 <Text style={{ fontSize: 12, color: '#6B7280', lineHeight: 16 }}>Monitoreamos accesos y cambios para mantener tu cuenta segura.</Text>
+               </View>
+               <FileText size={20} color="#059669" style={{ marginLeft: 10 }} />
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', borderRadius: 12, padding: 15, marginBottom: 20 }}>
+               <Mail size={20} color="#059669" style={{ marginRight: 15 }} />
+               <View style={{ flex: 1 }}>
+                 <Text style={{ fontSize: 12, color: '#6B7280', marginBottom: 2 }}>Correo encriptado:</Text>
+                 <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937' }}>{user.email}</Text>
+               </View>
+               <Copy size={20} color="#059669" />
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: '#F0FDF4', borderRadius: 12, padding: 15, marginBottom: 20 }}>
+               <Lock size={20} color="#059669" style={{ marginRight: 15 }} />
+               <View style={{ flex: 1 }}>
+                 <Text style={{ fontSize: 13, fontWeight: '600', color: '#059669', marginBottom: 2 }}>Tu seguridad es nuestra prioridad</Text>
+                 <Text style={{ fontSize: 12, color: '#6B7280', lineHeight: 16 }}>Trabajamos constantemente para proteger tus datos y tu privacidad.</Text>
+               </View>
+               <ShieldCheck size={20} color="#059669" style={{ marginLeft: 10 }} />
             </View>
             
-            <TouchableOpacity style={[styles.settingsModalBtn, { backgroundColor: '#F3F4F6' }]} onPress={() => setPrivacyModalVisible(false)}>
-               <Text style={[styles.settingsModalBtnText, { color: '#374151' }]}>Cerrar</Text>
+            <TouchableOpacity 
+              style={{ backgroundColor: '#059669', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 14, borderRadius: 10 }}
+              onPress={() => setPrivacyModalVisible(false)}
+            >
+              <Lock size={18} color="#FFFFFF" style={{ marginRight: 8 }} />
+              <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '600' }}>Cerrar</Text>
             </TouchableOpacity>
+
           </View>
         </View>
       </Modal>
 
+      {/* Support Modal */}
+      <Modal
+        visible={supportModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setSupportModalVisible(false)}
+      >
+        <View style={[styles.modalOverlay, { justifyContent: 'flex-end', padding: 0 }]}>
+          <View style={{ backgroundColor: '#FFFFFF', width: '100%', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24, maxHeight: Dimensions.get('window').height * 0.9 }}>
+            
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 15 }}>
+               <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center', top: -12 }}>
+                 <View style={{ width: 40, height: 4, backgroundColor: '#E5E7EB', borderRadius: 2 }} />
+               </View>
+               <TouchableOpacity onPress={() => setSupportModalVisible(false)}>
+                 <X size={24} color="#6B7280" />
+               </TouchableOpacity>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+                  <View style={{ backgroundColor: '#F0FDF4', padding: 12, borderRadius: 30, marginRight: 15 }}>
+                    <Headset size={28} color="#059669" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                     <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#111827', marginBottom: 4 }}>Soporte Técnico</Text>
+                     <Text style={{ fontSize: 12, color: '#6B7280', lineHeight: 16 }}>Estamos aquí para ayudarte. Elige la opción que mejor se adapte a tu necesidad.</Text>
+                  </View>
+               </View>
+
+               <View style={{ borderWidth: 1, borderColor: '#F3F4F6', borderRadius: 12, marginBottom: 20 }}>
+                  <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }} onPress={() => Linking.openURL('mailto:soporte.cloudconnect.unl@gmail.com')}>
+                     <View style={{ backgroundColor: '#F0FDF4', padding: 10, borderRadius: 10, marginRight: 15 }}>
+                        <Mail size={20} color="#059669" />
+                     </View>
+                     <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 2 }}>Enviar correo</Text>
+                        <Text style={{ fontSize: 12, color: '#6B7280' }}>Cuéntanos tu problema y te responderemos pronto.</Text>
+                     </View>
+                     <ChevronRight size={20} color="#9CA3AF" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }} onPress={() => setReportModalVisible(true)}>
+                     <View style={{ backgroundColor: '#F0FDF4', padding: 10, borderRadius: 10, marginRight: 15 }}>
+                        <FileText size={20} color="#059669" />
+                     </View>
+                     <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 2 }}>Enviar reporte</Text>
+                        <Text style={{ fontSize: 12, color: '#6B7280' }}>Reporta un problema o sugiere una mejora en la aplicación.</Text>
+                     </View>
+                     <ChevronRight size={20} color="#9CA3AF" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity style={{ flexDirection: 'row', alignItems: 'center', padding: 15 }} onPress={() => setFaqModalVisible(true)}>
+                     <View style={{ backgroundColor: '#F0FDF4', padding: 10, borderRadius: 10, marginRight: 15 }}>
+                        <HelpCircle size={20} color="#059669" />
+                     </View>
+                     <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 2 }}>Preguntas frecuentes</Text>
+                        <Text style={{ fontSize: 12, color: '#6B7280' }}>Encuentra respuestas a las dudas más comunes.</Text>
+                     </View>
+                     <ChevronRight size={20} color="#9CA3AF" />
+                  </TouchableOpacity>
+               </View>
+
+               <View style={{ backgroundColor: '#F0FDF4', borderRadius: 12, padding: 15, marginBottom: 15, flexDirection: 'row' }}>
+                  <ShieldCheck size={20} color="#059669" style={{ marginRight: 10 }} />
+                  <View style={{ flex: 1 }}>
+                     <Text style={{ fontSize: 13, fontWeight: '600', color: '#059669', marginBottom: 4 }}>Nuestro compromiso</Text>
+                     <Text style={{ fontSize: 12, color: '#6B7280', lineHeight: 16 }}>Tu experiencia es importante para nosotros. Trabajamos para resolver tus inquietudes de manera rápida y eficiente.</Text>
+                  </View>
+                  <Headset size={40} color="#A7F3D0" style={{ alignSelf: 'flex-end', marginLeft: 10 }} />
+               </View>
+
+               <View style={{ backgroundColor: '#F9FAFB', borderRadius: 12, padding: 15, marginBottom: 20 }}>
+                  <View style={{ flexDirection: 'row', marginBottom: 10 }}>
+                     <Clock size={20} color="#059669" style={{ marginRight: 10 }} />
+                     <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 12, fontWeight: '600', color: '#059669', marginBottom: 2 }}>Horario de atención</Text>
+                        <Text style={{ fontSize: 11, color: '#6B7280' }}>Lunes a Viernes: 08:00 - 18:00</Text>
+                        <Text style={{ fontSize: 11, color: '#6B7280' }}>Sábados: 09:00 - 13:00</Text>
+                     </View>
+                  </View>
+                  <View style={{ paddingTop: 10, borderTopWidth: 1, borderTopColor: '#E5E7EB' }}>
+                     <Text style={{ fontSize: 12, fontWeight: '600', color: '#059669', marginBottom: 2 }}>Correo de soporte</Text>
+                     <Text style={{ fontSize: 12, color: '#1F2937', fontWeight: '500' }}>soporte.cloudconnect.unl@gmail.com</Text>
+                  </View>
+               </View>
+               
+               <View style={{ height: 20 }} />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Report Modal */}
+      <Modal
+        visible={reportModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setReportModalVisible(false)}
+      >
+        <View style={[styles.modalOverlay, { justifyContent: 'flex-end', padding: 0 }]}>
+          <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ width: '100%' }}>
+             <View style={{ backgroundColor: '#FFFFFF', width: '100%', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24 }}>
+               
+               <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 15 }}>
+                  <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center', top: -12 }}>
+                    <View style={{ width: 40, height: 4, backgroundColor: '#E5E7EB', borderRadius: 2 }} />
+                  </View>
+                  <TouchableOpacity onPress={() => setReportModalVisible(false)}>
+                    <X size={24} color="#6B7280" />
+                  </TouchableOpacity>
+               </View>
+
+               <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+                  <View style={{ backgroundColor: '#F0FDF4', padding: 12, borderRadius: 30, marginRight: 15 }}>
+                    <FileText size={28} color="#059669" />
+                  </View>
+                  <View style={{ flex: 1 }}>
+                     <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#111827', marginBottom: 4 }}>Enviar reporte</Text>
+                     <Text style={{ fontSize: 12, color: '#6B7280', lineHeight: 16 }}>Describe detalladamente el problema o sugerencia que encontraste.</Text>
+                  </View>
+               </View>
+
+               <TextInput
+                  style={{ backgroundColor: '#F9FAFB', borderWidth: 1, borderColor: '#F3F4F6', borderRadius: 12, padding: 15, fontSize: 14, color: '#1F2937', minHeight: 120, textAlignVertical: 'top', marginBottom: 20 }}
+                  placeholder="Escribe tu reporte aquí..."
+                  placeholderTextColor="#9CA3AF"
+                  multiline={true}
+               />
+
+               <TouchableOpacity 
+                 style={{ backgroundColor: '#059669', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', paddingVertical: 14, borderRadius: 10 }}
+                 onPress={() => {
+                   Alert.alert('Reporte enviado', 'Gracias por tu reporte. Nuestro equipo lo revisará pronto.');
+                   setReportModalVisible(false);
+                 }}
+               >
+                 <Text style={{ color: '#FFFFFF', fontSize: 15, fontWeight: '600' }}>Enviar</Text>
+               </TouchableOpacity>
+
+             </View>
+          </KeyboardAvoidingView>
+        </View>
+      </Modal>
+
+      {/* FAQ Modal */}
+      <Modal
+        visible={faqModalVisible}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setFaqModalVisible(false)}
+      >
+        <View style={[styles.modalOverlay, { justifyContent: 'flex-end', padding: 0 }]}>
+          <View style={{ backgroundColor: '#FFFFFF', width: '100%', borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24, maxHeight: Dimensions.get('window').height * 0.9 }}>
+            
+            <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 15 }}>
+               <View style={{ position: 'absolute', left: 0, right: 0, alignItems: 'center', top: -12 }}>
+                 <View style={{ width: 40, height: 4, backgroundColor: '#E5E7EB', borderRadius: 2 }} />
+               </View>
+               <TouchableOpacity onPress={() => setFaqModalVisible(false)}>
+                 <X size={24} color="#6B7280" />
+               </TouchableOpacity>
+            </View>
+
+            <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+               <View style={{ backgroundColor: '#F0FDF4', padding: 12, borderRadius: 30, marginRight: 15 }}>
+                 <HelpCircle size={28} color="#059669" />
+               </View>
+               <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: 18, fontWeight: 'bold', color: '#111827', marginBottom: 4 }}>Preguntas frecuentes</Text>
+                  <Text style={{ fontSize: 12, color: '#6B7280', lineHeight: 16 }}>Respuestas rápidas a las dudas más comunes del sistema IoT.</Text>
+               </View>
+            </View>
+
+            <ScrollView showsVerticalScrollIndicator={false}>
+               <View style={{ marginBottom: 15, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 4 }}>¿Cómo activo las notificaciones push?</Text>
+                  <Text style={{ fontSize: 13, color: '#6B7280', lineHeight: 18 }}>Ve al menú Perfil &gt; Preferencias de Notificación y asegúrate de que el interruptor de "Notificaciones Push" esté activado.</Text>
+               </View>
+
+               <View style={{ marginBottom: 15, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 4 }}>¿Qué significan los colores de los eventos?</Text>
+                  <Text style={{ fontSize: 13, color: '#6B7280', lineHeight: 18 }}>Verde indica estado "Activo", rojo "Finalizado" y naranja "Cancelado" o en "Mantenimiento".</Text>
+               </View>
+
+               <View style={{ marginBottom: 15, paddingBottom: 15, borderBottomWidth: 1, borderBottomColor: '#F3F4F6' }}>
+                  <Text style={{ fontSize: 14, fontWeight: '600', color: '#1F2937', marginBottom: 4 }}>El clima no se actualiza, ¿qué hago?</Text>
+                  <Text style={{ fontSize: 13, color: '#6B7280', lineHeight: 18 }}>La actualización depende de la conexión del sensor IoT. Revisa la pestaña Alertas para saber si hay cortes de red, o intenta arrastrar la pantalla hacia abajo para refrescar.</Text>
+               </View>
+               
+               <View style={{ height: 20 }} />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
       {/* Custom Logout Modal */}
       <Modal
         visible={logoutModalVisible}

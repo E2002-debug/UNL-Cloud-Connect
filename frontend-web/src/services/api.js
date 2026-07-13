@@ -2,7 +2,7 @@ import axios from 'axios'
 
 // Usar la URL base desde variables de entorno, con fallback a Kong gateway
 // IMPORTANTE: Incluir /api en la ruta porque Kong enruta desde /api/*
-const API_BASE_URL = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api'
+const API_BASE_URL = import.meta.env.VITE_API_BASE || import.meta.env.VITE_API_URL || 'http://localhost:8000/api'
 
 const api = axios.create({
   baseURL: API_BASE_URL,
@@ -90,6 +90,6 @@ export const updateUser = (id, payload) => api.put(`/usuarios/${id}`, payload)
 export const deleteUser = (id) => api.delete(`/usuarios/${id}`)
 
 export const updateMe = (payload) => api.put('/usuarios/me', payload)
-export const getAuditoria = () => api.get('/auditoria/')
+export const getAuditoria = () => api.get('/usuarios/auditoria/')
 
 export default api

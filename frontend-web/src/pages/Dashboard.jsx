@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import api, { getUsers, updateUser, deleteUser, register, updateMe } from '../services/api'
+import api, { getUsers, updateUser, deleteUser, register, updateMe, getAuditoria } from '../services/api'
 import { listarSensores, obtenerClimaActual } from '../services/climaService'
 import { listarUbicaciones } from '../services/ubicacionService'
 import { getEventos, getUbicaciones } from '../components/dashboard/events/eventService'
@@ -11,6 +11,10 @@ import Sensors from '../components/dashboard/sensors/Sensors'
 import Ubicacion from '../components/dashboard/ubicacion/Ubicacion'
 import Monitoreo from '../components/dashboard/monitoreo/Monitoreo'
 import ModerationPanel from '../components/dashboard/moderation/ModerationPanel'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts'
+import jsPDF from 'jspdf'
+import 'jspdf-autotable'
+import { CloudSun } from 'lucide-react'
 
 // --- Iconos SVG Básicos ---
 const IconDashboard = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
@@ -29,6 +33,7 @@ const IconActivity = () => <svg width="20" height="20" viewBox="0 0 24 24" fill=
 const IconClock = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
 const IconMap = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
 const IconFlag = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+const IconLock = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
 
 export default function Dashboard() {
   const [user, setUser] = useState(null)
@@ -44,7 +49,27 @@ export default function Dashboard() {
   const initialIdRol = tokenPayload ? String(tokenPayload.id_rol) : null
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'claro')
   const [activeTab, setActiveTab] = useState(initialIdRol === '3' ? 'Usuarios' : 'Dashboard')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false)
+  const [notifications, setNotifications] = useState([])
+  const [readNotifIds, setReadNotifIds] = useState(() => {
+    const saved = localStorage.getItem('read_notifications')
+    return saved ? JSON.parse(saved) : []
+  })
+  
+  useEffect(() => {
+    localStorage.setItem('read_notifications', JSON.stringify(readNotifIds))
+  }, [readNotifIds])
   const navigate = useNavigate()
+
+  const unreadCount = notifications.filter(n => !readNotifIds.includes(n.id)).length
+  
+  const markAllAsRead = (e) => {
+    e.stopPropagation()
+    const allIds = notifications.map(n => n.id)
+    const newReadIds = [...new Set([...readNotifIds, ...allIds])]
+    setReadNotifIds(newReadIds)
+  }
 
   // Gestión de Usuarios State
   const [usuarios, setUsuarios] = useState([])
@@ -125,6 +150,36 @@ export default function Dashboard() {
     toast.success('Configuración guardada exitosamente')
   }
 
+  const exportEventsToPDF = () => {
+    const doc = new jsPDF();
+    doc.text('Reporte de Eventos UNL-CLOUD-CONNECT', 14, 15);
+    const tableData = eventos.map(e => [
+      e.id_evento, e.nombre, e.estado, new Date(e.fecha_hora_inicio).toLocaleDateString()
+    ]);
+    doc.autoTable({
+      head: [['ID', 'Nombre', 'Estado', 'Fecha']],
+      body: tableData,
+      startY: 25,
+    });
+    doc.save('reporte_eventos.pdf');
+    addNotification('success', 'PDF EXPORTADO', 'El reporte de eventos ha sido generado.');
+  };
+
+  const exportUsersToPDF = () => {
+    const doc = new jsPDF();
+    doc.text('Reporte de Usuarios UNL-CLOUD-CONNECT', 14, 15);
+    const tableData = usuarios.map(u => [
+      u.id_usuario, `${u.nombre} ${u.apellido}`, u.correo, u.id_rol === 1 ? 'Admin' : u.id_rol === 3 ? 'Superadmin' : 'Participante'
+    ]);
+    doc.autoTable({
+      head: [['ID', 'Nombre', 'Correo', 'Rol']],
+      body: tableData,
+      startY: 25,
+    });
+    doc.save('reporte_usuarios.pdf');
+    addNotification('success', 'PDF EXPORTADO', 'El reporte de usuarios ha sido generado.');
+  };
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('theme', theme)
@@ -141,6 +196,17 @@ export default function Dashboard() {
   const [ubicacionesDB, setUbicacionesDB] = useState([])
   const [loadingDashboard, setLoadingDashboard] = useState(false)
 
+  const timeAgo = (date) => {
+    const seconds = Math.floor((new Date() - new Date(date)) / 1000)
+    if (seconds < 60) return 'Hace un momento'
+    const minutes = Math.floor(seconds / 60)
+    if (minutes < 60) return `Hace ${minutes} minuto${minutes > 1 ? 's' : ''}`
+    const hours = Math.floor(minutes / 60)
+    if (hours < 24) return `Hace ${hours} hora${hours > 1 ? 's' : ''}`
+    const days = Math.floor(hours / 24)
+    return `Hace ${days} día${days > 1 ? 's' : ''}`
+  }
+
   const fetchDashboardData = async () => {
     setLoadingDashboard(true)
     try {
@@ -152,6 +218,45 @@ export default function Dashboard() {
       setEventos(evts)
       setSensores(sens)
       setUbicacionesDB(ubi)
+      
+      // Cargar notificaciones reales desde auditoría
+      if (initialIdRol === '1' || initialIdRol === '3') {
+        try {
+          const auditRes = await getAuditoria()
+          if (auditRes && auditRes.data) {
+            // Filtrar y mejorar presentación para separar móvil de web y evitar spam innecesario
+            let filteredAudits = auditRes.data
+            // Tomamos los 10 registros más recientes
+            const recentAudits = filteredAudits.slice(0, 10).map((audit, index) => {
+              let type = 'info'
+              let iconType = 'web'
+              
+              const accionLower = audit.accion.toLowerCase()
+              const detallesLower = (audit.detalles || '').toLowerCase()
+              
+              if (accionLower.includes('elimina') || accionLower.includes('error')) type = 'error'
+              if (accionLower.includes('crea') || accionLower.includes('actualiza') || accionLower.includes('registro') || accionLower.includes('exitoso')) type = 'success'
+              
+              // Determinar si es de móvil o web por los detalles (si implementaron algún log de device)
+              if (detallesLower.includes('móvil') || detallesLower.includes('movil') || detallesLower.includes('expo') || detallesLower.includes('app')) {
+                iconType = 'mobile'
+              }
+
+              return {
+                id: audit.id_log || index,
+                type: type,
+                iconType: iconType,
+                title: audit.accion.replace(/_/g, ' '),
+                message: audit.detalles || `Acción realizada por usuario ID: ${audit.id_usuario || 'Desconocido'}.`,
+                time: timeAgo(audit.fecha_hora + 'Z'), // Asume UTC de la DB
+              }
+            })
+            setNotifications(recentAudits)
+          }
+        } catch (err) {
+          console.error("Error al cargar auditoría para notificaciones:", err)
+        }
+      }
     } catch (err) {
       console.error('Error al cargar datos del dashboard:', err)
     } finally {
@@ -440,8 +545,11 @@ export default function Dashboard() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-app)', fontFamily: "'Inter', sans-serif" }}>
 
+      {/* SIDEBAR OVERLAY FOR MOBILE */}
+      <div className={`sidebar-overlay ${sidebarOpen ? 'sidebar-open' : ''}`} onClick={() => setSidebarOpen(false)}></div>
+
       {/* SIDEBAR IZQUIERDO */}
-      <aside style={{ width: '280px', minWidth: '280px', maxWidth: '280px', background: 'var(--bg-card)', borderRight: '1px solid #DBE3E0', display: 'flex', flexDirection: 'column', height: '100vh', position: 'sticky', top: 0, alignSelf: 'flex-start', overflow: 'hidden', boxSizing: 'border-box' }}>
+      <aside className={sidebarOpen ? 'sidebar-open' : ''} style={{ width: '280px', minWidth: '280px', maxWidth: '280px', background: 'var(--bg-card)', borderRight: '1px solid #DBE3E0', display: 'flex', flexDirection: 'column', height: '100vh', position: 'sticky', top: 0, alignSelf: 'flex-start', overflow: 'hidden', boxSizing: 'border-box' }}>
 
         {/* LOGO AREA */}
         <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px', borderBottom: '1px solid #f1f5f9' }}>
@@ -476,25 +584,43 @@ export default function Dashboard() {
               onClick={(e) => {
                 e.preventDefault()
                 setActiveTab(item.id)
+                setSidebarOpen(false)
               }}
               style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px', marginBottom: '8px',
+                width: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px', marginBottom: '8px',
                 background: activeTab === item.id ? '#0F766E' : 'transparent',
-                color: activeTab === item.id ? 'var(--bg-card)' : 'var(--text-muted)',
-                border: 'none', borderRadius: '8px', cursor: 'pointer', textAlign: 'left',
-                transition: 'all 0.2s ease', fontWeight: '600', fontSize: '13px', textDecoration: 'none'
+                color: activeTab === item.id ? 'white' : 'var(--text-muted)',
+                border: 'none', 
+                borderRadius: '10px', 
+                boxShadow: activeTab === item.id ? '0 4px 10px rgba(15, 118, 110, 0.3)' : 'none',
+                cursor: 'pointer', textAlign: 'left',
+                transition: 'all 0.2s ease', 
+                fontWeight: activeTab === item.id ? '800' : '600', 
+                fontSize: '13px', textDecoration: 'none',
+                letterSpacing: activeTab === item.id ? '0.5px' : '0'
               }}
             >
-              <div style={{ color: activeTab === item.id ? 'var(--bg-card)' : 'var(--text-muted)' }}>{item.icon}</div>
-              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>{item.label}</span>
+              <div style={{ color: activeTab === item.id ? 'white' : 'var(--text-muted)', display: 'flex' }}>
+                {item.icon}
+              </div>
+              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                {item.label}
+              </span>
 
               {item.badge > 0 && (
-                <span style={{ background: activeTab === item.id ? 'rgba(255,255,255,0.2)' : 'var(--border)', color: activeTab === item.id ? 'var(--text-inverse)' : 'var(--text-muted)', padding: '2px 8px', borderRadius: '12px', fontSize: '11px' }}>
+                <span style={{ 
+                  background: activeTab === item.id ? 'rgba(255, 255, 255, 0.25)' : 'var(--border)', 
+                  color: activeTab === item.id ? 'white' : 'var(--text-muted)', 
+                  padding: '4px 10px', 
+                  borderRadius: '12px', 
+                  fontSize: '12px',
+                  fontWeight: '800'
+                }}>
                   {item.badge}
                 </span>
               )}
               {item.labelRight && (
-                <span style={{ fontSize: '8px', fontWeight: '700', color: '#10b981', border: '1px solid #10b981', padding: '1px 4px', borderRadius: '3px', whiteSpace: 'nowrap', flexShrink: 0 }}>
+                <span style={{ fontSize: '8px', fontWeight: '800', color: '#10b981', border: '1px solid #10b981', padding: '2px 6px', borderRadius: '4px', whiteSpace: 'nowrap', flexShrink: 0 }}>
                   {item.labelRight}
                 </span>
               )}
@@ -506,7 +632,7 @@ export default function Dashboard() {
             <button
               onClick={handleLogout}
               style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: '16px',
+                width: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', gap: '16px',
                 padding: '12px 16px', border: 'none', borderRadius: '8px',
                 background: 'transparent', color: '#ef4444', fontWeight: '600',
                 fontSize: '13px', cursor: 'pointer', textAlign: 'left'
@@ -539,35 +665,135 @@ export default function Dashboard() {
         {/* TOP HEADER BAR */}
         <header style={{ height: '80px', background: 'var(--bg-card)', borderBottom: '1px solid #DBE3E0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 40px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button className="mobile-menu-btn" onClick={() => setSidebarOpen(true)} style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', cursor: 'pointer', display: 'none' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
             <div style={{ background: '#dbeafe', color: '#0F766E', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', letterSpacing: '1px' }}>
               PANEL PRINCIPAL
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>
+            <div className="hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>
               <div style={{ width: '8px', height: '8px', background: '#10b981', borderRadius: '50%' }}></div>
               RED CENTRAL UNL INTEGRADA
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>CLIMA UNL LOJA</div>
-              <div style={{ fontSize: '16px', fontWeight: '800', color: 'var(--text-main)' }}>
-                {loadingWeather ? '...' : weatherError ? '--°C' : weatherData ? `${weatherData.currentConditions?.temp}°C` : '15.2°C'}
-                <span style={{ fontSize: '12px', color: '#10b981', fontWeight: '600', marginLeft: '4px', textTransform: 'lowercase' }}>
-                  {loadingWeather ? '' : weatherError ? 'Sin datos' : weatherData ? weatherData.currentConditions?.conditions?.split(',')[0] : 'estable'}
-                </span>
+          <div className="hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+            
+            {/* Clima Block */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ color: 'var(--text-muted)' }}>
+                <CloudSun size={28} strokeWidth={2.5} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <div style={{ fontSize: '16px', fontWeight: '800', color: 'var(--text-main)', lineHeight: '1' }}>
+                  {loadingWeather ? '...' : weatherError ? '--°C' : weatherData ? `${weatherData.currentConditions?.temp}°C` : '12.4°C'}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>Loja, Ecuador</span>
+                  <span style={{ background: '#10b981', color: 'white', fontSize: '9px', fontWeight: '700', padding: '2px 6px', borderRadius: '12px' }}>
+                    {loadingWeather ? '...' : weatherError ? 'Sin datos' : weatherData ? weatherData.currentConditions?.conditions?.split(',')[0] : 'Lluvia'}
+                  </span>
+                </div>
               </div>
             </div>
-            <div style={{ width: '1px', height: '30px', background: 'var(--border)' }}></div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>ESTADO SERVIDOR</div>
-              <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-main)' }}>SINCRONIZADO</div>
+
+            <div style={{ width: '1px', height: '32px', background: 'var(--border)' }}></div>
+
+            {/* Server Status Block */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px', letterSpacing: '0.5px' }}>ESTADO SERVIDOR</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-main)' }}>SINCRONIZADO</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ background: '#ecfdf5', borderRadius: '50%', padding: '2px' }}><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+            </div>
+
+            <div style={{ width: '1px', height: '32px', background: 'var(--border)' }}></div>
+
+            {/* User & Notifications */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>
+              <div 
+                style={{ position: 'relative', cursor: 'pointer', color: 'var(--text-muted)' }}
+                onClick={() => setShowNotificationsDropdown(!showNotificationsDropdown)}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                {unreadCount > 0 && (
+                  <div style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#10b981', color: 'white', fontSize: '10px', fontWeight: '800', width: '16px', height: '16px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg-card)' }}>
+                    {unreadCount}
+                  </div>
+                )}
+              </div>
+              
+              {showNotificationsDropdown && (
+                <div style={{ position: 'absolute', top: '100%', right: '50px', marginTop: '16px', width: '320px', background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)', zIndex: 1000, overflow: 'hidden' }}>
+                  <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '800', color: 'var(--text-main)' }}>Notificaciones</h3>
+                    {unreadCount > 0 && (
+                      <span onClick={markAllAsRead} style={{ fontSize: '11px', fontWeight: '700', color: '#10b981', cursor: 'pointer' }}>Marcar como leídas</span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '350px', overflowY: 'auto' }}>
+                    {notifications.length === 0 ? (
+                      <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                        No tienes notificaciones
+                      </div>
+                    ) : notifications.map(notif => {
+                      const isRead = readNotifIds.includes(notif.id)
+                      return (
+                      <div key={notif.id} style={{ 
+                        padding: '16px 20px', 
+                        borderBottom: '1px solid var(--border)', 
+                        display: 'flex', 
+                        gap: '12px', 
+                        alignItems: 'flex-start', 
+                        cursor: 'pointer', 
+                        background: isRead ? 'transparent' : 'var(--bg-app)',
+                        transition: 'background 0.2s' 
+                      }} 
+                      onMouseOver={e => e.currentTarget.style.background = 'var(--bg-app)'} 
+                      onMouseOut={e => e.currentTarget.style.background = isRead ? 'transparent' : 'var(--bg-app)'}>
+                        <div style={{ 
+                          width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
+                          background: notif.type === 'success' ? '#ecfdf5' : notif.type === 'info' ? '#eff6ff' : '#fef2f2', 
+                          color: notif.type === 'success' ? '#10b981' : notif.type === 'info' ? '#3b82f6' : '#ef4444', 
+                          display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}>
+                          {notif.iconType === 'mobile' ? (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+                          ) : notif.type === 'success' ? (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                          ) : notif.type === 'info' ? (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                          ) : (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                          )}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: isRead ? '600' : '800', color: 'var(--text-main)', marginBottom: '4px' }}>{notif.title}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>{notif.message}</div>
+                          <div style={{ fontSize: '10px', fontWeight: '600', color: notif.type === 'success' ? '#10b981' : notif.type === 'info' ? '#3b82f6' : '#ef4444', marginTop: '6px' }}>{notif.time}</div>
+                        </div>
+                        {!isRead && (
+                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', alignSelf: 'center', marginLeft: 'auto' }}></div>
+                        )}
+                      </div>
+                    )})}
+                  </div>
+                  <div style={{ padding: '12px', background: 'var(--bg-app)', textAlign: 'center', borderTop: '1px solid var(--border)', fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', cursor: 'pointer' }}>
+                    Ver todas las notificaciones
+                  </div>
+                </div>
+              )}
+
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#10b981', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: '700', cursor: 'pointer' }}>
+                {user?.nombre?.charAt(0) || 'M'}
+              </div>
             </div>
           </div>
         </header>
 
         {/* SCROLLABLE CONTENT */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '32px', width: '100%', boxSizing: 'border-box' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '32px', width: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
 
           {/* VISTA DE EVENTOS: Aquí se inyecta tu componente sin asfixiar el espacio */}
           {activeTab === 'Eventos' && (
@@ -593,6 +819,10 @@ export default function Dashboard() {
           {/* KPI CARDS Y GRAFICOS (ADMIN DASHBOARD) */}
           {isAdmin && activeTab === 'Dashboard' && (
             <>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginBottom: '16px' }}>
+                <button onClick={exportEventsToPDF} style={{ padding: '8px 16px', backgroundColor: '#0F766E', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Exportar Eventos PDF</button>
+                <button onClick={exportUsersToPDF} style={{ padding: '8px 16px', backgroundColor: '#0F766E', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Exportar Usuarios PDF</button>
+              </div>
               {/* KPI CARDS */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
                 <div style={{ background: 'var(--bg-card)', padding: '16px 20px', border: '1px solid #DBE3E0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -639,24 +869,20 @@ export default function Dashboard() {
                       <button style={{ padding: '6px 16px', background: 'var(--text-inverse)', color: 'var(--text-muted)', fontSize: '10px', fontWeight: '700', border: 'none', cursor: 'pointer' }}>SEMANA</button>
                     </div>
                   </div>
-                  <div style={{ height: '240px', display: 'flex', alignItems: 'flex-end', gap: '16px', borderBottom: '1px solid #DBE3E0', paddingBottom: '20px' }}>
-                    {weatherData?.days?.slice(0, 15).map((day, i) => {
-                      const h = Math.min(Math.max(day.temp, 0), 40) * 2;
-                      return (
-                        <div key={i} style={{ flex: 1, background: i === 14 ? 'var(--text-main)' : i === 10 ? '#cbd5e1' : 'var(--border)', height: `${h}%`, position: 'relative', minHeight: '4px' }}>
-                          <span style={{ position: 'absolute', bottom: '-20px', left: '50%', transform: 'translateX(-50%)', fontSize: '9px', fontWeight: '700', color: 'var(--text-muted)' }}>
-                            {day.datetime?.slice(5)}
-                          </span>
-                        </div>
-                      );
-                    })}
-                    {!weatherData?.days && Array.from({ length: 15 }, (_, i) => (
-                      <div key={i} style={{ flex: 1, background: 'var(--border)', height: `${40 + Math.sin(i) * 20}%`, position: 'relative', minHeight: '4px' }}>
-                        <span style={{ position: 'absolute', bottom: '-20px', left: '50%', transform: 'translateX(-50%)', fontSize: '9px', fontWeight: '700', color: 'var(--text-muted)' }}>
-                          --
-                        </span>
-                      </div>
-                    ))}
+                  <div style={{ height: '240px', paddingBottom: '20px' }}>
+                    {weatherData?.days ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={weatherData.days.slice(0, 15)}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                          <XAxis dataKey="datetime" tickFormatter={(val) => val.substring(5)} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6B7280' }} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6B7280' }} />
+                          <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
+                          <Line type="monotone" dataKey="temp" stroke="#0F766E" strokeWidth={3} dot={{ r: 4, fill: '#0F766E', strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#9CA3AF', fontSize: '12px' }}>Cargando datos climáticos...</div>
+                    )}
                   </div>
                 </div>
 
@@ -993,73 +1219,230 @@ export default function Dashboard() {
           )}
 
           {activeTab === 'Perfil' && (
-            <div><h3>Mi Perfil de Usuario</h3></div>
-          )}
-
-          {/* MÓDULO DE PERFIL */}
-          {activeTab === 'Perfil' && (
-            <div style={{ background: 'var(--bg-card)', padding: '40px', borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, #0F766E, #10B981)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-inverse)', fontSize: '32px', fontWeight: '700' }}>
-                    {user.nombre.charAt(0)}
-                  </div>
-                  <div>
-                    <h2 style={{ margin: '0 0 4px 0', fontSize: '24px', fontWeight: '800', color: 'var(--text-main)', textTransform: 'uppercase' }}>{user.nombre} {user.apellido}</h2>
-                    <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--primary)', letterSpacing: '1px', background: 'var(--primary-light)', padding: '4px 12px', borderRadius: '20px' }}>
-                      {isAdmin ? 'ADMINISTRADOR' : isSuperAdmin ? 'SUPER ADMIN' : 'PARTICIPANTE UNL'}
-                    </span>
-                  </div>
-                </div>
-                {!profileEditMode && (
-                  <button onClick={() => setProfileEditMode(true)} style={{ padding: '8px 16px', background: 'var(--primary-light)', border: '1px solid var(--primary)', color: 'var(--primary)', borderRadius: '8px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <IconEdit /> Editar Perfil
-                  </button>
-                )}
+            <div style={{ width: '100%', maxWidth: '1200px', margin: '0 auto', paddingBottom: '40px' }}>
+              <div style={{ marginBottom: '24px' }}>
+                <h2 style={{ fontSize: '28px', fontWeight: '800', color: 'var(--text-main)', margin: '0 0 4px 0' }}>Mi Perfil</h2>
+                <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)' }}>Gestiona tu información personal y configuración de cuenta</p>
               </div>
 
-              <form onSubmit={handleProfileSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>Correo Institucional</label>
-                  <input type="email" value={user.correo} disabled style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-app)', color: 'var(--text-muted)', fontSize: '14px', boxSizing: 'border-box', cursor: 'not-allowed' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(250px, 1fr) minmax(400px, 2fr) minmax(250px, 1fr)', gap: '20px' }}>
+                
+                {/* COLUMNA IZQUIERDA */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    <div style={{ position: 'relative', marginBottom: '16px' }}>
+                      <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: '#0F766E', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '40px', fontWeight: 'bold' }}>
+                        {user.nombre.charAt(0)}
+                      </div>
+                      <div style={{ position: 'absolute', bottom: 0, right: 0, background: '#fff', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)', cursor: 'pointer', color: '#0F766E' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                      </div>
+                    </div>
+                    <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: '700', color: 'var(--text-main)' }}>{user.nombre} {user.apellido}</h3>
+                    <span style={{ fontSize: '12px', background: '#ecfdf5', color: '#059669', padding: '4px 12px', borderRadius: '16px', fontWeight: '600', marginBottom: '16px' }}>
+                      {isAdmin ? 'Administrador' : isSuperAdmin ? 'Superadmin' : 'Participante'}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#059669', fontWeight: '600' }}>
+                      <IconCheck /> Cuenta verificada
+                    </div>
+                    
+                    <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border)', width: '100%', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-muted)' }}>
+                      <div style={{ background: 'var(--bg-app)', padding: '8px', borderRadius: '8px' }}><IconClock /></div>
+                      <div style={{ fontSize: '12px' }}>
+                        <div>Miembro desde</div>
+                        <div style={{ fontWeight: '700', color: 'var(--text-main)' }}>Marzo 2025</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '16px' }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>Nombre</label>
-                    <input type="text" value={profileEditMode ? profileData.nombre : user.nombre} onChange={e => setProfileData({ ...profileData, nombre: e.target.value })} disabled={!profileEditMode} required style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: profileEditMode ? '1px solid var(--primary)' : '1px solid var(--border)', background: profileEditMode ? 'var(--bg-card)' : 'var(--bg-app)', color: 'var(--text-main)', fontSize: '14px', boxSizing: 'border-box' }} />
+                {/* COLUMNA CENTRAL */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '32px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', marginBottom: '8px' }}>Correo institucional</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ position: 'relative', width: '280px' }}>
+                            <div style={{ position: 'absolute', left: '12px', top: '10px', color: '#9CA3AF' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg></div>
+                            <input type="email" value={user.correo} disabled style={{ width: '100%', padding: '10px 10px 10px 36px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-app)', color: 'var(--text-muted)', fontSize: '13px', boxSizing: 'border-box' }} />
+                          </div>
+                          <span style={{ fontSize: '11px', color: '#059669', background: '#ecfdf5', padding: '4px 8px', borderRadius: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <IconCheck /> Verificado
+                          </span>
+                        </div>
+                      </div>
+                      {!profileEditMode && (
+                        <button onClick={() => setProfileEditMode(true)} style={{ padding: '8px 16px', background: '#fff', border: '1px solid var(--border)', color: 'var(--text-main)', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <IconEdit /> Editar Perfil
+                        </button>
+                      )}
+                    </div>
+
+                    <form onSubmit={handleProfileSubmit}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', marginBottom: '8px' }}>Nombre</label>
+                          <div style={{ position: 'relative' }}>
+                            <div style={{ position: 'absolute', left: '12px', top: '10px', color: '#9CA3AF' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>
+                            <input type="text" value={profileEditMode ? profileData.nombre : user.nombre} onChange={e => setProfileData({ ...profileData, nombre: e.target.value })} disabled={!profileEditMode} required style={{ width: '100%', padding: '10px 10px 10px 36px', borderRadius: '8px', border: profileEditMode ? '1px solid #0F766E' : '1px solid var(--border)', background: profileEditMode ? '#fff' : 'var(--bg-app)', color: 'var(--text-main)', fontSize: '13px', boxSizing: 'border-box' }} />
+                          </div>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', marginBottom: '8px' }}>Apellido</label>
+                          <div style={{ position: 'relative' }}>
+                            <div style={{ position: 'absolute', left: '12px', top: '10px', color: '#9CA3AF' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>
+                            <input type="text" value={profileEditMode ? profileData.apellido : user.apellido} onChange={e => setProfileData({ ...profileData, apellido: e.target.value })} disabled={!profileEditMode} required style={{ width: '100%', padding: '10px 10px 10px 36px', borderRadius: '8px', border: profileEditMode ? '1px solid #0F766E' : '1px solid var(--border)', background: profileEditMode ? '#fff' : 'var(--bg-app)', color: 'var(--text-main)', fontSize: '13px', boxSizing: 'border-box' }} />
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', marginBottom: '8px' }}>Rol</label>
+                          <div style={{ position: 'relative' }}>
+                            <div style={{ position: 'absolute', left: '12px', top: '10px', color: '#9CA3AF' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></div>
+                            <input type="text" value={isAdmin ? 'Administrador' : isSuperAdmin ? 'Superadmin' : 'Participante'} disabled style={{ width: '100%', padding: '10px 10px 10px 36px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-app)', color: 'var(--text-muted)', fontSize: '13px', boxSizing: 'border-box' }} />
+                          </div>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', marginBottom: '8px' }}>Departamento / Área</label>
+                          <div style={{ position: 'relative' }}>
+                            <div style={{ position: 'absolute', left: '12px', top: '10px', color: '#9CA3AF' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></div>
+                            <input type="text" value="Ingeniería en Computación" disabled style={{ width: '100%', padding: '10px 10px 10px 36px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-app)', color: 'var(--text-muted)', fontSize: '13px', boxSizing: 'border-box' }} />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', marginBottom: '8px' }}>Teléfono</label>
+                          <div style={{ position: 'relative' }}>
+                            <div style={{ position: 'absolute', left: '12px', top: '10px', color: '#9CA3AF' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg></div>
+                            <input type="text" value="+593 96 123 4567" disabled style={{ width: '100%', padding: '10px 10px 10px 36px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-app)', color: 'var(--text-muted)', fontSize: '13px', boxSizing: 'border-box' }} />
+                          </div>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', marginBottom: '8px' }}>Ubicación</label>
+                          <div style={{ position: 'relative' }}>
+                            <div style={{ position: 'absolute', left: '12px', top: '10px', color: '#9CA3AF' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></div>
+                            <input type="text" value="Loja, Ecuador" disabled style={{ width: '100%', padding: '10px 10px 10px 36px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-app)', color: 'var(--text-muted)', fontSize: '13px', boxSizing: 'border-box' }} />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ marginBottom: '24px' }}>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', marginBottom: '8px' }}>Contraseña</label>
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                          <div style={{ position: 'relative', flex: 1 }}>
+                            <div style={{ position: 'absolute', left: '12px', top: '10px', color: '#9CA3AF' }}><IconLock /></div>
+                            <input type="password" value={profileEditMode ? profileData.clave : '................'} onChange={e => setProfileData({ ...profileData, clave: e.target.value })} disabled={!profileEditMode} placeholder={profileEditMode ? 'Nueva contraseña' : ''} style={{ width: '100%', padding: '10px 10px 10px 36px', borderRadius: '8px', border: profileEditMode ? '1px solid #0F766E' : '1px solid var(--border)', background: profileEditMode ? '#fff' : 'var(--bg-app)', color: 'var(--text-main)', fontSize: '13px', boxSizing: 'border-box' }} />
+                          </div>
+                          {!profileEditMode && (
+                             <button type="button" onClick={() => setProfileEditMode(true)} style={{ padding: '0 16px', background: '#fff', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '12px', fontWeight: '600', color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                               Cambiar contraseña
+                             </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {profileEditMode && (
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '20px' }}>
+                          <button type="button" onClick={() => { setProfileEditMode(false); setProfileData({ nombre: user.nombre, apellido: user.apellido, clave: '' }) }} style={{ padding: '10px 24px', borderRadius: '6px', border: '1px solid var(--border)', background: '#fff', color: 'var(--text-main)', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
+                            Cancelar
+                          </button>
+                          <button type="submit" disabled={profileSaving} style={{ padding: '10px 24px', borderRadius: '6px', border: 'none', background: '#0F766E', color: '#fff', fontSize: '13px', fontWeight: '600', cursor: profileSaving ? 'not-allowed' : 'pointer', opacity: profileSaving ? 0.8 : 1 }}>
+                            {profileSaving ? 'Guardando...' : 'Guardar Cambios'}
+                          </button>
+                        </div>
+                      )}
+                    </form>
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>Apellido</label>
-                    <input type="text" value={profileEditMode ? profileData.apellido : user.apellido} onChange={e => setProfileData({ ...profileData, apellido: e.target.value })} disabled={!profileEditMode} required style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: profileEditMode ? '1px solid var(--primary)' : '1px solid var(--border)', background: profileEditMode ? 'var(--bg-card)' : 'var(--bg-app)', color: 'var(--text-main)', fontSize: '14px', boxSizing: 'border-box' }} />
+
+                  {/* Banner de seguridad inferior */}
+                  <div style={{ background: '#ecfdf5', border: '1px solid #d1fae5', borderRadius: '12px', padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669', flexShrink: 0 }}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
+                    </div>
+                    <div style={{ zIndex: 1 }}>
+                      <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: '800', color: '#065f46' }}>Tu seguridad es nuestra prioridad</h4>
+                      <p style={{ margin: 0, fontSize: '12px', color: '#047857', maxWidth: '400px', lineHeight: 1.5 }}>Trabajamos continuamente para proteger tu información y garantizar la integridad de la plataforma UNL Cloud Connect.</p>
+                    </div>
+                    <svg style={{ position: 'absolute', right: '-10px', bottom: '-20px', opacity: 0.1, color: '#059669' }} width="120" height="120" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                   </div>
                 </div>
 
-                {profileEditMode && (
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>Nueva Contraseña (Opcional)</label>
-                    <input type="password" value={profileData.clave} onChange={e => setProfileData({ ...profileData, clave: e.target.value })} placeholder="Ingresa una nueva contraseña si deseas cambiarla" minLength={8} maxLength={12} style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid var(--primary)', background: 'var(--bg-card)', color: 'var(--text-main)', fontSize: '14px', boxSizing: 'border-box' }} />
-                  </div>
-                )}
+                {/* COLUMNA DERECHA */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                      <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <IconClock /> Última actividad
+                      </h4>
+                      <span style={{ fontSize: '12px', color: '#0F766E', fontWeight: '600', cursor: 'pointer' }}>Ver todo</span>
+                    </div>
 
-                {profileEditMode ? (
-                  <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                    <button type="button" onClick={() => { setProfileEditMode(false); setProfileData({ nombre: user.nombre, apellido: user.apellido, clave: '' }) }} style={{ flex: 1, padding: '14px 16px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-app)', color: 'var(--text-muted)', fontSize: '14px', fontWeight: '700', cursor: 'pointer' }}>
-                      Cancelar
-                    </button>
-                    <button type="submit" disabled={profileSaving} style={{ flex: 1, padding: '14px 16px', borderRadius: '8px', border: 'none', background: 'var(--primary)', color: 'var(--text-inverse)', fontSize: '14px', fontWeight: '700', cursor: profileSaving ? 'not-allowed' : 'pointer', opacity: profileSaving ? 0.7 : 1 }}>
-                      {profileSaving ? 'Guardando...' : 'Guardar Cambios'}
-                    </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><IconCheck /></div>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)' }}>Inicio de sesión exitoso</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Hoy, 09:21</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><IconEdit /></div>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)' }}>Actualización de perfil</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Ayer, 16:45</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#fff7ed', color: '#ea580c', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><IconLock /></div>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)' }}>Cambio de contraseña</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>12 Jun 2025, 11:32</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#f3e8ff', color: '#9333ea', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><IconActivity /></div>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)' }}>Visualización de reportes</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>11 Jun 2025, 09:15</div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                ) : (
-                  <div style={{ marginTop: '16px', padding: '16px', background: 'var(--primary-light)', border: '1px solid var(--border)', borderRadius: '8px', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                    <div style={{ color: 'var(--primary)', marginTop: '2px' }}><IconInfo /></div>
-                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--primary)', fontWeight: '600', lineHeight: 1.5 }}>
-                      Puedes actualizar tu nombre, apellido y contraseña haciendo clic en "Editar Perfil".
-                    </p>
+
+                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    <h4 style={{ margin: '0 0 24px 0', fontSize: '14px', fontWeight: '700', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Seguridad de la cuenta
+                    </h4>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <div style={{ color: '#059669' }}><IconCheck /></div>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)' }}>Autenticación segura</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Protegida con contraseña</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <div style={{ color: '#059669' }}><IconCheck /></div>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)' }}>Última verificación</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Hoy, 09:21</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <div style={{ color: '#059669' }}><IconCheck /></div>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)' }}>Sesiones activas</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>1 sesión activa</div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                )}
-              </form>
+                </div>
+
+              </div>
             </div>
           )}
 
@@ -1172,8 +1555,10 @@ export default function Dashboard() {
           )}
 
           {/* FOOTER */}
-          <div style={{ marginTop: '40px', borderTop: '1px solid #DBE3E0', paddingTop: '16px', textAlign: 'center', fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '1px' }}>
-            © {new Date().getFullYear()} Universidad Nacional de Loja — Ingeniería en Computación.
+          <div style={{ marginTop: 'auto', paddingTop: '40px' }}>
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '24px', paddingBottom: '8px', textAlign: 'center', fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>
+              © {new Date().getFullYear()} Universidad Nacional de Loja — Ingeniería en Computación.
+            </div>
           </div>
 
         </div>

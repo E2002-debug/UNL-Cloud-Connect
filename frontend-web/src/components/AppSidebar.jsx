@@ -14,7 +14,14 @@ export default function AppSidebar() {
 
   const nombre = localStorage.getItem('nombre') || 'Usuario'
   const apellido = localStorage.getItem('apellido') || ''
-  const id_rol = String(localStorage.getItem('id_rol') || '2')
+  const token = localStorage.getItem('access_token')
+  let id_rol = '2'
+  if (token) {
+    try {
+      const payload = JSON.parse(atob(token.split('.')[1]))
+      id_rol = String(payload.id_rol || '2')
+    } catch (e) {}
+  }
   const isAdmin = id_rol === '1'
 
   const menuItems = isAdmin ? [

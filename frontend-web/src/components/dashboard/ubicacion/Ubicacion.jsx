@@ -329,106 +329,110 @@ export default function Ubicacion({ userRole }) {
       </div>
 
       {loading ? (
-        <div style={{ background: 'var(--bg-card)', border: '1px solid #DBE3E0', padding: '80px 24px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: '600' }}>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid #DBE3E0', padding: '80px 24px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: '600', borderRadius: '12px' }}>
           Cargando ubicaciones...
         </div>
       ) : error ? (
-        <div style={{ background: 'var(--bg-card)', border: '1px solid #DBE3E0', padding: '80px 24px', textAlign: 'center', color: '#ef4444', fontWeight: '600' }}>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid #DBE3E0', padding: '80px 24px', textAlign: 'center', color: '#ef4444', fontWeight: '600', borderRadius: '12px' }}>
           {error}
         </div>
       ) : ubicaciones.length === 0 ? (
-        <div style={{ background: 'var(--bg-card)', border: '1px solid #DBE3E0', padding: '80px 24px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: '600' }}>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid #DBE3E0', padding: '80px 24px', textAlign: 'center', color: 'var(--text-muted)', fontWeight: '600', borderRadius: '12px' }}>
           No hay ubicaciones registradas.
         </div>
       ) : (
-        <div style={{ background: 'var(--bg-card)', border: '1px solid #DBE3E0', overflow: 'hidden' }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-              <thead>
-                <tr style={{ background: 'var(--bg-app)', borderBottom: '1px solid #DBE3E0' }}>
-                  <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>LUGAR</th>
-                  <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>LATITUD</th>
-                  <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>LONGITUD</th>
-                  {isSuperAdmin && (
-                    <>
-                      <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>ROL</th>
-                      <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>ESTADO</th>
-                      <th style={{ padding: '16px 24px', fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px', textAlign: 'center' }}>ACCIONES</th>
-                    </>
-                  )}
-                </tr>
-              </thead>
-              <tbody>
-                {ubicaciones.map((loc) => {
-                  const dir = direcciones[loc.id_ubicacion]
-                  return (
-                    <tr
-                      key={loc.id_ubicacion}
-                      style={{ borderBottom: '1px solid #f1f5f9' }}
-                      onMouseOver={e => e.currentTarget.style.background = 'var(--bg-app)'}
-                      onMouseOut={e => e.currentTarget.style.background = 'transparent'}
-                    >
-                      <td style={{ padding: '16px 24px', fontWeight: '700', color: 'var(--text-main)' }}>
-                        {loc.nombre_lugar}
-                      </td>
-                      <td style={{ padding: '16px 24px', fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500', fontFamily: 'monospace' }}>
-                        {loc.latitud || '—'}
-                      </td>
-                      <td style={{ padding: '16px 24px', fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500', fontFamily: 'monospace' }}>
-                        {loc.longitud || '—'}
-                      </td>
-                      {isSuperAdmin && (
-                        <>
-                          <td style={{ padding: '16px 24px' }}>
-                            <span style={{
-                              display: 'inline-block',
-                              padding: '4px 10px',
-                              fontSize: '10px',
-                              fontWeight: '700',
-                              borderRadius: '999px',
-                              background: loc.id_rol_creador === 3 ? '#ede9fe' : '#dbeafe',
-                              color: loc.id_rol_creador === 3 ? '#5b21b6' : '#1d4ed8',
-                            }}>
-                              {loc.id_rol_creador === 3 ? 'SUPER ADMIN' : 'ADMIN'}
-                            </span>
-                          </td>
-                          <td style={{ padding: '16px 24px' }}>
-                            <span style={{
-                              display: 'inline-block',
-                              padding: '4px 10px',
-                              fontSize: '10px',
-                              fontWeight: '700',
-                              borderRadius: '999px',
-                              background: loc.activo ? '#d1fae5' : '#fee2e2',
-                              color: loc.activo ? '#065f46' : '#991b1b',
-                            }}>
-                              {loc.activo ? 'Activo' : 'Inactivo'}
-                            </span>
-                          </td>
-                          <td style={{ padding: '16px 24px', textAlign: 'center', whiteSpace: 'nowrap' }}>
-                          <button
-                            onClick={() => handleOpenEdit(loc)}
-                            style={{ padding: '6px 14px', border: '1px solid #DBE3E0', borderRadius: '4px', background: 'white', fontSize: '11px', fontWeight: '600', cursor: 'pointer', color: '#0F766E', marginRight: '8px' }}
-                          >
-                            Editar
-                          </button>
-                          <button
-                            onClick={() => setDeleteConfirm(loc)}
-                            style={{ padding: '6px 14px', border: '1px solid #fca5a5', borderRadius: '4px', background: '#fef2f2', fontSize: '11px', fontWeight: '600', cursor: 'pointer', color: '#ef4444' }}
-                          >
-                            Eliminar
-                          </button>
-                          </td>
-                        </>
-                      )}
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', overflow: 'hidden' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'minmax(250px, 3fr) 1fr 1fr 100px', background: 'var(--bg-app)', borderBottom: '1px solid var(--border)', padding: '16px 24px' }}>
+            <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg> LUGAR
+            </div>
+            <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> LATITUD
+            </div>
+            <div style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px', display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg> LONGITUD
+            </div>
+            <div></div>
+          </div>
+
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            {ubicaciones.map((loc, i) => {
+              const nameLower = loc.nombre_lugar.toLowerCase();
+              let iconSvg = <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>;
+              let bgColor = '#f0fdf4';
+              let iconColor = '#16a34a';
+
+              if (nameLower.includes('lab') || nameLower.includes('computación')) {
+                iconSvg = <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M10 2v7.31"></path><path d="M14 9.3V1.99"></path><path d="M8.5 2h7"></path><path d="M14 9.3a6.5 6.5 0 1 1-4 0"></path><path d="M5.5 16.5h13"></path></svg>;
+                bgColor = '#ecfeff'; iconColor = '#0891b2';
+              } else if (nameLower.includes('cafe') || nameLower.includes('comedor')) {
+                iconSvg = <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>;
+                bgColor = '#fef3c7'; iconColor = '#d97706';
+              } else if (nameLower.includes('construcción') || nameLower.includes('taller')) {
+                iconSvg = <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>;
+                bgColor = '#eff6ff'; iconColor = '#2563eb';
+              } else if (nameLower.includes('admin') || nameLower.includes('oficina')) {
+                iconSvg = <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>;
+                bgColor = '#f3e8ff'; iconColor = '#9333ea';
+              }
+
+              return (
+                <div key={loc.id_ubicacion} style={{ display: 'grid', gridTemplateColumns: 'minmax(250px, 3fr) 1fr 1fr 100px', borderBottom: i === ubicaciones.length - 1 ? 'none' : '1px solid var(--border)', padding: '24px', alignItems: 'center', transition: 'background 0.2s' }} onMouseOver={e => e.currentTarget.style.background = 'var(--bg-app)'} onMouseOut={e => e.currentTarget.style.background = 'transparent'}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                    <div style={{ width: '80px', height: '60px', borderRadius: '8px', background: `linear-gradient(135deg, ${bgColor} 0%, white 100%)`, border: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: iconColor }}>
+                      {iconSvg}
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '15px', fontWeight: '800', color: 'var(--text-main)', marginBottom: '4px' }}>{loc.nombre_lugar}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{loc.direccion_alfa_numerica || 'Área del campus universitario'}</div>
+                    </div>
+                  </div>
+                  
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500', fontFamily: 'monospace', textAlign: 'center' }}>
+                    {loc.latitud ? Number(loc.latitud).toFixed(6) : '—'}
+                  </div>
+                  
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500', fontFamily: 'monospace', textAlign: 'center' }}>
+                    {loc.longitud ? Number(loc.longitud).toFixed(6) : '—'}
+                  </div>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px' }}>
+                    {isSuperAdmin ? (
+                      <>
+                        <button onClick={() => handleOpenEdit(loc)} style={{ background: 'transparent', border: 'none', color: '#0F766E', cursor: 'pointer', padding: '6px' }} title="Editar">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                        </button>
+                        <button onClick={() => setDeleteConfirm(loc)} style={{ background: 'transparent', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '6px' }} title="Eliminar">
+                          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                        </button>
+                      </>
+                    ) : (
+                      <button style={{ background: 'transparent', border: '1px solid var(--border)', borderRadius: '50%', width: '32px', height: '32px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', cursor: 'pointer' }}>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
           </div>
         </div>
       )}
+
+      <div style={{ marginTop: '24px', background: '#ecfdf5', border: '1px solid #d1fae5', borderRadius: '12px', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#059669', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+          </div>
+          <div>
+            <div style={{ fontSize: '13px', color: '#065f46', fontWeight: '500' }}>Las coordenadas se muestran en el sistema geodésico WGS84 (Grados Decimales).</div>
+            <div style={{ fontSize: '11px', color: '#047857' }}>Última actualización: Hoy, {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</div>
+          </div>
+        </div>
+        <button onClick={cargarUbicaciones} style={{ padding: '8px 16px', background: 'white', border: '1px solid #10b981', color: '#059669', borderRadius: '6px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg> Actualizar
+        </button>
+      </div>
 
       {modalOpen && renderModal()}
       {deleteConfirm && renderDeleteConfirm()}

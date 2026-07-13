@@ -11,6 +11,14 @@ from .services import enviar_push_expo, procesar_notificacion_evento
 from .config import settings
 from gmqtt import Client as MQTTClient
 from gmqtt.mqtt.constants import MQTTv311
+from fastapi import Depends
+from sqlalchemy.orm import Session
+from .database import engine, Base, get_db
+from .models import DispositivoUsuario
+from .schemas import GuardarTokenRequest
+
+# Crear tablas en la BD
+Base.metadata.create_all(bind=engine)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -71,6 +79,24 @@ async def send_push_endpoint(req: PushRequest):
     if not res:
         raise HTTPException(status_code=500, detail="Error al enviar la notificacion Push")
     return {"status": "success", "expo_response": res}
+
+@app.post("/guardar-token", summary="Guardar el Push Token de un usuario")
+async def guardar_token_endpoint(req: GuardarTokenRequest, db: Session = Depends(get_db)):
+    # Upsert logic: Si existe para ese usuario y token, ignorar; o actualizar si es nuevo.
+    existente = db.query(DispositivoUsuario).filter(
+        DispositivoUsuario.id_usuario == req.id_usuario,
+        DispositivoUsuario.expo_push_token == req.expo_push_token
+    ).first()
+    
+    if not existente:
+        nuevo_disp = DispositivoUsuario(
+            id_usuario=req.id_usuario,
+            expo_push_token=req.expo_push_token
+        )
+        db.add(nuevo_disp)
+        db.commit()
+        return {"status": "success", "message": "Token guardado"}
+    return {"status": "success", "message": "El token ya existía"}
 
 @app.post("/eventos/alerta", summary="Notificar creación o cancelación de eventos (Admin y Usuarios)")
 async def alerta_evento_endpoint(req: EventoNotificacionRequest):

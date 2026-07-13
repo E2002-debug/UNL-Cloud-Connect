@@ -157,8 +157,23 @@ export default function EventTable({ eventos, onEdit, onDelete, onDeleteFisico }
 
           {eventos.length === 0 && (
             <tr>
-              <td colSpan="6" style={{ ...cellStyle, padding: "40px", textAlign: "center", color: "var(--text-muted)", fontWeight: "600" }}>
-                No se encontraron registros de eventos activos en la base de datos.
+              <td colSpan="6" style={{ ...cellStyle, padding: "80px 20px", textAlign: "center" }}>
+                <div style={{ display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
+                  <div style={{ position: "relative", marginBottom: "16px" }}>
+                    <div style={{ width: "64px", height: "64px", background: "#ecfdf5", borderRadius: "16px", display: "flex", alignItems: "center", justifyContent: "center", color: "#10b981", margin: "0 auto" }}>
+                      <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+                    </div>
+                    {/* Sparkles */}
+                    <div style={{ position: "absolute", top: "-5px", left: "-15px", color: "#6ee7b7" }}>✦</div>
+                    <div style={{ position: "absolute", top: "10px", right: "-20px", color: "#34d399", fontSize: "12px" }}>✧</div>
+                    <div style={{ position: "absolute", bottom: "5px", right: "-10px", color: "#fcd34d", fontSize: "14px" }}>✦</div>
+                  </div>
+                  <h3 style={{ margin: "0 0 8px 0", fontSize: "16px", fontWeight: "800", color: "var(--text-main)" }}>No hay eventos activos</h3>
+                  <p style={{ margin: 0, fontSize: "12px", color: "var(--text-muted)", maxWidth: "300px", lineHeight: "1.5" }}>
+                    No se encontraron registros de eventos activos en la base de datos.<br />
+                    Cuando se creen eventos, aparecerán aquí para su gestión.
+                  </p>
+                </div>
               </td>
             </tr>
           )}

@@ -13,13 +13,18 @@
       [
         "@react-native-google-signin/google-signin"
       ],
-      "expo-font"
+      "expo-font",
+      "expo-notifications"
     ],
     "android": {
       "package": "com.unl.cloudconnect",
       "permissions": [
         "android.permission.CAMERA"
       ]
+    },
+    "ios": {
+      "bundleIdentifier": "com.unl.cloudconnect",
+      "supportsTablet": true
     },
     "extra": {
       "eas": {
