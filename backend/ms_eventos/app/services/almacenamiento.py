@@ -6,13 +6,16 @@ from fastapi import UploadFile, HTTPException, status
 import io
 from PIL import Image
 from app.core.config import settings
+from datetime import timedelta
+from app.core.config import settings
 
-# Inicializamos el cliente de MinIO usando las variables del docker-compose
+# Inicializamos el cliente de MinIO usando la URL pública para firmas de presigned URLs correctas
+minio_public_host = settings.MINIO_PUBLIC_URL.replace("http://", "").replace("https://", "")
 minio_client = Minio(
-    settings.MINIO_SERVER,       # Ej: "minio:9000" (nombre del servicio en Docker)
+    minio_public_host,
     access_key=settings.MINIO_ROOT_USER,
     secret_key=settings.MINIO_ROOT_PASSWORD,
-    secure=False                 # Estamos en red interna HTTP, no HTTPS
+    secure=False
 )
 
 def subir_imagen_minio(file: UploadFile) -> str:
@@ -66,16 +69,18 @@ def subir_imagen_minio(file: UploadFile) -> str:
         return url_publica
 
     except S3Error as e:
+        # V-C2 Fix: No exponer detalle técnico de MinIO al cliente
         print(f"[MinIO ERROR] Fallo en el almacenamiento de objetos: {e}")
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail="El servicio de almacenamiento de imagenes no está disponible actualmente."
+            detail="El servicio de almacenamiento no está disponible. Por favor intenta más tarde."
         )
     except Exception as e:
+        # V-C2 Fix: No exponer stack trace interno al cliente
         print(f"[SISTEMA ERROR] Fallo interno al procesar el archivo: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Ocurrió un error inesperado al subir la imagen."
+            detail="Ocurrió un error inesperado al subir la imagen. Por favor intenta nuevamente."
         )
 
 
@@ -91,3 +96,22 @@ def eliminar_imagen_minio(url: str) -> bool:
     except S3Error as e:
         print(f"[MinIO ERROR] Fallo al eliminar objeto: {e}")
         return False
+
+def generar_url_firmada(url_base: str) -> str:
+    """
+    V-N10 Fix: Convierte la URL base almacenada en la DB en una presigned URL
+    temporal válida por 2 horas, para acceso privado.
+    """
+    if not url_base:
+        return None
+    try:
+        object_name = url_base.split(f"{settings.MINIO_BUCKET_NAME}/")[-1]
+        # Generar enlace temporal (expira en 2 horas)
+        return minio_client.presigned_get_object(
+            bucket_name=settings.MINIO_BUCKET_NAME,
+            object_name=object_name,
+            expires=timedelta(hours=2)
+        )
+    except Exception as e:
+        print(f"[MinIO ERROR] Fallo al firmar URL: {e}")
+        return url_base

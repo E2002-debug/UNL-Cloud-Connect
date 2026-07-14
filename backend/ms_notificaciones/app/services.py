@@ -8,6 +8,8 @@ from .schemas import PushRequest, EventoNotificacionRequest
 import httpx
 import logging
 import asyncio
+from sqlalchemy.orm import Session
+from .models import DispositivoUsuario
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +32,7 @@ async def enviar_push_expo(push_req: PushRequest):
             logger.error(f"Error enviando Push a Expo: {str(e)}")
             return None
 
-async def procesar_notificacion_evento(req: EventoNotificacionRequest):
+async def procesar_notificacion_evento(req: EventoNotificacionRequest, db: Session = None):
     resultados = {"admin": None, "usuarios": []}
     
     # 1. Notificar al Administrador que disparó la acción
@@ -43,20 +45,40 @@ async def procesar_notificacion_evento(req: EventoNotificacionRequest):
         resultados["admin"] = await enviar_push_expo(admin_push)
         
     # 2. Notificar a todos los usuarios/participantes móviles de la app
+    usuarios_tokens = req.usuarios_tokens
+    if not usuarios_tokens and db:
+        dispositivos = db.query(DispositivoUsuario).filter(DispositivoUsuario.expo_push_token.isnot(None)).all()
+        usuarios_tokens = [d.expo_push_token for d in dispositivos if d.expo_push_token.strip()]
+        
     tareas_push = []
-    for token in req.usuarios_tokens:
+    tokens_procesados = []
+    for token in usuarios_tokens:
         if token:  # Asegurarnos que el token no esté vacío
+            if req.accion == "clima":
+                titulo = "☁️ Alerta Climática"
+                mensaje = req.nombre_evento
+            elif req.accion == "modificado":
+                titulo = "✏️ Evento Actualizado"
+                mensaje = f"Se ha modificado el evento: '{req.nombre_evento}'"
+            elif req.accion == "cancelado":
+                titulo = "❌ Evento Cancelado"
+                mensaje = f"Se ha cancelado el evento: '{req.nombre_evento}'"
+            else:
+                titulo = f"🎉 Nuevo Evento"
+                mensaje = f"Se ha creado el evento '{req.nombre_evento}'"
+                
             user_push = PushRequest(
                 expo_push_token=token,
-                titulo=f"Evento {req.accion.capitalize()}",
-                mensaje=f"Noticia: Se ha {req.accion} el evento '{req.nombre_evento}'"
+                titulo=titulo,
+                mensaje=mensaje
             )
             # Enviar todas las peticiones push en paralelo para que sea más rápido
             tareas_push.append(enviar_push_expo(user_push))
+            tokens_procesados.append(token)
             
     if tareas_push:
         respuestas = await asyncio.gather(*tareas_push)
-        for i, token in enumerate(req.usuarios_tokens):
+        for i, token in enumerate(tokens_procesados):
             resultados["usuarios"].append({"token": token, "estado": "ok" if respuestas[i] else "error"})
             
     return resultados

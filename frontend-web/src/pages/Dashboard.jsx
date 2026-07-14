@@ -47,19 +47,22 @@ export default function Dashboard() {
   
   const tokenPayload = getTokenPayload()
   const initialIdRol = tokenPayload ? String(tokenPayload.id_rol) : null
+  const currentUserId = tokenPayload ? (tokenPayload.id_usuario || tokenPayload.sub) : null
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'claro')
   const [activeTab, setActiveTab] = useState(initialIdRol === '3' ? 'Usuarios' : 'Dashboard')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false)
   const [notifications, setNotifications] = useState([])
   const [readNotifIds, setReadNotifIds] = useState(() => {
-    const saved = localStorage.getItem('read_notifications')
+    const saved = localStorage.getItem(`read_notifications_${currentUserId || 'guest'}`)
     return saved ? JSON.parse(saved) : []
   })
   
   useEffect(() => {
-    localStorage.setItem('read_notifications', JSON.stringify(readNotifIds))
-  }, [readNotifIds])
+    if (currentUserId) {
+      localStorage.setItem(`read_notifications_${currentUserId}`, JSON.stringify(readNotifIds))
+    }
+  }, [readNotifIds, currentUserId])
   const navigate = useNavigate()
 
   const unreadCount = notifications.filter(n => !readNotifIds.includes(n.id)).length
@@ -210,59 +213,77 @@ export default function Dashboard() {
   const fetchDashboardData = async () => {
     setLoadingDashboard(true)
     try {
-      const [evts, sens, ubi] = await Promise.all([
-        getEventos(),
-        listarSensores(),
-        getUbicaciones()
-      ])
-      setEventos(evts)
-      setSensores(sens)
-      setUbicacionesDB(ubi)
+      let evts = []
+      let sens = []
+      let ubi = []
       
-      // Cargar notificaciones reales desde auditoría
+      try { evts = await getEventos(); setEventos(evts); } catch (e) { console.error('Error eventos:', e); }
+      try { sens = await listarSensores(); setSensores(sens); } catch (e) { console.error('Error sensores:', e); }
+      try { ubi = await getUbicaciones(); setUbicacionesDB(ubi); } catch (e) { console.error('Error ubicaciones:', e); }
+
+      let loginAudits = []
       if (initialIdRol === '1' || initialIdRol === '3') {
         try {
           const auditRes = await getAuditoria()
           if (auditRes && auditRes.data) {
-            // Filtrar y mejorar presentación para separar móvil de web y evitar spam innecesario
-            let filteredAudits = auditRes.data
-            // Tomamos los 10 registros más recientes
-            const recentAudits = filteredAudits.slice(0, 10).map((audit, index) => {
-              let type = 'info'
-              let iconType = 'web'
-              
-              const accionLower = audit.accion.toLowerCase()
-              const detallesLower = (audit.detalles || '').toLowerCase()
-              
-              if (accionLower.includes('elimina') || accionLower.includes('error')) type = 'error'
-              if (accionLower.includes('crea') || accionLower.includes('actualiza') || accionLower.includes('registro') || accionLower.includes('exitoso')) type = 'success'
-              
-              // Determinar si es de móvil o web por los detalles (si implementaron algún log de device)
-              if (detallesLower.includes('móvil') || detallesLower.includes('movil') || detallesLower.includes('expo') || detallesLower.includes('app')) {
-                iconType = 'mobile'
-              }
-
-              return {
-                id: audit.id_log || index,
-                type: type,
-                iconType: iconType,
-                title: audit.accion.replace(/_/g, ' '),
-                message: audit.detalles || `Acción realizada por usuario ID: ${audit.id_usuario || 'Desconocido'}.`,
-                time: timeAgo(audit.fecha_hora + 'Z'), // Asume UTC de la DB
-              }
-            })
-            setNotifications(recentAudits)
+            loginAudits = auditRes.data
+              .filter(audit => {
+                const accion = audit.accion.toLowerCase();
+                const isLogin = accion.includes('sesión') || accion.includes('sesion') || accion.includes('login') || accion.includes('ingreso');
+                return isLogin && String(audit.id_usuario) === String(currentUserId);
+              })
+              .map((audit, index) => ({
+                id: audit.id_log || `audit-${index}`,
+                type: 'success',
+                iconType: 'web',
+                title: 'Inicio Exitoso',
+                message: `Has iniciado sesión correctamente.`,
+                time: timeAgo(audit.fecha_hora + 'Z'),
+                timestamp: new Date(audit.fecha_hora + 'Z').getTime()
+              }))
           }
         } catch (err) {
           console.error("Error al cargar auditoría para notificaciones:", err)
         }
       }
+
+      const now = new Date().getTime();
+      const ONE_DAY = 24 * 60 * 60 * 1000;
+      
+      const recentEvents = evts
+        .filter(evt => {
+          const evtTime = new Date(evt.fecha_hora_inicio).getTime();
+          // Solo mostrar eventos recientes como notificación (últimas 24h o futuros)
+          return (evtTime > now - ONE_DAY); 
+        })
+        .slice(-10)
+        .map(evt => ({
+          id: `evt-${evt.id_evento}`,
+          type: 'info',
+          iconType: 'web',
+          title: 'Evento Registrado',
+          message: `Se ha creado un nuevo evento: ${evt.nombre}`,
+          time: timeAgo(evt.fecha_hora_inicio),
+          timestamp: new Date(evt.fecha_hora_inicio).getTime()
+        }));
+      
+      const combined = [...loginAudits, ...recentEvents]
+        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+        .slice(0, 10);
+        
+      setNotifications(combined)
     } catch (err) {
       console.error('Error al cargar datos del dashboard:', err)
     } finally {
       setLoadingDashboard(false)
     }
   }
+
+  useEffect(() => {
+    if (activeTab === 'Dashboard') {
+      fetchDashboardData()
+    }
+  }, [activeTab])
 
   useEffect(() => {
     const fetchWeather = async () => {
@@ -385,7 +406,9 @@ export default function Dashboard() {
   }
 
   const handleLogout = () => {
-    localStorage.clear()
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('nombre')
+    localStorage.removeItem('apellido')
     window.location.href = '/login?logout=true'
   }
 

@@ -24,6 +24,13 @@ from app.core import security
 from app.core.security import crear_token_recuperacion, verificar_token_recuperacion, obtener_hash_clave, crear_token_verificacion, verificar_token_verificacion, crear_token_verificacion_datos, verificar_token_verificacion_datos
 from app.core.email import enviar_correo_recuperacion, enviar_correo_verificacion
 from app.core.config import settings
+from app.core.token_blacklist import revocar_token
+from fastapi.security import OAuth2PasswordBearer
+from jose import jwt, JWTError
+from app.core.rate_limiter import limiter_login, limiter_registro, limiter_recuperacion
+from app.core.used_tokens import marcar_token_usado, token_ya_usado
+
+_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 router = APIRouter(
     prefix="/auth",
@@ -133,6 +140,7 @@ async def _verificar_recaptcha(token: str):
 async def registrar_usuario(
     usuario_in: UsuarioCreate, 
     background_tasks: BackgroundTasks,
+    request: Request,
     db: Session = Depends(get_db)
 ) -> Any:
     """
@@ -140,6 +148,8 @@ async def registrar_usuario(
     Valida internamente que no existan correos duplicados.
     Envía correo de verificación al registrarse. La cuenta no se crea hasta verificar.
     """
+    # V-B2 Fix: Rate limiting — máximo 3 registros por 10 minutos por IP
+    limiter_registro.verificar(request)
     # Validaciones de seguridad
     _validar_nombre_apellido(usuario_in.nombre, usuario_in.apellido)
     if usuario_in.clave:
@@ -248,6 +258,8 @@ def iniciar_sesion(
     Retorna un token JWT Bearer e id_rol si las credenciales son válidas.
     Requiere que la cuenta esté verificada.
     """
+    # V-B2 Fix: Rate limiting — máximo 5 intentos de login por minuto por IP
+    limiter_login.verificar(request)
     usuario = crud_usuario.obtener_usuario_por_correo(db, correo=credenciales.username)
     
     if not usuario:
@@ -434,8 +446,10 @@ def iniciar_sesion_google(credenciales: TokenGoogleLogin, request: Request, db: 
 # ============ ENDPOINTS DE RECUPERACIÓN ============
 
 @router.post("/solicitar-recuperacion")
-async def solicitar_recuperacion(request: EmailRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    '''Endpoint para solicitar recuperación de contraseña. Envia un correo con un enlace que contiene un token JWT de vida corta.'''
+async def solicitar_recuperacion(request: EmailRequest, background_tasks: BackgroundTasks, req: Request, db: Session = Depends(get_db)):
+    '''Endpoint para solicitar recuperación de contraseña. Envía un correo con un enlace que contiene un token JWT de vida corta.'''
+    # V-B2 Fix: Rate limiting — máximo 3 solicitudes por 15 minutos por IP
+    limiter_recuperacion.verificar(req)
     # 1. Buscamos si el correo existe (Ajusta la llamada a tu CRUD si tiene otro nombre)
     usuario = crud_usuario.obtener_usuario_por_correo(db, correo=request.email)
     
@@ -456,12 +470,20 @@ def ejecutar_restablecer_clave(request: ResetPasswordRequest, req: Request, db: 
     '''Endpoint que el usuario visita desde el enlace del correo. Valida el token, y si es correcto, actualiza la contraseña en la base de datos.'''
     # Validar la nueva contraseña
     _validar_clave(request.nueva_password)
-    
+
+    # V-N3 Fix: Verificar si el token ya fue usado anteriormente (single-use)
+    if token_ya_usado(request.token):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Este enlace de recuperación ya fue utilizado. Solicita uno nuevo si lo necesitas."
+        )
+
     # 1. El motor criptográfico revisa si el token es falso o expiró
+    from jose import jwt as jose_jwt, JWTError
     email = verificar_token_recuperacion(request.token)
     if not email:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="El enlace es inválido o ha caducado. Solicita uno nuevo."
         )
 
@@ -484,7 +506,15 @@ def ejecutar_restablecer_clave(request: ResetPasswordRequest, req: Request, db: 
     # 5. Encriptamos la nueva contraseña y la guardamos en la base de datos
     usuario.clave = obtener_hash_clave(request.nueva_password)
     db.commit()
-    
+
+    # V-N3 Fix: Marcar el token como usado para que no pueda reutilizarse
+    try:
+        payload = jose_jwt.decode(request.token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        exp = payload.get("exp", 0)
+        marcar_token_usado(request.token, float(exp))
+    except Exception:
+        pass  # Si el token ya expiró al decodificar, no importa marcarlo
+
     crud_auditoria.registrar_auditoria(db, AuditoriaCreate(
         id_usuario=usuario.id_usuario,
         correo=usuario.correo,
@@ -494,3 +524,27 @@ def ejecutar_restablecer_clave(request: ResetPasswordRequest, req: Request, db: 
     ))
 
     return {"mensaje": "Contraseña actualizada exitosamente. Ya puedes iniciar sesión con tu nueva clave."}
+
+
+# ============ ENDPOINT DE CIERRE DE SESIÓN ============
+
+@router.post("/logout", status_code=200)
+def cerrar_sesion(token: str = Depends(_oauth2_scheme)):
+    """
+    Invalida el token JWT actual añadiéndolo a la blacklist de revocación.
+    Después de llamar este endpoint, el token queda inutilizable aunque no haya expirado.
+    """
+    try:
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
+            options={"verify_exp": False}  # Permitir logout aunque esté expirado
+        )
+        jti = payload.get("jti")
+        exp = payload.get("exp", 0)
+        if jti:
+            revocar_token(jti, float(exp))
+    except JWTError:
+        pass  # Si el token ya es inválido, no importa
+    return {"mensaje": "Sesión cerrada correctamente."}

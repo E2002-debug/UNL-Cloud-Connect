@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from .database import engine, Base, get_db
 from .models import DispositivoUsuario
 from .schemas import GuardarTokenRequest
+from .security import validar_token, get_current_admin
 
 # Crear tablas en la BD
 Base.metadata.create_all(bind=engine)
@@ -74,23 +75,26 @@ async def health_check():
     return {"status": "ok", "service": "ms_notificaciones"}
 
 @app.post("/push", summary="Enviar Push Notification básica")
-async def send_push_endpoint(req: PushRequest):
+async def send_push_endpoint(req: PushRequest, admin_payload: dict = Depends(get_current_admin)):
     res = await enviar_push_expo(req)
     if not res:
         raise HTTPException(status_code=500, detail="Error al enviar la notificacion Push")
     return {"status": "success", "expo_response": res}
 
 @app.post("/guardar-token", summary="Guardar el Push Token de un usuario")
-async def guardar_token_endpoint(req: GuardarTokenRequest, db: Session = Depends(get_db)):
+async def guardar_token_endpoint(req: GuardarTokenRequest, db: Session = Depends(get_db), usuario_payload: dict = Depends(validar_token)):
     # Upsert logic: Si existe para ese usuario y token, ignorar; o actualizar si es nuevo.
+    # V-N9 Fix: Forzar que el id_usuario corresponda al token para evitar suplantación
+    id_usuario_real = int(usuario_payload.get("id_usuario", req.id_usuario))
+    
     existente = db.query(DispositivoUsuario).filter(
-        DispositivoUsuario.id_usuario == req.id_usuario,
+        DispositivoUsuario.id_usuario == id_usuario_real,
         DispositivoUsuario.expo_push_token == req.expo_push_token
     ).first()
     
     if not existente:
         nuevo_disp = DispositivoUsuario(
-            id_usuario=req.id_usuario,
+            id_usuario=id_usuario_real,
             expo_push_token=req.expo_push_token
         )
         db.add(nuevo_disp)
@@ -99,12 +103,13 @@ async def guardar_token_endpoint(req: GuardarTokenRequest, db: Session = Depends
     return {"status": "success", "message": "El token ya existía"}
 
 @app.post("/eventos/alerta", summary="Notificar creación o cancelación de eventos (Admin y Usuarios)")
-async def alerta_evento_endpoint(req: EventoNotificacionRequest):
+async def alerta_evento_endpoint(req: EventoNotificacionRequest, admin_payload: dict = Depends(get_current_admin), db: Session = Depends(get_db)):
     """
     Endpoint transversal para ser llamado desde ms_eventos. 
     Distribuye los mensajes correctos tanto al administrador como a los participantes.
+    Solo puede ser ejecutado por un administrador.
     """
-    resultados = await procesar_notificacion_evento(req)
+    resultados = await procesar_notificacion_evento(req, db)
     return {
         "status": "success", 
         "message": "Notificaciones distribuidas correctamente",

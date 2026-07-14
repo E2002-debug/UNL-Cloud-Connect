@@ -99,8 +99,16 @@ export default function Sensors() {
     }
   }
 
-  const handleDelete = async (s) => {
-    if (!window.confirm(`¿Desactivar sensor "${s.nombre}"?`)) return
+  const confirmarEliminarSensor = (s) => {
+    setConfirmDeleteModal({ isOpen: true, sensor: s });
+  };
+
+  const handleDelete = async () => {
+    const s = confirmDeleteModal.sensor;
+    setConfirmDeleteModal({ isOpen: false, sensor: null });
+    
+    if (!s) return;
+    
     try {
       await eliminarSensor(s.id_sensor)
       toast.success(`Sensor "${s.nombre}" desactivado`)
@@ -153,7 +161,7 @@ export default function Sensors() {
             <h3 style={{ margin: '0 0 8px 0', fontSize: '16px', fontWeight: '900', fontStyle: 'italic', color: 'var(--text-main)', textTransform: 'uppercase' }}>
               No se encontraron nodos IoT activos
             </h3>
-            <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', maxWidth: '400px', margin: '0 auto', lineHeight: '1.5' }}>
+            <p style={{ fontSize: '12px', color: 'var(--text-muted)', maxWidth: '400px', margin: '0 auto', lineHeight: '1.5' }}>
               La red central no registra tramas de telemetría entrantes en la base de datos de Loja. Presiona "Agregar Nodo" para aprovisionar hardware en el sistema.
             </p>
           </div>
@@ -217,7 +225,7 @@ export default function Sensors() {
                   <button onClick={() => openEdit(s)} style={{ flex: 1, padding: '8px', border: '1px solid #cbd5e1', background: 'var(--bg-app)', color: 'var(--text-main)', fontSize: '11px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                     <IconEdit /> EDITAR
                   </button>
-                  <button onClick={() => handleDelete(s)} style={{ flex: 1, padding: '8px', border: '1px solid #fca5a5', background: '#fee2e2', color: '#ef4444', fontSize: '11px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                  <button onClick={() => confirmarEliminarSensor(s)} style={{ flex: 1, padding: '8px', border: '1px solid #fca5a5', background: '#fee2e2', color: '#ef4444', fontSize: '11px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                     <IconDelete /> DESACTIVAR
                   </button>
                 </div>

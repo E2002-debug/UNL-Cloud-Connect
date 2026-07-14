@@ -12,6 +12,7 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 from typing import Any
 from jose import jwt, JWTError
+import uuid
 
 # Importamos las configuraciones centralizadas
 # Definimos que el token de recuperación caduca muy rápido por seguridad
@@ -28,8 +29,9 @@ def setup_cors(app: FastAPI) -> None:
         CORSMiddleware,
         allow_origins=settings.BACKEND_CORS_ORIGINS,
         allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        # V-C4 Fix: métodos y headers explícitos en lugar de wildcards
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allow_headers=["Authorization", "Content-Type", "Accept"],
     )
 
 def verificar_clave(clave_plana: str, clave_hasheada: str) -> bool:
@@ -49,7 +51,7 @@ def crear_token_acceso(sujeto: Any, id_rol: int = None, id_usuario: int = None, 
         expire = datetime.now(timezone.utc) + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     
     # "sub" (Subject) es a quién le pertenece el token (normalmente el ID o correo del usuario)
-    to_encode = {"exp": expire, "sub": str(sujeto)}
+    to_encode = {"exp": expire, "sub": str(sujeto), "jti": str(uuid.uuid4())}
     if id_rol is not None:
         to_encode["id_rol"] = id_rol
     if id_usuario is not None:
@@ -111,7 +113,8 @@ def crear_token_recuperacion(email: str) -> str:
     """
     Genera un JWT de vida corta exclusivo para recuperar contraseñas.
     """
-    expire = datetime.utcnow() + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES)
+    # V-C3 Fix: usar datetime.now(timezone.utc) — datetime.utcnow() está deprecated desde Python 3.12
+    expire = datetime.now(timezone.utc) + timedelta(minutes=RESET_TOKEN_EXPIRE_MINUTES)
     to_encode = {
         "sub": email,
         "type": "reset",  # Etiqueta de seguridad crucial

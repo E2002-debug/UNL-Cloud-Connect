@@ -52,7 +52,7 @@ export default function AppSidebar() {
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
         </div>
         <div>
-          <h1 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: 'var(--text-main)', letterSpacing: '-0.5px' }}>UNL-CLOUD-CONNECT</h1>
+          <img src="/img/logo transparente.png" alt="UNL Cloud Connect" style={{ height: '60px', objectFit: 'contain', marginBottom: '8px' }} />
           <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '1px' }}>{isAdmin ? 'CONSOLE ADMIN' : 'CONSOLE PARTICIPANTE'}</span>
         </div>
       </div>

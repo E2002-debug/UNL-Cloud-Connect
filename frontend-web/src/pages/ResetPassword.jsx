@@ -135,7 +135,7 @@ export default function ResetPassword() {
 
         {/* Panel Izquierdo */}
         <div style={{ flex: 1, background: 'linear-gradient(135deg, #0F766E 0%, #094E48 100%)', color: '#fff', padding: '60px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '500px' }}>
-          <div><h1 style={{ fontSize: '24px', fontWeight: '700', margin: '0 0 40px 0' }}>UNL-Cloud-Connect</h1></div>
+          <div><img src="/img/logo transparente.png" alt="UNL Cloud Connect" style={{ height: '250px', marginBottom: '40px', objectFit: 'contain' }} /></div>
           <div>
             <h2 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 24px 0', lineHeight: '1.4' }}>Crear nueva contraseña</h2>
             <p style={{ fontSize: '15px', lineHeight: '1.7', margin: '0', opacity: '0.95' }}>Ingresa tu nueva contraseña para recuperar el acceso a tu cuenta. Asegúrate de guardarla en un lugar seguro.</p>

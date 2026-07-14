@@ -78,6 +78,16 @@ def on_message(client, topic, payload, qos, properties):
 
             if topic in REGISTRO_SENSORES:
                 REGISTRO_SENSORES[topic] = info_sensor
+                
+            if datos_validados.alerta and datos_validados.detalles_alerta:
+                import threading
+                from app.services.notificaciones import enviar_alerta_clima
+                threading.Thread(
+                    target=enviar_alerta_clima, 
+                    args=(f"Alerta climática en {info_sensor['id_ubicacion']}: {datos_validados.detalles_alerta}",),
+                    daemon=True
+                ).start()
+                
         finally:
             db.close()
 

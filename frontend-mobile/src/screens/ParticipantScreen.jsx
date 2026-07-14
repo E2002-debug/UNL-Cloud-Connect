@@ -564,8 +564,8 @@ export default function ParticipantScreen({ route, navigation }) {
                     usuarios_no_me_gusta: []
                   };
 
-                  const isLiked = imgReactions.usuarios_me_gusta.includes(user.id_usuario);
-                  const isDisliked = imgReactions.usuarios_no_me_gusta.includes(user.id_usuario);
+                  const isLiked = (imgReactions.usuarios_me_gusta || []).includes(user?.id_usuario);
+                  const isDisliked = (imgReactions.usuarios_no_me_gusta || []).includes(user?.id_usuario);
 
                   return (
                     <View style={[styles.feedReactionsBar, { borderTopWidth: 0, paddingHorizontal: 0, paddingBottom: 0, paddingTop: 12, backgroundColor: 'transparent' }]}>
@@ -946,7 +946,7 @@ export default function ParticipantScreen({ route, navigation }) {
         </View>
         <TouchableOpacity style={styles.bellBtn} activeOpacity={0.8} onPress={() => setActiveTab('alertas')}>
           <Bell size={22} color="#0F766E" />
-          <View style={styles.bellDot} />
+          {alerts.length > 0 && <View style={styles.bellDot} />}
         </TouchableOpacity>
       </View>
 
@@ -1640,6 +1640,7 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: 16,
+    paddingBottom: 120,
   },
   alertsContainer: {
     flex: 1,

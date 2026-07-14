@@ -29,7 +29,8 @@ class Settings(BaseSettings):
     # IMPORTANTE: SECRET_KEY debe definirse en el archivo .env. Nunca uses un valor por defecto aquí.
     SECRET_KEY: str  # Sin default: Pydantic lanzará error si no está en .env
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 1 día de duración
+    # V-N5 Fix: reducido de 24h a 4h para limitar el impacto de tokens robados
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 4  # 4 horas
     DATABASE_URL: str  # Pydantic la jalará automáticamente del .env
 
     # Variable necesaria para validar la sesión de Google.

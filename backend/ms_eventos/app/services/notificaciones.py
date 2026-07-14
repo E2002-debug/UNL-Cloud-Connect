@@ -1,32 +1,38 @@
 import asyncio
+import httpx
 from app.models.evento import Evento
 
-async def enviar_alerta_nuevo_evento(evento: Evento):
+async def enviar_alerta_evento(evento: Evento, auth_token: str = None, accion: str = "creado"):
     """
     Paso 5.2: Lógica de envío asíncrona.
-    Construye el payload para Firebase Cloud Messaging (FCM).
+    Envía petición al ms_notificaciones para distribuir la notificación.
     """
-    # Simulamos el tiempo que tarda la red en comunicarse con los servidores de Google (FCM)
-    await asyncio.sleep(2)
-    
-    # Construcción estricta del payload según la documentación de Firebase
-    payload_fcm = {
-        "notification": {
-            "title": "🎓 Nuevo Evento en la Facultad",
-            "body": f"Se ha programado: {evento.nombre}"
-        },
-        "data": {
-            "id_evento": str(evento.id_evento),
-            "fecha_inicio": evento.fecha_hora_inicio.isoformat(),
-            "estado": evento.estado.value,
-            "tipo": "alerta_academica"
-        },
-        # Asumiendo que los estudiantes con correo @unl.edu.ec están suscritos a este tópico
-        "topic": "unl_comunidad" 
+    if not auth_token:
+        print("[BACKGROUND TASK] ❌ No hay auth_token, no se puede enviar notificación.")
+        return
+        
+    payload = {
+        "nombre_evento": evento.nombre,
+        "accion": accion,
+        "admin_token": None,
+        "usuarios_tokens": [] # ms_notificaciones will fetch them
     }
     
-    # Aquí iría el código real del SDK de Firebase (ej. messaging.send(mensaje))
+    headers = {
+        "Authorization": auth_token
+    }
+    
     print("\n" + "="*55)
-    print(f"[BACKGROUND TASK] 🚀 Notificación Push despachada")
-    print(f"Payload estructurado para FCM: {payload_fcm}")
+    print(f"[BACKGROUND TASK] 🚀 Enviando petición a ms_notificaciones...")
+    try:
+        async with httpx.AsyncClient() as client:
+            res = await client.post(
+                "http://ms-notificaciones:8000/api/notificaciones/eventos/alerta",
+                json=payload,
+                headers=headers,
+                timeout=10.0
+            )
+            print(f"Resultado: {res.status_code} - {res.text}")
+    except Exception as e:
+        print(f"Error comunicando con ms_notificaciones: {e}")
     print("="*55 + "\n")

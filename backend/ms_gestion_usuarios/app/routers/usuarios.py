@@ -19,15 +19,18 @@ router = APIRouter(
 @router.get("/batch", response_model=List[UsuarioResumenResponse])
 def listar_usuarios_por_ids(
     ids: str = Query(..., description="IDs de usuarios separados por coma"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)  # V-A2 Fix: requiere autenticación
 ) -> Any:
     """
     Retorna información básica de usuarios dado sus IDs separados por coma.
-    Endpoint público para resolver nombres desde otros microservicios.
+    Requiere autenticación JWT. Solo usuarios autenticados pueden resolver nombres.
     """
     lista_ids = [int(id_) for id_ in ids.split(",") if id_.strip().isdigit()]
     if not lista_ids:
         return []
+    # Limitar a máximo 50 IDs por petición para prevenir abuso
+    lista_ids = lista_ids[:50]
     usuarios = db.query(Usuario).filter(Usuario.id_usuario.in_(lista_ids)).all()
     return usuarios
 
@@ -82,8 +85,9 @@ def actualizar_mi_perfil(
 
 @router.get("/", response_model=List[UsuarioResponse])
 def listar_usuarios(
-    skip: int = 0, 
-    limit: int = 100, 
+    skip: int = 0,
+    # V-N7 Fix: cap de 100 usuarios por página para prevenir dumps masivos de BD
+    limit: int = Query(default=50, ge=1, le=100),
     db: Session = Depends(get_db),
     admin_user = Depends(get_current_admin)
 ) -> Any:

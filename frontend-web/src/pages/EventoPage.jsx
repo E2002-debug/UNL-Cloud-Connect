@@ -37,6 +37,7 @@ export default function EventoPage() {
   const [imagenPreview, setImagenPreview] = useState(null);
   const [imagenFile, setImagenFile] = useState(null);
   const [nombres, setNombres] = useState({});
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, idImagen: null });
   const fileInputRef = useRef(null);
 
   const estaAutenticado = () => !!localStorage.getItem("access_token");
@@ -122,8 +123,16 @@ export default function EventoPage() {
     }
   };
 
-  const handleEliminarImagen = async (id_imagen) => {
-    if (!window.confirm("¿Eliminar esta imagen? Esta acción no se puede deshacer.")) return;
+  const confirmarEliminarImagen = (id_imagen) => {
+    setConfirmModal({ isOpen: true, idImagen: id_imagen });
+  };
+
+  const handleEliminarImagen = async () => {
+    const id_imagen = confirmModal.idImagen;
+    setConfirmModal({ isOpen: false, idImagen: null });
+
+    if (!id_imagen) return;
+
     try {
       await eliminarImagen(id_imagen);
       toast.success("Imagen eliminada correctamente");
@@ -359,7 +368,7 @@ export default function EventoPage() {
                           )}
                           <button
                             type="button"
-                            onClick={() => handleEliminarImagen(img.id_imagen)}
+                            onClick={() => confirmarEliminarImagen(img.id_imagen)}
                             style={{
                               background: "transparent", border: "1px solid #fecaca", borderRadius: "4px",
                               padding: "3px 8px", fontSize: "12px", cursor: "pointer", color: "#ef4444",
@@ -378,6 +387,34 @@ export default function EventoPage() {
           </div>
         )}
       </div>
+
+      {/* MODAL DE CONFIRMACIÓN */}
+      {confirmModal.isOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ background: 'white', padding: '24px', borderRadius: '12px', width: '400px', maxWidth: '90%', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ margin: '0 0 16px 0', color: '#ef4444', fontSize: '18px', fontWeight: '800' }}>
+              Eliminar imagen
+            </h3>
+            <p style={{ margin: '0 0 24px 0', color: '#64748b', fontSize: '14px', lineHeight: '1.5' }}>
+              ¿Estás seguro de que deseas eliminar esta imagen? Esta acción no se puede deshacer.
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button
+                onClick={() => setConfirmModal({ isOpen: false, idImagen: null })}
+                style={{ padding: '8px 16px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '13px' }}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleEliminarImagen}
+                style={{ padding: '8px 16px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '13px' }}
+              >
+                Eliminar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

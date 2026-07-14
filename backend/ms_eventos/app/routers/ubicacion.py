@@ -21,19 +21,21 @@ router = APIRouter(
 # DEPENDENCIAS DE SEGURIDAD (INTEGRACIÓN CON API GATEWAY - KONG)
 # ==============================================================================
 
-def verificar_rol_administrador(x_user_role: str = Header(..., alias="x-user-role", description="Rol inyectado por Kong")) -> int:
+from app.core.security import get_current_user
+
+def verificar_rol_administrador(current_user: dict = Depends(get_current_user)) -> int:
     """
     Filtro de Control de Acceso Basado en Roles (RBAC).
-    Protege la creación de nuevas ubicaciones para evitar que usuarios comunes
-    llenen la base de datos con coordenadas falsas o lugares de prueba.
+    Extrae el rol directamente del JWT validado (evitando CWE-602).
     Acepta Admin (1) y Superadmin (3).
     """
-    if x_user_role not in ["1", "3"]:
+    id_rol = str(current_user.get("id_rol"))
+    if id_rol not in ["1", "3"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, 
             detail="Acceso denegado. Solo los administradores pueden registrar nuevos lugares en el campus."
         )
-    return int(x_user_role)
+    return int(id_rol)
 
 
 # ==============================================================================
@@ -71,8 +73,8 @@ def obtener_detalle_ubicacion(id_ubicacion: int, db: Session = Depends(get_db)):
 def crear_ubicacion(
     ubicacion_in: UbicacionCreate, 
     db: Session = Depends(get_db),
-    rol_validado: int = Depends(verificar_rol_administrador),
-    x_user_id: str = Header(..., alias="x-user-id", description="ID del usuario inyectado por Kong")
+    current_user: dict = Depends(get_current_user),
+    rol_validado: int = Depends(verificar_rol_administrador)
 ):
     """
     Registra un nuevo espacio físico dentro de la universidad.
@@ -80,7 +82,7 @@ def crear_ubicacion(
     y podrá recibir telemetría climática a través de su 'id_ubicacion'.
     """
     data = ubicacion_in.model_dump()
-    data["id_usuario_creador"] = int(x_user_id)
+    data["id_usuario_creador"] = int(current_user.get("id_usuario"))
     data["id_rol_creador"] = rol_validado
     nueva_ubicacion = Ubicacion(**data)
     

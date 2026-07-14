@@ -3,7 +3,6 @@ import api from "../../../services/api";
 const getUserHeaders = () => {
   return {
     "x-user-id": localStorage.getItem("id_usuario") || "1",
-    "x-user-role": localStorage.getItem("id_rol") || "1",
   };
 };
 

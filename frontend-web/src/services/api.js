@@ -9,10 +9,10 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  withCredentials: true  // Incluir cookies y credenciales en las peticiones
+  // V-N6 Fix: withCredentials eliminado — el sistema usa Bearer tokens, no cookies de sesión
 })
 
-// Función para decodificar JWT sin librerías externas
+// Función para decodificar JWT sin librerías externas (solo para lectura de claims en cliente)
 const decodeJWT = (token) => {
   try {
     return JSON.parse(atob(token.split('.')[1]));
@@ -26,13 +26,9 @@ api.interceptors.request.use((config) => {
   const token = localStorage.getItem('access_token')
   if (token) {
     config.headers.Authorization = `Bearer ${token}`
-    
-    // Inyectar headers para ms_eventos decodificando el JWT
-    const payload = decodeJWT(token);
-    if (payload) {
-      config.headers['x-user-role'] = payload.id_rol ? String(payload.id_rol) : '1';
-      config.headers['x-user-id'] = payload.id_usuario ? String(payload.id_usuario) : '1';
-    }
+    // V-N2 Fix: x-user-role y x-user-id eliminados.
+    // Los backends extraen el rol e ID directamente del JWT validado criptográficamente.
+    // Inyectar estos headers desde el cliente era un vector de ataque (CWE-602).
   }
   
   return config

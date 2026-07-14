@@ -5,19 +5,20 @@ Implementa arquitectura Zero Trust confiando en los headers inyectados por el AP
 y separa claramente las operaciones de lectura (públicas/clientes) de las de escritura (administradores).
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Header, BackgroundTasks, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, status, Header, BackgroundTasks, UploadFile, File, Request
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List
 import filetype
 
-from app.services.notificaciones import enviar_alerta_nuevo_evento 
+from app.core.security import get_current_user
+from app.services.notificaciones import enviar_alerta_evento 
 from app.database.session import get_db
 from app.schemas.evento import EventoCreate, EventoUpdate, EventoResponse
 from app.models.evento import ProgresoEvento  
 from app.schemas.imagen import ReaccionRequest, ReaccionesResumenResponse, ReportarImagenRequest, ImagenReportadaResponse
 from app.models.imagen import ImagenEvento
-from app.services.almacenamiento import subir_imagen_minio, eliminar_imagen_minio
+from app.services.almacenamiento import subir_imagen_minio, eliminar_imagen_minio, generar_url_firmada
 from app.crud import crud_evento
 from app.crud import crud_imagen
 
@@ -30,27 +31,16 @@ router = APIRouter(
 # DEPENDENCIAS DE SEGURIDAD (INTEGRACIÓN CON API GATEWAY - KONG)
 # ==============================================================================
 
-def obtener_id_usuario_gateway(x_user_id: str = Header(..., alias="x-user-id", description="ID inyectado por Kong")) -> int:
-    """
-    Extrae el ID del usuario autenticado desde los encabezados de la petición.
-    En una arquitectura de microservicios, el Gateway (Kong) ya validó el JWT, 
-    por lo que aquí solo interceptamos el ID resultante.
-    """
-    if not x_user_id.isdigit():
-        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Usuario no autenticado correctamente por el Gateway.")
-    return int(x_user_id)
+def obtener_id_usuario_gateway(usuario: dict = Depends(get_current_user)) -> int:
+    return int(usuario["id_usuario"])
 
-def verificar_rol_administrador(x_user_role: str = Header(..., alias="x-user-role", description="Rol inyectado por Kong")) -> int:
-    """
-    Filtro de Control de Acceso Basado en Roles (RBAC).
-    Bloquea la petición inmediatamente si el rol inyectado no corresponde al ID 1 (Administrador).
-    """
-    if x_user_role != "1":
+def verificar_rol_administrador(usuario: dict = Depends(get_current_user)) -> int:
+    if str(usuario["id_rol"]) not in ["1", "3"]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN, 
             detail="Acceso denegado. Se requieren privilegios de Administrador para realizar modificaciones."
         )
-    return int(x_user_role)
+    return int(usuario["id_rol"])
 
 
 # ==============================================================================
@@ -87,6 +77,7 @@ def obtener_detalle_evento(id_evento: int, db: Session = Depends(get_db)):
 
 @router.post("/", response_model=EventoResponse, status_code=status.HTTP_201_CREATED)
 def registrar_evento(
+    request: Request,
     evento_in: EventoCreate, 
     background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
@@ -110,7 +101,8 @@ def registrar_evento(
     
     # 3. Tareas en segundo plano: Disparamos la notificación MQTT/Push 
     # mientras FastAPI ya le está respondiendo '201 Created' al administrador.
-    background_tasks.add_task(enviar_alerta_nuevo_evento, nuevo_evento)
+    auth_token = request.headers.get("Authorization")
+    background_tasks.add_task(enviar_alerta_evento, nuevo_evento, auth_token, "creado")
     
     return nuevo_evento
 
@@ -118,6 +110,8 @@ def registrar_evento(
 def actualizar_datos_evento(
     id_evento: int,
     evento_in: EventoUpdate,
+    request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     id_usuario: int = Depends(obtener_id_usuario_gateway),
     rol_validado: int = Depends(verificar_rol_administrador) # <-- CANDADO ADMINISTRATIVO
@@ -129,15 +123,24 @@ def actualizar_datos_evento(
     evento_existente = crud_evento.obtener_evento_por_id(db, id_evento)
     if not evento_existente:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se puede actualizar. Evento no encontrado.")
+
+    # V-A1 Fix: Superadmin (rol 3) puede modificar cualquier evento.
+    # Admin (rol 1) solo puede modificar sus propios eventos.
+    if rol_validado != 3 and evento_existente.id_usuario != id_usuario:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No eres el dueño de este evento. Solo un Superadmin puede modificar eventos de otros administradores.")
+
+    evento_actualizado = crud_evento.actualizar_evento(db, db_evento=evento_existente, evento_in=evento_in)
     
-    if evento_existente.id_usuario != id_usuario:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No eres el dueño de este evento, por eso no se puede modificar.")
+    auth_token = request.headers.get("Authorization")
+    background_tasks.add_task(enviar_alerta_evento, evento_actualizado, auth_token, "modificado")
     
-    return crud_evento.actualizar_evento(db, db_evento=evento_existente, evento_in=evento_in)
+    return evento_actualizado
 
 @router.delete("/{id_evento}", response_model=EventoResponse, status_code=status.HTTP_200_OK)
 def cancelar_evento(
     id_evento: int,
+    request: Request,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db),
     id_usuario: int = Depends(obtener_id_usuario_gateway),
     rol_validado: int = Depends(verificar_rol_administrador) # <-- CANDADO ADMINISTRATIVO
@@ -150,15 +153,21 @@ def cancelar_evento(
     evento_existente = crud_evento.obtener_evento_por_id(db, id_evento)
     if not evento_existente:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se puede cancelar. Evento no encontrado.")
-    
-    if evento_existente.id_usuario != id_usuario:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No eres el dueño de este evento, por eso no se puede cancelar.")
-    
-    # Previene la sobreescritura si el evento ya fue dado de baja previamente
+
+    # V-A1 Fix: Superadmin (rol 3) puede cancelar cualquier evento.
+    # Admin (rol 1) solo puede cancelar sus propios eventos.
+    if rol_validado != 3 and evento_existente.id_usuario != id_usuario:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No eres el dueño de este evento. Solo un Superadmin puede cancelar eventos de otros administradores.")
+
     if evento_existente.estado == ProgresoEvento.CANCELADO:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="El evento ya se encuentra en estado cancelado.")
-        
-    return crud_evento.eliminar_evento(db, db_evento=evento_existente)
+
+    evento_cancelado = crud_evento.eliminar_evento(db, db_evento=evento_existente)
+    
+    auth_token = request.headers.get("Authorization")
+    background_tasks.add_task(enviar_alerta_evento, evento_cancelado, auth_token, "cancelado")
+    
+    return evento_cancelado
 
 @router.delete("/{id_evento}/fisico", status_code=status.HTTP_200_OK)
 def eliminar_evento_fisicamente(
@@ -174,10 +183,12 @@ def eliminar_evento_fisicamente(
     evento_existente = crud_evento.obtener_evento_por_id(db, id_evento)
     if not evento_existente:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se puede eliminar. Evento no encontrado.")
-    
-    if evento_existente.id_usuario != id_usuario:
-        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No eres el dueño de este evento, por eso no se puede eliminar.")
-    
+
+    # V-A1 Fix: Superadmin (rol 3) puede eliminar cualquier evento.
+    # Admin (rol 1) solo puede eliminar sus propios eventos.
+    if rol_validado != 3 and evento_existente.id_usuario != id_usuario:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="No eres el dueño de este evento. Solo un Superadmin puede eliminar eventos de otros administradores.")
+
     crud_evento.borrar_evento_fisico(db, db_evento=evento_existente)
     return {"mensaje": "Evento eliminado permanentemente."}
 
@@ -259,7 +270,7 @@ def subir_imagen_a_evento(
     return {
         "mensaje": "Imagen procesada y enlazada exitosamente",
         "id_imagen": nueva_imagen.id_imagen,
-        "url": nueva_imagen.url_minio
+        "url": generar_url_firmada(nueva_imagen.url_minio)
     }
 
 # ==========================================
@@ -281,7 +292,7 @@ def listar_imagenes_evento(
     return [
         {
             "id_imagen": img.id_imagen,
-            "url": img.url_minio,
+            "url": generar_url_firmada(img.url_minio),
             "fecha_subida": img.fecha_subida.isoformat(),
             "id_usuario": img.id_usuario,
             "reportada": img.reportada,
@@ -428,14 +439,14 @@ def listar_imagenes_reportadas(
 def eliminar_imagen_endpoint(
     id_imagen: int,
     db: Session = Depends(get_db),
-    id_usuario: int = Depends(obtener_id_usuario_gateway),
-    x_user_role: str = Header(..., alias="x-user-role", description="Rol inyectado por Kong")
+    usuario: dict = Depends(get_current_user)
 ):
     """
     - Participante: solo puede eliminar SUS PROPIAS imágenes (no la portada del evento).
     - Administrador: puede eliminar imágenes de cualquier participante y las suyas,
       pero NUNCA la imagen de portada del evento (subida por el creador).
     """
+    id_usuario = int(usuario["id_usuario"])
     imagen = crud_imagen.obtener_imagen_por_id(db, id_imagen)
     if not imagen:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La imagen no existe.")
@@ -448,7 +459,7 @@ def eliminar_imagen_endpoint(
             detail="No se puede eliminar la imagen de portada del evento."
         )
 
-    es_administrador = x_user_role == "1"
+    es_administrador = str(usuario["id_rol"]) == "1"
     es_dueño_de_la_imagen = imagen.id_usuario == id_usuario
 
     if not es_administrador and not es_dueño_de_la_imagen:

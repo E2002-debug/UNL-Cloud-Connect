@@ -18,6 +18,11 @@ class Settings(BaseSettings):
     MINIO_ROOT_PASSWORD: str      
     MINIO_BUCKET_NAME: str  
     MINIO_PUBLIC_URL: str = "http://localhost:9005"
+    
+    # Seguridad — V-N1 Fix: sin valor por defecto, Pydantic lanzará error al arrancar si no está en .env
+    # NUNCA pongas un valor por defecto aquí. Usa: openssl rand -hex 32
+    SECRET_KEY: str
+    ALGORITHM: str = "HS256"
 
     class Config:
         case_sensitive = True

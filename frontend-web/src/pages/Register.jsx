@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { register, reenviarVerificacion } from '../services/api'
+import fondoImg from '../img/fondo.jpg'
 
 // Clave pública de reCAPTCHA v2 (se carga desde variables de entorno de Vite)
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || ''
@@ -175,7 +176,7 @@ export default function Register() {
       toast.error(msg)
       return
     }
-    
+
     if (!/^[a-zA-Z0-9_.-]+\.[a-zA-Z0-9_.-]+@unl\.edu\.ec$/.test(cleanEmail)) {
       const msg = 'El correo institucional debe tener el formato nombre.apellido@unl.edu.ec'
       setError(msg)
@@ -322,13 +323,16 @@ export default function Register() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: '#F4F8F6',
+      position: 'relative',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
       alignItems: 'center',
-      padding: '20px'
+      padding: '20px',
+      overflow: 'hidden'
     }}>
+      <div style={{ position: 'absolute', top: '-5%', left: '-5%', right: '-5%', bottom: '-5%', background: `url(${fondoImg})`, backgroundSize: 'cover', backgroundPosition: 'center', filter: 'blur(15px)', zIndex: 0 }}></div>
+      <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.3)', zIndex: 0 }}></div>
       <style>{`
         .auth-container { flex-direction: row; }
         .auth-left { padding: 60px 40px; min-height: 550px; }
@@ -346,11 +350,13 @@ export default function Register() {
       `}</style>
       {/* Card Principal - Doble Columna Uniforme */}
       <div className="auth-container" style={{
+        position: 'relative',
+        zIndex: 1,
         maxWidth: '960px',
         width: '100%',
-        background: '#fff',
+        background: 'rgba(255, 255, 255, 0.95)',
         borderRadius: '16px',
-        boxShadow: '0 10px 40px rgba(0, 0, 0, 0.1)',
+        boxShadow: '0 20px 40px rgba(0, 0, 0, 0.3)',
         display: 'flex',
         overflow: 'hidden'
       }}>
@@ -358,14 +364,16 @@ export default function Register() {
         {/* Columna Izquierda - Panel Azul Coherente */}
         <div className="auth-left" style={{
           flex: 1,
-          background: 'linear-gradient(135deg, #0F766E 0%, #094E48 100%)',
+          background: `linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.7) 100%), url(${fondoImg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
           color: '#fff',
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between'
         }}>
           <div>
-            <h1 style={{ fontSize: '24px', fontWeight: '700', margin: '0 0 40px 0' }}>UNL-Cloud-Connect</h1>
+            <div><h1 style={{ fontSize: '32px', fontWeight: '800', letterSpacing: '-1px', margin: '0', marginBottom: '40px' }}>UNL-Cloud-Connect</h1></div>
           </div>
 
           <div>

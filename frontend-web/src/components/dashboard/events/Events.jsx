@@ -33,6 +33,7 @@ export default function Events() {
   const [editando, setEditando] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [tabActivo, setTabActivo] = useState("EN_PROGRESO");
+  const [confirmAction, setConfirmAction] = useState({ isOpen: false, type: '', id: null, message: '', title: '' });
 
   const cargarEventos = async () => {
     try {
@@ -91,27 +92,48 @@ export default function Events() {
     toast.success("Evento guardado correctamente");
   };
 
-  const eliminarEvento = async (id) => {
-    if (!window.confirm("¿Está seguro de que desea cancelar este evento académico?")) return;
-    try {
-      await deleteEvento(id);
-      cargarEventos();
-      toast.success("Evento cancelado correctamente");
-    } catch (error) {
-      console.error("Error al cancelar evento:", error);
-      toast.error("Error al cancelar el evento");
-    }
+  const eliminarEvento = (id) => {
+    setConfirmAction({
+      isOpen: true,
+      type: 'CANCELAR',
+      id: id,
+      title: 'Cancelar evento',
+      message: '¿Está seguro de que desea cancelar este evento académico?'
+    });
   };
 
-  const eliminarFisicamente = async (id) => {
-    if (!window.confirm("¡ATENCIÓN! ¿Está seguro de que desea ELIMINAR permanentemente este evento? Esta acción no se puede deshacer.")) return;
-    try {
-      await deleteFisicoEvento(id);
-      cargarEventos();
-      toast.success("Evento eliminado de forma permanente");
-    } catch (error) {
-      console.error("Error al eliminar evento físicamente:", error);
-      toast.error("Error al eliminar el evento");
+  const eliminarFisicamente = (id) => {
+    setConfirmAction({
+      isOpen: true,
+      type: 'ELIMINAR_FISICO',
+      id: id,
+      title: '¡ATENCIÓN! Eliminar permanentemente',
+      message: '¿Está seguro de que desea ELIMINAR permanentemente este evento? Esta acción no se puede deshacer.'
+    });
+  };
+
+  const executeConfirm = async () => {
+    const { type, id } = confirmAction;
+    setConfirmAction({ isOpen: false, type: '', id: null, message: '', title: '' });
+
+    if (type === 'CANCELAR') {
+      try {
+        await deleteEvento(id);
+        cargarEventos();
+        toast.success("Evento cancelado correctamente");
+      } catch (error) {
+        console.error("Error al cancelar evento:", error);
+        toast.error("Error al cancelar el evento");
+      }
+    } else if (type === 'ELIMINAR_FISICO') {
+      try {
+        await deleteFisicoEvento(id);
+        cargarEventos();
+        toast.success("Evento eliminado de forma permanente");
+      } catch (error) {
+        console.error("Error al eliminar evento físicamente:", error);
+        toast.error("Error al eliminar el evento");
+      }
     }
   };
 
@@ -277,6 +299,34 @@ export default function Events() {
       </div>
 
       <EventModal open={openModal} onClose={() => { setOpenModal(false); setEditando(null); }} onSave={guardarEvento} editando={editando} />
+      
+      {/* MODAL DE CONFIRMACIÓN CUSTOM */}
+      {confirmAction.isOpen && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.5)', zIndex: 9999, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+          <div style={{ background: 'white', padding: '24px', borderRadius: '12px', width: '400px', maxWidth: '90%', boxShadow: '0 10px 25px rgba(0,0,0,0.2)' }}>
+            <h3 style={{ margin: '0 0 16px 0', color: confirmAction.type === 'ELIMINAR_FISICO' ? '#ef4444' : '#0F766E', fontSize: '18px', fontWeight: '800' }}>
+              {confirmAction.title}
+            </h3>
+            <p style={{ margin: '0 0 24px 0', color: '#64748b', fontSize: '14px', lineHeight: '1.5' }}>
+              {confirmAction.message}
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px' }}>
+              <button 
+                onClick={() => setConfirmAction({ isOpen: false, type: '', id: null, message: '', title: '' })} 
+                style={{ padding: '8px 16px', background: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '13px' }}
+              >
+                Cerrar
+              </button>
+              <button 
+                onClick={executeConfirm} 
+                style={{ padding: '8px 16px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '700', fontSize: '13px' }}
+              >
+                Confirmar Acción
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

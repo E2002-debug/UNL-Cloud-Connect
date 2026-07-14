@@ -1,7 +1,12 @@
 # app/core/security.py
 import os
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from jose import jwt, JWTError
+from app.core.config import settings
+
+security = HTTPBearer()
 
 def configurar_seguridad_app(app: FastAPI):
     """
@@ -16,5 +21,23 @@ def configurar_seguridad_app(app: FastAPI):
         allow_origins=cors_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type", "x-user-id", "x-user-role"],
+        allow_headers=["Authorization", "Content-Type"],
     )
+
+def get_current_user(credentials: HTTPAuthorizationCredentials = Depends(security)) -> dict:
+    token = credentials.credentials
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        id_usuario = payload.get("id_usuario")
+        id_rol = payload.get("id_rol")
+        if id_usuario is None or id_rol is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token no contiene permisos suficientes",
+            )
+        return {"id_usuario": id_usuario, "id_rol": id_rol}
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token inválido o expirado",
+        )

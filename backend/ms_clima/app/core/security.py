@@ -8,7 +8,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from app.core.config import settings
-from fastapi import Header
 
 # Le indicamos a FastAPI (y a Swagger UI) a dónde debe ir el usuario a pedir su token.
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
@@ -24,7 +23,7 @@ def setup_cors(app: FastAPI):
         allow_origins=cors_origins,
         allow_credentials=True,
         allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allow_headers=["Authorization", "Content-Type", "x-user-id", "x-user-role"],
+        allow_headers=["Authorization", "Content-Type"],
     )
 
 def obtener_usuario_actual(token: str = Depends(oauth2_scheme)):
@@ -47,24 +46,22 @@ def obtener_usuario_actual(token: str = Depends(oauth2_scheme)):
     except JWTError:
         raise credenciales_exception
 
-def get_admin_user(
-    token: str = Depends(oauth2_scheme),
-    x_user_role: str = Header(..., alias="x-user-role", description="Rol inyectado por Kong")
-):
+def get_admin_user(token: str = Depends(oauth2_scheme)):
     """
-    Valida JWT y verifica que el rol (del header x-user-role) sea Admin (1) o Superadmin (3).
-    El header DEBE ser inyectado por Kong; si falta, FastAPI rechaza con 422 automáticamente.
+    Valida el JWT y verifica que el rol embebido en el propio token sea Admin (1) o Superadmin (3).
+    ZERO TRUST: el rol se extrae del payload firmado criptográficamente, no de headers HTTP
+    que pueden ser falsificados si se bypasea el API Gateway.
     """
     payload = obtener_usuario_actual(token)
-    if not x_user_role.isdigit():
+    id_rol = payload.get("id_rol")
+    if id_rol is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Header x-user-role inválido o ausente."
+            detail="El token no contiene información de rol."
         )
-    role = int(x_user_role)
-    if role not in [1, 3]:
+    if int(id_rol) not in [1, 3]:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes permisos de administrador para esta operación."
         )
-    return {**payload, "id_rol": role}
+    return {**payload, "id_rol": int(id_rol)}

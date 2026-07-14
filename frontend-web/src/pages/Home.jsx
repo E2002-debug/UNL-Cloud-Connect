@@ -77,8 +77,8 @@ export default function Home() {
         boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
         borderBottom: `1px solid ${colors.border}`
       }}>
-        <div style={{ fontSize: '20px', fontWeight: '800', color: colors.accentMint }}>
-          UNL-Cloud-<span style={{ color: colors.mintBright }}>Connect</span>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <img src="/img/logo transparente.png" alt="UNL Cloud Connect" style={{ height: '60px', objectFit: 'contain' }} />
         </div>
         <div style={{ display: 'flex', gap: '16px' }}>
           <button 
@@ -226,7 +226,7 @@ export default function Home() {
                       <img src={evento.imagen_url} alt={evento.nombre} style={{ width: "100%", height: "160px", objectFit: "cover", display: "block" }} />
                     ) : (
                       <div style={{ width: "100%", height: "160px", background: "linear-gradient(135deg, #eef6f3, #d1e8e0)", display: "flex", alignItems: "center", justifyContent: "center", color: "#0F766E", fontWeight: "700", fontSize: "14px" }}>
-                        UNL-Cloud-Connect
+                        <img src="/img/logo transparente.png" alt="UNL Cloud Connect" style={{ height: '120px', objectFit: 'contain' }} />
                       </div>
                     )}
                     <div style={{ padding: "16px 20px" }}>
