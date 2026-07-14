@@ -33,6 +33,8 @@ export default function Events() {
   const [editando, setEditando] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [tabActivo, setTabActivo] = useState("EN_PROGRESO");
+  const [sortOrder, setSortOrder] = useState("recientes");
+  const [showFilterMenu, setShowFilterMenu] = useState(false);
   const [confirmAction, setConfirmAction] = useState({ isOpen: false, type: '', id: null, message: '', title: '' });
 
   const cargarEventos = async () => {
@@ -142,9 +144,20 @@ export default function Events() {
     e.nombre?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const eventosPorTab = tabActivo === "TODOS"
+  let eventosPorTab = tabActivo === "TODOS"
     ? eventosFiltrados
     : eventosFiltrados.filter((e) => e.estado === tabActivo);
+
+  eventosPorTab = eventosPorTab.sort((a, b) => {
+    if (sortOrder === "recientes") {
+      return new Date(b.fecha_hora_inicio) - new Date(a.fecha_hora_inicio);
+    } else if (sortOrder === "antiguos") {
+      return new Date(a.fecha_hora_inicio) - new Date(b.fecha_hora_inicio);
+    } else if (sortOrder === "alfabetico") {
+      return a.nombre.localeCompare(b.nombre);
+    }
+    return 0;
+  });
 
   const tabs = [
     { key: "EN_PROGRESO", label: "EN PROGRESO", color: "#10b981" },
@@ -285,15 +298,38 @@ export default function Events() {
             />
           </div>
           
-          <button 
-            onClick={() => toast("La búsqueda avanzada con filtros está en desarrollo. Por ahora, usa la barra de búsqueda.", { icon: "🚧" })}
-            style={{ 
-            display: "flex", alignItems: "center", gap: "8px", background: "transparent", 
-            border: "1px solid #10b981", color: "#10b981", padding: "8px 16px", borderRadius: "6px", 
-            fontSize: "12px", fontWeight: "700", cursor: "pointer" 
-          }}>
-            <IconFilter /> FILTROS <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
-          </button>
+          <div style={{ position: "relative" }}>
+            <button 
+              onClick={() => setShowFilterMenu(!showFilterMenu)}
+              style={{ 
+              display: "flex", alignItems: "center", gap: "8px", background: sortOrder !== 'recientes' ? "#ecfdf5" : "transparent", 
+              border: "1px solid #10b981", color: "#10b981", padding: "8px 16px", borderRadius: "6px", 
+              fontSize: "12px", fontWeight: "700", cursor: "pointer", transition: "all 0.2s" 
+            }}>
+              <IconFilter /> FILTROS <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            
+            {showFilterMenu && (
+              <div style={{ position: "absolute", top: "100%", right: "0", marginTop: "8px", width: "180px", background: "white", border: "1px solid #e2e8f0", borderRadius: "8px", boxShadow: "0 10px 15px -3px rgba(0,0,0,0.1)", zIndex: 10 }}>
+                <div style={{ padding: "8px 12px", borderBottom: "1px solid #f1f5f9", fontSize: "11px", fontWeight: "800", color: "var(--text-muted)" }}>ORDENAR POR</div>
+                <div 
+                  onClick={() => { setSortOrder("recientes"); setShowFilterMenu(false); }}
+                  style={{ padding: "10px 12px", fontSize: "12px", cursor: "pointer", color: sortOrder === "recientes" ? "#10b981" : "var(--text-main)", fontWeight: sortOrder === "recientes" ? "700" : "500", background: sortOrder === "recientes" ? "#ecfdf5" : "transparent" }}>
+                  Más recientes primero
+                </div>
+                <div 
+                  onClick={() => { setSortOrder("antiguos"); setShowFilterMenu(false); }}
+                  style={{ padding: "10px 12px", fontSize: "12px", cursor: "pointer", color: sortOrder === "antiguos" ? "#10b981" : "var(--text-main)", fontWeight: sortOrder === "antiguos" ? "700" : "500", background: sortOrder === "antiguos" ? "#ecfdf5" : "transparent" }}>
+                  Más antiguos primero
+                </div>
+                <div 
+                  onClick={() => { setSortOrder("alfabetico"); setShowFilterMenu(false); }}
+                  style={{ padding: "10px 12px", fontSize: "12px", cursor: "pointer", color: sortOrder === "alfabetico" ? "#10b981" : "var(--text-main)", fontWeight: sortOrder === "alfabetico" ? "700" : "500", background: sortOrder === "alfabetico" ? "#ecfdf5" : "transparent" }}>
+                  Alfabético (A-Z)
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* COMPONENTE TABLA */}

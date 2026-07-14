@@ -56,7 +56,7 @@ export default function EventTable({ eventos, onEdit, onDelete, onDeleteFisico }
               <td style={{ ...cellStyle, verticalAlign: "middle" }}>
                 {evento.imagen_url ? (
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                    <img src={evento.imagen_url ? evento.imagen_url.replace(':9005', '') : ''} alt={evento.nombre} style={{ width: "44px", height: "44px", borderRadius: "6px", objectFit: "cover", border: "1px solid #DBE3E0", display: "block" }} />
+                    <img src={evento.imagen_url} alt={evento.nombre} style={{ width: "44px", height: "44px", borderRadius: "6px", objectFit: "cover", border: "1px solid #DBE3E0", display: "block" }} />
                     {evento.id_primera_imagen && <ImageReactions idImagen={evento.id_primera_imagen} />}
                   </div>
                 ) : (
