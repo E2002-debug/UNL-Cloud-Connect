@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api, { getUsers, updateUser, deleteUser, register, updateMe, getAuditoria } from '../services/api'
 import { listarSensores, obtenerClimaActual } from '../services/climaService'
@@ -57,6 +57,9 @@ export default function Dashboard() {
     const saved = localStorage.getItem(`read_notifications_${currentUserId || 'guest'}`)
     return saved ? JSON.parse(saved) : []
   })
+  
+  const knownEventIds = useRef(new Set());
+  const initialLoadDone = useRef(false);
   
   useEffect(() => {
     if (currentUserId) {
@@ -250,14 +253,25 @@ export default function Dashboard() {
       const now = new Date().getTime();
       const ONE_DAY = 24 * 60 * 60 * 1000;
       
-      const recentEvents = evts
-        .filter(evt => {
-          const evtTime = new Date(evt.fecha_hora_inicio).getTime();
-          // Solo mostrar eventos recientes como notificación (últimas 24h o futuros)
-          return (evtTime > now - ONE_DAY); 
-        })
-        .slice(-10)
-        .map(evt => ({
+      let newEventsForNotification = [];
+      
+      evts.forEach(evt => {
+        if (!initialLoadDone.current) {
+          knownEventIds.current.add(evt.id_evento);
+        } else {
+          if (!knownEventIds.current.has(evt.id_evento)) {
+            knownEventIds.current.add(evt.id_evento);
+            const evtTime = new Date(evt.fecha_hora_inicio).getTime();
+            if (evtTime > now - ONE_DAY) {
+              newEventsForNotification.push(evt);
+            }
+          }
+        }
+      });
+      
+      initialLoadDone.current = true;
+      
+      const newEventNotifications = newEventsForNotification.map(evt => ({
           id: `evt-${evt.id_evento}`,
           type: 'info',
           iconType: 'web',
@@ -265,13 +279,22 @@ export default function Dashboard() {
           message: `Se ha creado un nuevo evento: ${evt.nombre}`,
           time: timeAgo(evt.fecha_hora_inicio),
           timestamp: new Date(evt.fecha_hora_inicio).getTime()
-        }));
+      }));
       
-      const combined = [...loginAudits, ...recentEvents]
-        .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
-        .slice(0, 10);
-        
-      setNotifications(combined)
+      if (!initialLoadDone.current || newEventNotifications.length > 0) {
+        setNotifications(prev => {
+          const combined = [...prev, ...newEventNotifications]
+            .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+            .slice(0, 50); // Keep up to 50
+          return combined;
+        });
+      }
+      
+      // On initial load, just set the login audits
+      if (loginAudits.length > 0 && notifications.length === 0) {
+        setNotifications(loginAudits);
+      }
+      
     } catch (err) {
       console.error('Error al cargar datos del dashboard:', err)
     } finally {
