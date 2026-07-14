@@ -60,7 +60,7 @@ function MapEvents({ setForm }) {
 }
 
 export default function Ubicacion({ userRole }) {
-  const isSuperAdmin = userRole === '3'
+  const isAdmin = String(userRole) === '1' || String(userRole) === '3'
 
   const [ubicaciones, setUbicaciones] = useState([])
   const [loading, setLoading] = useState(true)
@@ -321,7 +321,7 @@ export default function Ubicacion({ userRole }) {
             ESPACIOS FÍSICOS DEL CAMPUS UNL
           </div>
         </div>
-        {isSuperAdmin && (
+        {isAdmin && (
           <button onClick={handleOpenCreate} style={{ padding: '10px 20px', background: '#0F766E', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '12px', cursor: 'pointer' }}>
             + NUEVA UBICACIÓN
           </button>
@@ -397,7 +397,7 @@ export default function Ubicacion({ userRole }) {
                   </div>
                   
                   <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: '8px' }}>
-                    {isSuperAdmin ? (
+                    {isAdmin ? (
                       <>
                         <button onClick={() => handleOpenEdit(loc)} style={{ background: 'transparent', border: 'none', color: '#0F766E', cursor: 'pointer', padding: '6px' }} title="Editar">
                           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
