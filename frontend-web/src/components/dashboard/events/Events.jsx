@@ -285,7 +285,9 @@ export default function Events() {
             />
           </div>
           
-          <button style={{ 
+          <button 
+            onClick={() => toast("La búsqueda avanzada con filtros está en desarrollo. Por ahora, usa la barra de búsqueda.", { icon: "🚧" })}
+            style={{ 
             display: "flex", alignItems: "center", gap: "8px", background: "transparent", 
             border: "1px solid #10b981", color: "#10b981", padding: "8px 16px", borderRadius: "6px", 
             fontSize: "12px", fontWeight: "700", cursor: "pointer" 

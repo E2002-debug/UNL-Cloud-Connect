@@ -20,6 +20,7 @@ plugins:
         - "http://localhost:8082"
         - "http://127.0.0.1:8082"
         - "https://unl-cloud-connect.me"
+        - "http://respaldo.unl-cloud-connect.me"
       methods:
         - GET
         - POST
@@ -63,6 +64,15 @@ services:
       - name: ruta-clima
         paths:
           - /api/clima
+        strip_path: false
+
+  # 2.5 Servicio de Almacenamiento MinIO (Proxy de imágenes HTTPS)
+  - name: servicio-minio
+    url: http://minio:9000
+    routes:
+      - name: ruta-minio
+        paths:
+          - /unl-eventos-media
         strip_path: false
 
   # 3. Servicio de Eventos 
