@@ -56,7 +56,16 @@ export default function EventTable({ eventos, onEdit, onDelete, onDeleteFisico }
               <td style={{ ...cellStyle, verticalAlign: "middle" }}>
                 {evento.imagen_url ? (
                   <div style={{ display: "flex", flexDirection: "column", alignItems: "center" }}>
-                    <img src={evento.imagen_url} alt={evento.nombre} style={{ width: "44px", height: "44px", borderRadius: "6px", objectFit: "cover", border: "1px solid #DBE3E0", display: "block" }} />
+                    <img 
+                      src={evento.imagen_url} 
+                      alt={evento.nombre} 
+                      onError={(e) => {
+                        e.target.onerror = null; 
+                        e.target.src = "https://ui-avatars.com/api/?name=Event&background=F3F4F6&color=9CA3AF&size=44";
+                        e.target.style.objectFit = "contain";
+                      }}
+                      style={{ width: "44px", height: "44px", borderRadius: "6px", objectFit: "cover", border: "1px solid #DBE3E0", display: "block" }} 
+                    />
                     {evento.id_primera_imagen && <ImageReactions idImagen={evento.id_primera_imagen} />}
                   </div>
                 ) : (
