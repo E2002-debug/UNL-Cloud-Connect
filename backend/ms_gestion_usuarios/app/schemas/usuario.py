@@ -5,8 +5,8 @@
 # 20/05/2026 v0.1 - David Guamán: Creación de esquemas Pydantic (UsuarioCreate, UsuarioResponse, Token) y validación estricta para el dominio @unl.edu.ec.
 # 22/05/2026 v0.2    - David Guamán: Adición de esquemas específicos para el flujo híbrido de registro e inicio de sesión con Google (UsuarioRegistroHibrido, TokenGoogleLogin).
 # 30/05/2026 v0.3    - David Guamán: Inclusión de esquemas para la recuperación de contraseña (EmailRequest, ResetPasswordRequest) y validación de longitud mínima para la nueva contraseña.
-from pydantic import BaseModel, EmailStr, field_validator, Field
-from typing import Optional
+from pydantic import BaseModel, EmailStr, field_validator, Field, ConfigDict
+from typing import Optional, List
 from datetime import date
 import re
 
@@ -55,8 +55,8 @@ class UsuarioCreate(UsuarioBase):
     @field_validator('id_rol')
     @classmethod
     def validar_rol(cls, v: int) -> int:
-        if v not in [1, 2]:
-            raise ValueError('El rol debe ser 1 (Administrador) o 2 (Participante)')
+        if v not in [1, 2, 3]:
+            raise ValueError('El rol debe ser 1 (Administrador), 2 (Participante) o 3 (Superadmin)')
         return v
 
 # Esquema para responderle al frontend (ocultando la clave)
@@ -83,8 +83,8 @@ class UsuarioRegistroHibrido(BaseModel):
     @field_validator('id_rol')
     @classmethod
     def validar_rol(cls, v: int) -> int:
-        if v not in [1, 2]:
-            raise ValueError('El rol debe ser 1 (Administrador) o 2 (Participante)')
+        if v not in [1, 2, 3]:
+            raise ValueError('El rol debe ser 1 (Administrador), 2 (Participante) o 3 (Superadmin)')
         return v
 
 # Esquema para el Inicio de Sesión Dual con Google (HU_02)
@@ -128,9 +128,17 @@ class UsuarioUpdate(BaseModel):
     @field_validator('id_rol')
     @classmethod
     def validar_rol(cls, v: Optional[int]) -> Optional[int]:
-        if v is not None and v not in [1, 2]:
-            raise ValueError('El rol debe ser 1 (Administrador) o 2 (Participante)')
+        if v is not None and v not in [1, 2, 3]:
+            raise ValueError('El rol debe ser 1 (Administrador), 2 (Participante) o 3 (Superadmin)')
         return v
+
+class UsuarioResumenResponse(BaseModel):
+    id_usuario: int
+    nombre: str
+    apellido: str
+    correo: str
+
+    model_config = ConfigDict(from_attributes=True)
 
 class UsuarioUpdateMe(BaseModel):
     nombre: Optional[str] = None

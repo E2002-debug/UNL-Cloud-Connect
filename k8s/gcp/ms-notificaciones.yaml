@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unl-ms-notificaciones
+  namespace: unl-cloud-connect
+  labels:
+    app: ms-notificaciones
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ms-notificaciones
+  template:
+    metadata:
+      labels:
+        app: ms-notificaciones
+    spec:
+      containers:
+      - name: ms-notificaciones
+        image: ghcr.io/${GITHUB_OWNER}/unl-ms_notificaciones:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - secretRef:
+            name: ms-notificaciones-secrets
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /api/notificaciones/health
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ms-notificaciones-service
+  namespace: unl-cloud-connect
+spec:
+  selector:
+    app: ms-notificaciones
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP

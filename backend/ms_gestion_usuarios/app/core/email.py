@@ -70,9 +70,10 @@ async def enviar_correo_verificacion(email_destino: str, token: str):
     )
 
     fm = FastMail(conf)
+    print(f"[DESARROLLO] Enlace de verificación para {email_destino}: {url_verificacion}", flush=True)
     try:
         await fm.send_message(message)
-        logger.info(f"Correo de verificación enviado a {correo_oculto}")
+        print(f"Correo de verificación enviado a {correo_oculto}", flush=True)
     except Exception as e:
         logger.error(f"Error al enviar correo de verificación a {correo_oculto}: tipo={type(e).__name__}")
 
@@ -81,7 +82,6 @@ async def enviar_correo_recuperacion(email_destino: str, token: str):
     """
     Construye un correo HTML bonito y lo envía usando fastapi-mail.
     """
-    # La URL del frontend se lee de la variable de entorno FRONTEND_URL
     frontend_url = settings.FRONTEND_URL
     url_recuperacion = f"{frontend_url}/reset-password?token={token}"
 
@@ -122,8 +122,9 @@ async def enviar_correo_recuperacion(email_destino: str, token: str):
     )
 
     fm = FastMail(conf)
+    print(f"[DESARROLLO] Enlace de recuperación para {email_destino}: {url_recuperacion}", flush=True)
     try:
         await fm.send_message(message)
-        logger.info(f"Correo de recuperación enviado a {correo_oculto}")
+        print(f"Correo de recuperación enviado a {correo_oculto}", flush=True)
     except Exception as e:
         logger.error(f"Error al enviar correo de recuperación a {correo_oculto}: tipo={type(e).__name__}")

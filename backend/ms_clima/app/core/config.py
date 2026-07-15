@@ -27,12 +27,15 @@ class Settings:
     # Variables para la Autenticación y Base de Datos
     # --------------------------------------------------------
     # Configuración de JWT (Se pueden mover a core/config.py si lo prefieres)
-    SECRET_KEY = os.getenv("SECRET_KEY", "unl_secreto_extremadamente_seguro_123456")
+    # IMPORTANTE: SECRET_KEY debe definirse en el archivo .env. Nunca uses un valor por defecto.
+    SECRET_KEY = os.getenv("SECRET_KEY")
+    if not SECRET_KEY:
+        raise RuntimeError("⛔ FATAL: La variable de entorno SECRET_KEY no está definida. El servidor no puede arrancar de forma segura.")
     ALGORITHM = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24  # 1 día de duración
 
     # Variable necesaria para validar la sesión de Google
-    GOOGLE_CLIENT_ID: str = "883175682519-tv0t5ndf3185sdimdjd6ro9hack12m7r.apps.googleusercontent.com"
+    GOOGLE_CLIENT_ID: str = os.getenv("GOOGLE_CLIENT_ID", "")
 
 # Instanciamos la clase para que el resto de archivos la puedan importar
 settings = Settings()

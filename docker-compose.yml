@@ -1,28 +1,39 @@
+# Autor: Miguel Luna
+# Fecha: 07/07/2026
+# Version: 1.1
+# Historial:
+# 07/07/2026 v1.1 - Miguel Luna: Endurecimiento de seguridad del entorno Docker. Securización de puertos a 127.0.0.1, permisos de solo lectura para cAdvisor, y ofuscación de credenciales en contenedor init de MinIO.
+
 services:
   # 1. Base de Datos Relacional (PostgreSQL)
   db:
     image: postgres:15-alpine
     container_name: unl_postgres_db
     restart: always
-    environment:
-      POSTGRES_USER: postgres_admin
-      POSTGRES_PASSWORD: postgres123456
+    env_file:
+      - ./infraestructura/postgres/.env # POSTGRES_USER y POSTGRES_PASSWORD vienen de aquí
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./infraestructura/postgres/init.sh:/docker-entrypoint-initdb.d/init.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   # 2. Broker MQTT para Telemetría IoT (Mosquitto)
   mqtt-broker:
-    image: eclipse-mosquitto:1.6
+    image: eclipse-mosquitto:2.0
     container_name: unl_mqtt_broker
     restart: always
     ports:
-      - "1884:1883"     # Puerto para la comunicación del ESP32
-      - "9003:9001"     # Puerto para WebSockets
+      - "1884:1883" # Puerto para la comunicación del ESP32
+      - "9003:9001" # Puerto para WebSockets
     volumes:
-      - ./infraestructura/mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./infraestructura/mosquitto/config/mosquitto_secure.conf:/mosquitto/config/mosquitto.conf
+      - ./infraestructura/mosquitto/config/passwd:/mosquitto/config/passwd
       - ./infraestructura/mosquitto/data:/mosquitto/data
       - ./infraestructura/mosquitto/log:/mosquitto/log
 
@@ -32,15 +43,24 @@ services:
     container_name: unl_minio_storage
     restart: always
     ports:
-      - "9005:9000"     # Puerto de la API de MinIO
-      - "9002:9001"     # Consola Web de administración
-    environment:
-      MINIO_ROOT_USER: minio_admin
-      MINIO_ROOT_PASSWORD: minio123456
+      - "9005:9000" # Puerto de la API de MinIO
+      - "9002:9001" # Consola Web de administración
+    env_file:
+      - ./backend/ms_eventos/.env
     command: server /data --console-address ":9001"
     volumes:
       - minio_data:/data
 
+  # Nuevo contenedor que crea el bucket y le da permisos públicos, luego se apaga
+  minio-init:
+    image: minio/mc
+    container_name: unl_minio_init
+    depends_on:
+      - minio
+    env_file:
+      - ./backend/ms_eventos/.env # <-- También inyectamos las variables aquí
+    entrypoint: >
+      /bin/sh -c " sleep 5; export MC_HOST_myminio=http://$$MINIO_ROOT_USER:$$MINIO_ROOT_PASSWORD@minio:9000; mc mb myminio/$$MINIO_BUCKET_NAME --ignore-existing; exit 0; "
   # 4. Microservicio de Identidad (Login, Registro, Roles)
   ms-gestion-usuarios:
     build:
@@ -49,15 +69,14 @@ services:
     container_name: unl_ms_gestion_usuarios
     restart: always
     # Se agrega asyncpg a las instalaciones en caliente para conectar con PostgreSQL de forma asíncrona
-    command: >
-      sh -c "pip install --no-cache-dir --break-system-packages --upgrade email-validator==2.1.1 fastapi-mail==1.4.1 dnspython==2.6.1 asyncpg && 
-      uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     volumes:
       - ./backend/ms_gestion_usuarios/app:/app/app
     env_file:
       - ./backend/ms_gestion_usuarios/.env
     depends_on:
-      - db
+      db:
+        condition: service_healthy
 
   # 5. Microservicio de Telemetría (ESP32-CAM, IoT)
   ms-clima:
@@ -66,7 +85,7 @@ services:
       dockerfile: Dockerfile
     container_name: unl_ms_clima
     restart: always
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     volumes:
       - ./backend/ms_clima/app:/app/app
     env_file:
@@ -74,47 +93,132 @@ services:
     environment:
       - MQTT_BROKER_HOST=mqtt-broker
     depends_on:
-      - db
-      - mqtt-broker
+      db:
+        condition: service_healthy
+      mqtt-broker:
+        condition: service_started
 
-  # 6. API Gateway (Kong)
+  # 6. Microservicio de Eventos (Gestión de Eventos y Notificaciones)
+  ms-eventos:
+    build:
+      context: ./backend/ms_eventos
+      dockerfile: Dockerfile
+    container_name: unl_ms_eventos
+    restart: always
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    volumes:
+      - ./backend/ms_eventos/app:/app/app
+    env_file:
+      - ./backend/ms_eventos/.env # <-- Apuntamos a tu nuevo archivo seguro
+    environment:
+    - PYTHONUNBUFFERED=1
+    depends_on:
+      db:
+        condition: service_healthy
+
+  # 7. Microservicio de Notificaciones (Módulo Transversal Aislado)
+  ms-notificaciones:
+    build:
+      context: ./backend/ms_notificaciones
+      dockerfile: Dockerfile
+    container_name: unl_ms_notificaciones
+    restart: always
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+    env_file:
+      - ./backend/ms_notificaciones/.env
+    volumes:
+      - ./backend/ms_notificaciones/app:/app/app
+
+  # 8. API Gateway (Kong)
   api-gateway:
     image: kong:3.4-ubuntu
     container_name: unl_api_gateway
     restart: always
     environment:
-      KONG_DATABASE: "off"          # Modo DB-less
+      KONG_DATABASE: "off" # Modo DB-less
       KONG_DECLARATIVE_CONFIG: /kong/declarative/kong.yml
       KONG_PROXY_ACCESS_LOG: /dev/stdout
       KONG_PROXY_ERROR_LOG: /dev/stderr
       KONG_PROXY_LISTEN: 0.0.0.0:8000
-      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+      KONG_ADMIN_LISTEN: 127.0.0.1:8001 # Solo accesible dentro del contenedor (VULN-11 fix)
+      KONG_CLIENT_MAX_BODY_SIZE: 5m
     ports:
-      - "8000:8000"  # Puerto expuesto para el Frontend
-      - "8001:8001"  # Puerto de administración de Kong
+      - "8000:8000" # Puerto expuesto para el Frontend
+      # ⚠️  SEGURIDAD: Puerto 8001 (Kong Admin) NO expuesto al exterior.
+      # Para acceder internamente: docker exec -it unl_api_gateway kong reload
     volumes:
       - ./infraestructura/kong/kong.yml:/kong/declarative/kong.yml
     depends_on:
       - ms-gestion-usuarios
       - ms-clima
+      - ms-eventos
+      - ms-notificaciones
 
-  # 7. Frontend Web (React + Nginx)
+  # 9. Frontend Web (React + Nginx)
   frontend-web:
     build:
       context: ./frontend-web
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE: /api
-        VITE_GOOGLE_CLIENT_ID: 883175682519-tv0t5ndf3185sdimdjd6ro9hack12m7r.apps.googleusercontent.com
-        VITE_WEATHER_API_KEY: 55XRUAGTP4TFSKN476BELXZDD
+        VITE_API_URL: /api
+        VITE_GOOGLE_CLIENT_ID: ${VITE_GOOGLE_CLIENT_ID}
+        VITE_WEATHER_API_KEY: ${VITE_WEATHER_API_KEY}
     container_name: unl_frontend_web
     restart: always
     ports:
       - "80:80"
     depends_on:
       - api-gateway
+  # 10. Dashboard de Monitoreo (Grafana)
+  grafana:
+    image: grafana/grafana:latest
+    container_name: unl_grafana
+    restart: always
+    ports:
+      - "127.0.0.1:3000:3000"
+    env_file:
+      - ./infraestructura/grafana/.env # GF_SECURITY_ADMIN_USER y GF_SECURITY_ADMIN_PASSWORD vienen de aquí
+    volumes:
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - db
+      - prometheus
+
+  # 11. Motor de Métricas (Prometheus)
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: unl_prometheus
+    restart: always
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./infraestructura/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+
+  # 12. Agente de Monitoreo de Host (Node Exporter)
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: unl_node_exporter
+    restart: always
+    ports:
+      - "127.0.0.1:9100:9100"
+
+  # 13. Agente de Monitoreo de Contenedores (cAdvisor)
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: unl_cadvisor
+    restart: always
+    ports:
+      - "127.0.0.1:8081:8080" # El puerto 8080 está ocupado por Kong, exponemos en el 8081
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
 
 volumes:
   postgres_data:
   mosquitto_data:
   minio_data:
+  grafana_data:
+  prometheus_data:

@@ -15,8 +15,10 @@ class ClimaPayload(BaseModel):
     # Agregamos rangos lógicos para evitar guardar datos corruptos del sensor
     temperatura: float = Field(..., ge=-50.0, le=100.0, description="Temperatura en grados centígrados")
     humedad: float = Field(..., ge=0.0, le=100.0, description="Humedad relativa en porcentaje")  
-    alerta: bool
-    detalles_alerta: str
+    alerta: bool = False
+    detalles_alerta: Optional[str] = None
+    fuente: str = "ESP32" # Valor por defecto importante
+
 class ClimaResponse(BaseModel):
     """
     Esquema para enviar la información climática actual al Frontend.
@@ -27,6 +29,7 @@ class ClimaResponse(BaseModel):
     fecha_captura: datetime
     fuente: str
     alerta: bool
-    detalles_alerta: str
+    detalles_alerta: Optional[str] = None
+    id_ubicacion: Optional[int] = None # Importante para que el front sepa a qué sitio mostrar el clima
 
     model_config = ConfigDict(from_attributes=True)

@@ -7,20 +7,30 @@
 # 30/05/2026 v0.3 - David Guamán: Adición de endpoints para recuperación de contraseña, incluyendo generación de tokens de recuperación y validación de los mismos al restablecer la clave.
 # 03/06/2026 v0.4 - David Guamán: Implementación de verificación de correo electrónico y validación de reCAPTCHA para prevenir cuentas robot.
 
-from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks
-from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import Session
 from typing import Any
 import httpx
 import re
+from fastapi import APIRouter, Depends, HTTPException, status, BackgroundTasks, Request
+from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.orm import Session
 from app.database.session import get_db
 # CORRECCIÓN: Se agrega UsuarioGoogleData a la lista de esquemas importados
 from app.schemas.usuario import EmailRequest, UsuarioCreate, UsuarioResponse, Token, UsuarioRegistroHibrido, TokenGoogleLogin, ResetPasswordRequest, UsuarioGoogleData, LoginRequest
 from app.crud import crud_usuario
+from app.crud import crud_auditoria
+from app.crud import crud_historial_clave
+from app.schemas.auditoria import AuditoriaCreate
 from app.core import security
 from app.core.security import crear_token_recuperacion, verificar_token_recuperacion, obtener_hash_clave, crear_token_verificacion, verificar_token_verificacion, crear_token_verificacion_datos, verificar_token_verificacion_datos
 from app.core.email import enviar_correo_recuperacion, enviar_correo_verificacion
 from app.core.config import settings
+from app.core.token_blacklist import revocar_token
+from fastapi.security import OAuth2PasswordBearer
+from jose import jwt, JWTError
+from app.core.rate_limiter import limiter_login, limiter_registro, limiter_recuperacion
+from app.core.used_tokens import marcar_token_usado, token_ya_usado
+
+_oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
 router = APIRouter(
     prefix="/auth",
@@ -130,6 +140,7 @@ async def _verificar_recaptcha(token: str):
 async def registrar_usuario(
     usuario_in: UsuarioCreate, 
     background_tasks: BackgroundTasks,
+    request: Request,
     db: Session = Depends(get_db)
 ) -> Any:
     """
@@ -137,6 +148,8 @@ async def registrar_usuario(
     Valida internamente que no existan correos duplicados.
     Envía correo de verificación al registrarse. La cuenta no se crea hasta verificar.
     """
+    # V-B2 Fix: Rate limiting — máximo 3 registros por 10 minutos por IP
+    limiter_registro.verificar(request)
     # Validaciones de seguridad
     _validar_nombre_apellido(usuario_in.nombre, usuario_in.apellido)
     if usuario_in.clave:
@@ -200,7 +213,15 @@ def verificar_cuenta(token: str, db: Session = Depends(get_db)):
     
     # Crear el usuario en este momento
     usuario_create = UsuarioCreate(**user_data)
-    crud_usuario.crear_usuario(db, usuario=usuario_create, verificado=True)
+    nuevo_usuario = crud_usuario.crear_usuario(db, usuario=usuario_create, verificado=True)
+    
+    crud_auditoria.registrar_auditoria(db, AuditoriaCreate(
+        id_usuario=nuevo_usuario.id_usuario,
+        correo=nuevo_usuario.correo,
+        accion="REGISTRO_USUARIO",
+        ip_origen=None,
+        detalles="Cuenta verificada y creada exitosamente"
+    ))
     
     return {"mensaje": "¡Cuenta creada y verificada exitosamente! Ya puedes iniciar sesión."}
 
@@ -229,6 +250,7 @@ async def reenviar_verificacion(
 @router.post("/login", response_model=Any)
 def iniciar_sesion(
     credenciales: LoginRequest,
+    request: Request,
     db: Session = Depends(get_db)
 ) -> Any:
     """
@@ -236,12 +258,20 @@ def iniciar_sesion(
     Retorna un token JWT Bearer e id_rol si las credenciales son válidas.
     Requiere que la cuenta esté verificada.
     """
+    # V-B2 Fix: Rate limiting — máximo 5 intentos de login por minuto por IP
+    limiter_login.verificar(request)
     usuario = crud_usuario.obtener_usuario_por_correo(db, correo=credenciales.username)
     
     if not usuario:
+        crud_auditoria.registrar_auditoria(db, AuditoriaCreate(
+            correo=credenciales.username,
+            accion="LOGIN_FALLIDO",
+            ip_origen=request.client.host if request.client else None,
+            detalles="Usuario no encontrado"
+        ))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Correo institucional o contraseña incorrectos.",
+            detail="Esta cuenta no existe. Por favor, crea una cuenta primero.",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
@@ -263,17 +293,39 @@ def iniciar_sesion(
         )
     
     if not security.verificar_clave(credenciales.password, usuario.clave):
+        crud_auditoria.registrar_auditoria(db, AuditoriaCreate(
+            id_usuario=usuario.id_usuario,
+            correo=usuario.correo,
+            accion="LOGIN_FALLIDO",
+            ip_origen=request.client.host if request.client else None,
+            detalles="Contraseña incorrecta"
+        ))
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Correo institucional o contraseña incorrectos.",
+            detail="La contraseña ingresada es incorrecta.",
             headers={"WWW-Authenticate": "Bearer"},
         )
         
-    token_acceso = security.crear_token_acceso(sujeto=usuario.correo)
+    crud_auditoria.registrar_auditoria(db, AuditoriaCreate(
+        id_usuario=usuario.id_usuario,
+        correo=usuario.correo,
+        accion="LOGIN_EXITOSO",
+        ip_origen=request.client.host if request.client else None,
+        detalles="Inicio de sesión manual"
+    ))
+        
+    token_acceso = security.crear_token_acceso(
+        sujeto=usuario.correo, 
+        id_rol=usuario.id_rol,
+        id_usuario=usuario.id_usuario,
+        nombre=usuario.nombre,
+        apellido=usuario.apellido
+    )
     
     return {
         "access_token": token_acceso,
         "token_type": "bearer",
+        "id_usuario": usuario.id_usuario,
         "id_rol": usuario.id_rol,
         "nombre": usuario.nombre,
         "apellido": usuario.apellido,
@@ -342,7 +394,7 @@ def iniciar_sesion_google_alias(credenciales: TokenGoogleLogin, db: Session = De
 
 
 @router.post("/login-google", response_model=Any)
-def iniciar_sesion_google(credenciales: TokenGoogleLogin, db: Session = Depends(get_db)) -> Any:
+def iniciar_sesion_google(credenciales: TokenGoogleLogin, request: Request, db: Session = Depends(get_db)) -> Any:
     """
     Caso de Uso: Iniciar Sesión (Flujo Alternativo Google SSO) - HU_02.
     Verifica el token de Google y otorga acceso inmediato SOLO si ya completó el registro híbrido.
@@ -363,12 +415,27 @@ def iniciar_sesion_google(credenciales: TokenGoogleLogin, db: Session = Depends(
         )
         usuario = crud_usuario.crear_usuario(db, usuario=usuario_create, verificado=True)
         
+    crud_auditoria.registrar_auditoria(db, AuditoriaCreate(
+        id_usuario=usuario.id_usuario,
+        correo=usuario.correo,
+        accion="LOGIN_EXITOSO",
+        ip_origen=request.client.host if request.client else None,
+        detalles="Inicio de sesión con Google"
+    ))
+        
     # 3. Generación del token de la app agregando el id_rol para el control de accesos del frontend
-    token_acceso = security.crear_token_acceso(sujeto=usuario.correo)
+    token_acceso = security.crear_token_acceso(
+        sujeto=usuario.correo, 
+        id_rol=usuario.id_rol,
+        id_usuario=usuario.id_usuario,
+        nombre=usuario.nombre,
+        apellido=usuario.apellido
+    )
     
     return {
         "access_token": token_acceso,
         "token_type": "bearer",
+        "id_usuario": usuario.id_usuario,
         "id_rol": usuario.id_rol,
         "nombre": usuario.nombre,
         "apellido": usuario.apellido,
@@ -379,8 +446,10 @@ def iniciar_sesion_google(credenciales: TokenGoogleLogin, db: Session = Depends(
 # ============ ENDPOINTS DE RECUPERACIÓN ============
 
 @router.post("/solicitar-recuperacion")
-async def solicitar_recuperacion(request: EmailRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
-    '''Endpoint para solicitar recuperación de contraseña. Envia un correo con un enlace que contiene un token JWT de vida corta.'''
+async def solicitar_recuperacion(request: EmailRequest, background_tasks: BackgroundTasks, req: Request, db: Session = Depends(get_db)):
+    '''Endpoint para solicitar recuperación de contraseña. Envía un correo con un enlace que contiene un token JWT de vida corta.'''
+    # V-B2 Fix: Rate limiting — máximo 3 solicitudes por 15 minutos por IP
+    limiter_recuperacion.verificar(req)
     # 1. Buscamos si el correo existe (Ajusta la llamada a tu CRUD si tiene otro nombre)
     usuario = crud_usuario.obtener_usuario_por_correo(db, correo=request.email)
     
@@ -397,16 +466,24 @@ async def solicitar_recuperacion(request: EmailRequest, background_tasks: Backgr
 
 
 @router.post("/restablecer-clave")
-def ejecutar_restablecer_clave(request: ResetPasswordRequest, db: Session = Depends(get_db)):
+def ejecutar_restablecer_clave(request: ResetPasswordRequest, req: Request, db: Session = Depends(get_db)):
     '''Endpoint que el usuario visita desde el enlace del correo. Valida el token, y si es correcto, actualiza la contraseña en la base de datos.'''
     # Validar la nueva contraseña
     _validar_clave(request.nueva_password)
-    
+
+    # V-N3 Fix: Verificar si el token ya fue usado anteriormente (single-use)
+    if token_ya_usado(request.token):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Este enlace de recuperación ya fue utilizado. Solicita uno nuevo si lo necesitas."
+        )
+
     # 1. El motor criptográfico revisa si el token es falso o expiró
+    from jose import jwt as jose_jwt, JWTError
     email = verificar_token_recuperacion(request.token)
     if not email:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="El enlace es inválido o ha caducado. Solicita uno nuevo."
         )
 
@@ -415,8 +492,59 @@ def ejecutar_restablecer_clave(request: ResetPasswordRequest, db: Session = Depe
     if not usuario:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado.")
 
-    # 3. Encriptamos la nueva contraseña y la guardamos en la base de datos
+    # 3. Verificar que no sea una contraseña usada anteriormente
+    if crud_historial_clave.verificar_reutilizacion_clave(db, usuario.id_usuario, request.nueva_password):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No puedes usar una contraseña que hayas utilizado anteriormente. Por favor elige una nueva."
+        )
+
+    # 4. Guardar la clave actual en historial antes de cambiarla
+    if usuario.clave:
+        crud_historial_clave.guardar_clave_en_historial(db, usuario.id_usuario, usuario.clave)
+
+    # 5. Encriptamos la nueva contraseña y la guardamos en la base de datos
     usuario.clave = obtener_hash_clave(request.nueva_password)
     db.commit()
 
+    # V-N3 Fix: Marcar el token como usado para que no pueda reutilizarse
+    try:
+        payload = jose_jwt.decode(request.token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        exp = payload.get("exp", 0)
+        marcar_token_usado(request.token, float(exp))
+    except Exception:
+        pass  # Si el token ya expiró al decodificar, no importa marcarlo
+
+    crud_auditoria.registrar_auditoria(db, AuditoriaCreate(
+        id_usuario=usuario.id_usuario,
+        correo=usuario.correo,
+        accion="CAMBIO_CLAVE",
+        ip_origen=req.client.host if req.client else None,
+        detalles="Clave restablecida por correo"
+    ))
+
     return {"mensaje": "Contraseña actualizada exitosamente. Ya puedes iniciar sesión con tu nueva clave."}
+
+
+# ============ ENDPOINT DE CIERRE DE SESIÓN ============
+
+@router.post("/logout", status_code=200)
+def cerrar_sesion(token: str = Depends(_oauth2_scheme)):
+    """
+    Invalida el token JWT actual añadiéndolo a la blacklist de revocación.
+    Después de llamar este endpoint, el token queda inutilizable aunque no haya expirado.
+    """
+    try:
+        payload = jwt.decode(
+            token,
+            settings.SECRET_KEY,
+            algorithms=[settings.ALGORITHM],
+            options={"verify_exp": False}  # Permitir logout aunque esté expirado
+        )
+        jti = payload.get("jti")
+        exp = payload.get("exp", 0)
+        if jti:
+            revocar_token(jti, float(exp))
+    except JWTError:
+        pass  # Si el token ya es inválido, no importa
+    return {"mensaje": "Sesión cerrada correctamente."}

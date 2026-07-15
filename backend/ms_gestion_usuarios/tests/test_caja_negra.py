@@ -34,17 +34,16 @@ def test_registro_exitoso_caja_negra(mock_crear_usuario, mock_obtener_usuario):
         "apellido": "Perez",
         "correo": "juan.perez@unl.edu.ec",
         "id_rol": 2,
-        "clave": "MiClaveSuperSegura"
+        "clave": "Pass1234*" # Contraseña fuerte válida
     }
 
     # Enviamos la petición POST
     response = client.post("/auth/registro", json=payload)
     
-    # Verificaciones de Caja Negra
+    # Verificaciones de Caja Negra (Devuelve 201 Created y envía correo)
     assert response.status_code == 201
     data = response.json()
-    assert data["correo"] == "juan.perez@unl.edu.ec"
-    assert "clave" not in data # Aseguramos que la contraseña no se filtre en la respuesta
+    assert "Revisa tu correo" in data["mensaje"]
 
 @patch("app.routers.auth.crud_usuario.obtener_usuario_por_correo")
 def test_login_fallido_caja_negra(mock_obtener_usuario):
@@ -52,12 +51,13 @@ def test_login_fallido_caja_negra(mock_obtener_usuario):
     Test de Caja Negra: Simula una petición HTTP POST a /api/auth/login con clave incorrecta.
     Verifica que el API rechace la petición con un HTTP 401 Unauthorized.
     """
-    # Simulamos que el usuario SÍ existe en la base de datos
+    # Simulamos que el usuario SÍ existe en la base de datos y está verificado
     mock_usuario = Usuario(
         id_usuario=1,
         correo="admin@unl.edu.ec",
         clave=obtener_hash_clave("PasswordReal123"), # Contraseña real guardada
-        id_rol=1
+        id_rol=1,
+        verificado=True
     )
     mock_obtener_usuario.return_value = mock_usuario
 
@@ -70,7 +70,7 @@ def test_login_fallido_caja_negra(mock_obtener_usuario):
     
     # Verificaciones de Caja Negra
     assert response.status_code == 401
-    assert response.json()["detail"] == "Correo institucional o contraseña incorrectos."
+    assert response.json()["detail"] == "La contraseña ingresada es incorrecta."
 
 def test_dominio_invalido_caja_negra():
     """

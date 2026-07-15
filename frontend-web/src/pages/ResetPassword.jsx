@@ -92,6 +92,24 @@ export default function ResetPassword() {
     }
   }
 
+  const getDeepLink = () => {
+    const token = form.token;
+    const hostname = window.location.hostname;
+    
+    // ==========================================
+    // CONFIGURACIÓN DE ENLACES PARA REDIRECCIÓN
+    // ==========================================
+    // Si estás probando de forma local (IP local o localhost), redirecciona a Metro Bundler de Expo (puerto 8081)
+    if (hostname.startsWith('192.168.') || hostname === 'localhost' || hostname === '127.0.0.1') {
+      // NOTA: Si cambias el puerto de Expo, actualiza el ':8081' aquí
+      return `exp://${hostname}:8081/--/reset-password?token=${token}`;
+    }
+    
+    // EN PRODUCCIÓN (NUBE): 
+    // Cambia 'unlconnect://' por el esquema personalizado de tu app móvil compilada (definido en app.json -> scheme)
+    return `unlconnect://reset-password?token=${token}`;
+  };
+
   const inputStyle = {
     width: '100%',
     padding: '12px 16px',
@@ -117,7 +135,7 @@ export default function ResetPassword() {
 
         {/* Panel Izquierdo */}
         <div style={{ flex: 1, background: 'linear-gradient(135deg, #0F766E 0%, #094E48 100%)', color: '#fff', padding: '60px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '500px' }}>
-          <div><h1 style={{ fontSize: '24px', fontWeight: '700', margin: '0 0 40px 0' }}>UNL-Cloud-Connect</h1></div>
+          <div><img src="/img/logo transparente.png" alt="UNL Cloud Connect" style={{ height: '250px', marginBottom: '40px', objectFit: 'contain' }} /></div>
           <div>
             <h2 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 24px 0', lineHeight: '1.4' }}>Crear nueva contraseña</h2>
             <p style={{ fontSize: '15px', lineHeight: '1.7', margin: '0', opacity: '0.95' }}>Ingresa tu nueva contraseña para recuperar el acceso a tu cuenta. Asegúrate de guardarla en un lugar seguro.</p>
@@ -129,6 +147,28 @@ export default function ResetPassword() {
         <div style={{ flex: 1, padding: '60px 40px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
           <h2 style={{ fontSize: '28px', fontWeight: '700', margin: '0 0 8px 0', color: '#1a1a1a' }}>Restablecer clave</h2>
           <p style={{ fontSize: '14px', color: '#62726B', margin: '0 0 32px 0' }}>Establece una contraseña fuerte y segura.</p>
+
+          {form.token && (
+            <div style={{
+              background: '#E6F4F1',
+              border: '1px solid #B2DFD6',
+              color: '#0F766E',
+              padding: '14px 16px',
+              borderRadius: '8px',
+              marginBottom: '20px',
+              fontSize: '13px',
+              fontWeight: '500',
+              lineHeight: '1.4'
+            }}>
+              📱 <strong>¿Estás usando tu celular?</strong> Puedes restablecer tu contraseña directamente en la aplicación móvil.
+              <a 
+                href={getDeepLink()} 
+                style={{ display: 'block', marginTop: '6px', color: '#094E48', fontWeight: '700', textDecoration: 'underline' }}
+              >
+                Abrir en la App Móvil →
+              </a>
+            </div>
+          )}
 
           {error && (
             <div style={{ background: '#fee2e2', border: '1px solid #fca5a5', color: '#dc2626', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', fontSize: '14px' }}>

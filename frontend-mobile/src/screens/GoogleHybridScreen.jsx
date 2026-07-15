@@ -1,11 +1,11 @@
 import React, {useState,useEffect} from 'react'
-import { View, Text } from 'react-native'
+import { View, Text, Alert } from 'react-native'
 import Input from '../components/Input'
 import Button from '../components/Button'
 import { googleRegister, registroHibrido } from '../services/api'
 
 export default function GoogleHybrid({route,navigation}){
-  const [form,setForm] = useState({nombre:'', apellido:'', correo:'', clave:'', fecha_nacimiento:'', id_rol:'2'})
+  const [form,setForm] = useState({nombre:'', apellido:'', correo:'', clave:'', fecha_nacimiento:'', id_rol: 2})
   const [readOnly,setReadOnly] = useState(false)
 
   useEffect(()=>{
@@ -15,7 +15,29 @@ export default function GoogleHybrid({route,navigation}){
   },[])
 
   const submit = async ()=>{
-    try{ await registroHibrido(form); navigation.navigate('Login') }catch(err){ console.error(err) }
+    try{ 
+      await registroHibrido({ ...form, id_rol: 2 }); 
+      Alert.alert('Registro Exitoso', 'Registro híbrido completado. Ya puedes iniciar sesión.');
+      navigation.navigate('Login') 
+    }catch(err){ 
+      console.error(err);
+      let msg = 'No se pudo completar el registro híbrido.';
+      const detail = err.response?.data?.detail;
+      if (typeof detail === 'string') {
+        msg = detail;
+      } else if (Array.isArray(detail) && detail.length > 0) {
+        msg = detail.map(d => {
+          let m = d.msg || 'Error de validación';
+          if (m.startsWith('Value error, ')) {
+            m = m.substring('Value error, '.length);
+          }
+          return m;
+        }).join('\n');
+      } else if (err.message) {
+        msg = err.message;
+      }
+      Alert.alert('Error de Registro', msg);
+    }
   }
 
   return (
@@ -27,7 +49,6 @@ export default function GoogleHybrid({route,navigation}){
         <Input label="Correo" value={form.correo} onChangeText={(v)=>setForm({...form,correo:v})} editable={!readOnly} />
         <Input label="Clave" value={form.clave} onChangeText={(v)=>setForm({...form,clave:v})} secureTextEntry />
         <Input label="Fecha de nacimiento" value={form.fecha_nacimiento} onChangeText={(v)=>setForm({...form,fecha_nacimiento:v})} />
-        <Input label="id_rol" value={form.id_rol} onChangeText={(v)=>setForm({...form,id_rol:v})} />
 
         <View style={{marginTop:12}}>
           <Button onPress={submit}>Completar registro</Button>

@@ -1,0 +1,54 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unl-ms-eventos
+  namespace: unl-cloud-connect
+  labels:
+    app: ms-eventos
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ms-eventos
+  template:
+    metadata:
+      labels:
+        app: ms-eventos
+    spec:
+      containers:
+      - name: ms-eventos
+        # Asegúrate de cambiar "tu-usuario" por el owner real del repo o Registry
+        image: ghcr.io/tu-usuario/unl-ms_eventos:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - secretRef:
+            name: ms-eventos-secrets
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /api/eventos/health # O la ruta de salud que tengas configurada
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ms-eventos-service
+  namespace: unl-cloud-connect
+spec:
+  selector:
+    app: ms-eventos
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP

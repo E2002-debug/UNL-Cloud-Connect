@@ -1,7 +1,20 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getUsers, updateUser, deleteUser, register, updateMe } from '../services/api'
+import api, { getUsers, updateUser, deleteUser, register, updateMe, getAuditoria } from '../services/api'
+import { listarSensores, obtenerClimaActual } from '../services/climaService'
+import { listarUbicaciones } from '../services/ubicacionService'
+import { getEventos, getUbicaciones } from '../components/dashboard/events/eventService'
 import toast from 'react-hot-toast'
+
+import Events from '../components/dashboard/events/Events'
+import Sensors from '../components/dashboard/sensors/Sensors'
+import Ubicacion from '../components/dashboard/ubicacion/Ubicacion'
+import Monitoreo from '../components/dashboard/monitoreo/Monitoreo'
+import ModerationPanel from '../components/dashboard/moderation/ModerationPanel'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts'
+import jsPDF from 'jspdf'
+import 'jspdf-autotable'
+import { CloudSun } from 'lucide-react'
 
 // --- Iconos SVG Básicos ---
 const IconDashboard = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="3" width="7" height="9"></rect><rect x="14" y="3" width="7" height="5"></rect><rect x="14" y="12" width="7" height="9"></rect><rect x="3" y="16" width="7" height="5"></rect></svg>
@@ -18,12 +31,51 @@ const IconError = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="no
 const IconInfo = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
 const IconActivity = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
 const IconClock = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+const IconMap = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+const IconFlag = () => <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>
+const IconLock = () => <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
 
 export default function Dashboard() {
   const [user, setUser] = useState(null)
+  const getTokenPayload = () => {
+    const token = localStorage.getItem('access_token')
+    if (!token) return null
+    try {
+      return JSON.parse(atob(token.split('.')[1]))
+    } catch(e) { return null }
+  }
+  
+  const tokenPayload = getTokenPayload()
+  const initialIdRol = tokenPayload ? String(tokenPayload.id_rol) : null
+  const currentUserId = tokenPayload ? (tokenPayload.id_usuario || tokenPayload.sub) : null
   const [theme, setTheme] = useState(localStorage.getItem('theme') || 'claro')
-  const [activeTab, setActiveTab] = useState('Usuarios')
+  const [activeTab, setActiveTab] = useState(initialIdRol === '3' ? 'Usuarios' : 'Dashboard')
+  const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [showNotificationsDropdown, setShowNotificationsDropdown] = useState(false)
+  const [notifications, setNotifications] = useState([])
+  const [readNotifIds, setReadNotifIds] = useState(() => {
+    const saved = localStorage.getItem(`read_notifications_${currentUserId || 'guest'}`)
+    return saved ? JSON.parse(saved) : []
+  })
+  
+  const knownEventIds = useRef(new Set());
+  const initialLoadDone = useRef(false);
+  
+  useEffect(() => {
+    if (currentUserId) {
+      localStorage.setItem(`read_notifications_${currentUserId}`, JSON.stringify(readNotifIds))
+    }
+  }, [readNotifIds, currentUserId])
   const navigate = useNavigate()
+
+  const unreadCount = notifications.filter(n => !readNotifIds.includes(n.id)).length
+  
+  const markAllAsRead = (e) => {
+    e.stopPropagation()
+    const allIds = notifications.map(n => n.id)
+    const newReadIds = [...new Set([...readNotifIds, ...allIds])]
+    setReadNotifIds(newReadIds)
+  }
 
   // Gestión de Usuarios State
   const [usuarios, setUsuarios] = useState([])
@@ -32,10 +84,51 @@ export default function Dashboard() {
 
   // Notifications State
   const addNotification = (type, title, message) => {
-    const text = `${title}: ${message}`
-    if (type === 'success') toast.success(text)
-    else if (type === 'error') toast.error(text)
-    else toast(text, { icon: 'ℹ️' })
+    toast.custom((t) => (
+      <div
+        style={{
+          background: type === 'success' ? 'rgba(16, 185, 129, 0.95)' : type === 'error' ? 'rgba(239, 68, 68, 0.95)' : 'rgba(15, 118, 110, 0.95)',
+          backdropFilter: 'blur(10px)',
+          color: 'white',
+          padding: '16px 20px',
+          borderRadius: '12px',
+          boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.2), 0 8px 10px -6px rgba(0, 0, 0, 0.1)',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          opacity: t.visible ? 1 : 0,
+          transform: t.visible ? 'translateY(0) scale(1)' : 'translateY(20px) scale(0.9)',
+          transition: 'all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+          maxWidth: '350px',
+          border: '1px solid rgba(255, 255, 255, 0.2)'
+        }}
+      >
+        <div style={{
+          background: 'rgba(255, 255, 255, 0.2)',
+          borderRadius: '50%',
+          width: '32px',
+          height: '32px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0
+        }}>
+          {type === 'success' && <IconCheck />}
+          {type === 'error' && <IconError />}
+          {type === 'info' && <IconInfo />}
+        </div>
+        <div>
+          <h4 style={{ margin: '0 0 4px 0', fontSize: '13px', fontWeight: '800', letterSpacing: '0.5px', textTransform: 'uppercase' }}>{title}</h4>
+          <p style={{ margin: 0, fontSize: '12px', fontWeight: '500', opacity: 0.9, lineHeight: '1.4' }}>{message}</p>
+        </div>
+        <button
+          onClick={() => toast.dismiss(t.id)}
+          style={{ background: 'transparent', border: 'none', color: 'white', opacity: 0.7, cursor: 'pointer', marginLeft: 'auto', padding: '4px' }}
+        >
+          ✕
+        </button>
+      </div>
+    ), { duration: 4000, position: 'bottom-right' })
   }
 
   // Modal State
@@ -63,6 +156,36 @@ export default function Dashboard() {
     toast.success('Configuración guardada exitosamente')
   }
 
+  const exportEventsToPDF = () => {
+    const doc = new jsPDF();
+    doc.text('Reporte de Eventos UNL-CLOUD-CONNECT', 14, 15);
+    const tableData = eventos.map(e => [
+      e.id_evento, e.nombre, e.estado, new Date(e.fecha_hora_inicio).toLocaleDateString()
+    ]);
+    doc.autoTable({
+      head: [['ID', 'Nombre', 'Estado', 'Fecha']],
+      body: tableData,
+      startY: 25,
+    });
+    doc.save('reporte_eventos.pdf');
+    addNotification('success', 'PDF EXPORTADO', 'El reporte de eventos ha sido generado.');
+  };
+
+  const exportUsersToPDF = () => {
+    const doc = new jsPDF();
+    doc.text('Reporte de Usuarios UNL-CLOUD-CONNECT', 14, 15);
+    const tableData = usuarios.map(u => [
+      u.id_usuario, `${u.nombre} ${u.apellido}`, u.correo, u.id_rol === 1 ? 'Admin' : u.id_rol === 3 ? 'Superadmin' : 'Participante'
+    ]);
+    doc.autoTable({
+      head: [['ID', 'Nombre', 'Correo', 'Rol']],
+      body: tableData,
+      startY: 25,
+    });
+    doc.save('reporte_usuarios.pdf');
+    addNotification('success', 'PDF EXPORTADO', 'El reporte de usuarios ha sido generado.');
+  };
+
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
     localStorage.setItem('theme', theme)
@@ -73,58 +196,215 @@ export default function Dashboard() {
   const [loadingWeather, setLoadingWeather] = useState(false)
   const [weatherError, setWeatherError] = useState('')
 
+  // Dashboard real data state
+  const [eventos, setEventos] = useState([])
+  const [sensores, setSensores] = useState([])
+  const [ubicacionesDB, setUbicacionesDB] = useState([])
+  const [loadingDashboard, setLoadingDashboard] = useState(false)
+
+  const timeAgo = (date) => {
+    const seconds = Math.floor((new Date() - new Date(date)) / 1000)
+    if (seconds < 60) return 'Hace un momento'
+    const minutes = Math.floor(seconds / 60)
+    if (minutes < 60) return `Hace ${minutes} minuto${minutes > 1 ? 's' : ''}`
+    const hours = Math.floor(minutes / 60)
+    if (hours < 24) return `Hace ${hours} hora${hours > 1 ? 's' : ''}`
+    const days = Math.floor(hours / 24)
+    return `Hace ${days} día${days > 1 ? 's' : ''}`
+  }
+
+  const fetchDashboardData = async () => {
+    setLoadingDashboard(true)
+    try {
+      let evts = []
+      let sens = []
+      let ubi = []
+      
+      try { evts = await getEventos(); setEventos(evts); } catch (e) { console.error('Error eventos:', e); }
+      try { sens = await listarSensores(); setSensores(sens); } catch (e) { console.error('Error sensores:', e); }
+      try { ubi = await getUbicaciones(); setUbicacionesDB(ubi); } catch (e) { console.error('Error ubicaciones:', e); }
+
+      let loginAudits = []
+      if (initialIdRol === '1' || initialIdRol === '3') {
+        try {
+          const auditRes = await getAuditoria()
+          if (auditRes && auditRes.data) {
+            loginAudits = auditRes.data
+              .filter(audit => {
+                const accion = audit.accion.toLowerCase();
+                const isLogin = accion.includes('sesión') || accion.includes('sesion') || accion.includes('login') || accion.includes('ingreso');
+                return isLogin && String(audit.id_usuario) === String(currentUserId);
+              })
+              .map((audit, index) => ({
+                id: audit.id_log || `audit-${index}`,
+                type: 'success',
+                iconType: 'web',
+                title: 'Inicio Exitoso',
+                message: `Has iniciado sesión correctamente.`,
+                time: timeAgo(audit.fecha_hora + 'Z'),
+                timestamp: new Date(audit.fecha_hora + 'Z').getTime()
+              }))
+          }
+        } catch (err) {
+          console.error("Error al cargar auditoría para notificaciones:", err)
+        }
+      }
+
+      const now = new Date().getTime();
+      const ONE_DAY = 24 * 60 * 60 * 1000;
+      
+      let newEventsForNotification = [];
+      
+      evts.forEach(evt => {
+        if (!initialLoadDone.current) {
+          knownEventIds.current.add(evt.id_evento);
+        } else {
+          if (!knownEventIds.current.has(evt.id_evento)) {
+            knownEventIds.current.add(evt.id_evento);
+            const evtTime = new Date(evt.fecha_hora_inicio).getTime();
+            if (evtTime > now - ONE_DAY) {
+              newEventsForNotification.push(evt);
+            }
+          }
+        }
+      });
+      
+      initialLoadDone.current = true;
+      
+      const newEventNotifications = newEventsForNotification.map(evt => ({
+          id: `evt-${evt.id_evento}`,
+          type: 'info',
+          iconType: 'web',
+          title: 'Evento Registrado',
+          message: `Se ha creado un nuevo evento: ${evt.nombre}`,
+          time: timeAgo(evt.fecha_hora_inicio),
+          timestamp: new Date(evt.fecha_hora_inicio).getTime()
+      }));
+      
+      if (!initialLoadDone.current || newEventNotifications.length > 0) {
+        setNotifications(prev => {
+          const combined = [...prev, ...newEventNotifications]
+            .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
+            .slice(0, 50); // Keep up to 50
+          return combined;
+        });
+      }
+      
+      // On initial load, just set the login audits
+      if (loginAudits.length > 0 && notifications.length === 0) {
+        setNotifications(loginAudits);
+      }
+      
+    } catch (err) {
+      console.error('Error al cargar datos del dashboard:', err)
+    } finally {
+      setLoadingDashboard(false)
+    }
+  }
+
   useEffect(() => {
-    const apiKey = import.meta.env.VITE_WEATHER_API_KEY
-    if (!apiKey) {
-      setWeatherError('No se ha configurado la clave de API del clima. Por favor, solicite al administrador que la configure.')
-      return
+    if (activeTab === 'Dashboard') {
+      fetchDashboardData()
+    }
+  }, [activeTab])
+
+  useEffect(() => {
+    const fetchWeather = async () => {
+      setLoadingWeather(true)
+      setWeatherError('')
+
+      try {
+        // 1. Intentar obtener datos físicos del ESP32 local primero (IoT Priorizado)
+        const localData = await obtenerClimaActual()
+        if (localData && localData.temperatura !== undefined) {
+          // Verificar qué tan antiguo es el dato
+          const fechaDato = new Date(localData.fecha_captura + 'Z') // Asegurar que lo lea como UTC
+          const ahora = new Date()
+          const diferenciaMinutos = (ahora - fechaDato) / (1000 * 60)
+
+          // Solo usamos el sensor si el dato es de hace menos de 1 minuto (para pruebas)
+          if (diferenciaMinutos <= 1) {
+            setWeatherData({
+              currentConditions: {
+                temp: localData.temperatura,
+                humidity: localData.humedad,
+                conditions: 's-activo',
+                feelslike: localData.temperatura,
+                windspeed: 0
+              },
+              source: 'esp32'
+            })
+            setLoadingWeather(false)
+            return // Si tiene éxito y es reciente, no llama a la API externa
+          }
+          // Si es muy viejo (el sensor se desconectó o desactivó), ignoramos y pasamos a la API
+          console.warn(`Dato IoT muy antiguo (${Math.round(diferenciaMinutos)} min). Pasando a API externa...`)
+        }
+      } catch (error) {
+        console.log("Sensor local no disponible, cambiando a API externa de respaldo...")
+      }
+
+      // 2. Fallback Automático a la API de VisualCrossing
+      const apiKey = import.meta.env.VITE_WEATHER_API_KEY
+      if (!apiKey) {
+        setWeatherError('No se ha configurado la clave de API del clima.')
+        setLoadingWeather(false)
+        return
+      }
+
+      fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/Loja,Ecuador?unitGroup=metric&lang=es&key=${apiKey}&contentType=json`)
+        .then(res => {
+          if (!res.ok) throw new Error('Error al obtener los datos del clima.')
+          return res.json()
+        })
+        .then(data => {
+          setWeatherData(data)
+          setLoadingWeather(false)
+        })
+        .catch(err => {
+          setWeatherError(err.message)
+          setLoadingWeather(false)
+        })
     }
 
-    setLoadingWeather(true)
-    setWeatherError('')
-    
-    fetch(`https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/Loja,Ecuador?unitGroup=metric&key=${apiKey}&contentType=json`)
-      .then(res => {
-        if (!res.ok) throw new Error('Error al obtener los datos del clima. Verifica la clave de API.')
-        return res.json()
-      })
-      .then(data => {
-        setWeatherData(data)
-        setLoadingWeather(false)
-      })
-      .catch(err => {
-        setWeatherError(err.message)
-        setLoadingWeather(false)
-      })
+    fetchWeather()
   }, [])
 
   useEffect(() => {
-    const nombre = localStorage.getItem('nombre')
-    const apellido = localStorage.getItem('apellido')
-    const correo = localStorage.getItem('correo')
-    const id_rol = localStorage.getItem('id_rol')
     const token = localStorage.getItem('access_token')
-
     if (!token) {
       navigate('/login')
       return
     }
 
+    let payload = {}
+    try {
+      payload = JSON.parse(atob(token.split('.')[1]))
+    } catch (e) {
+      console.error("Token inválido")
+    }
+
+    const nombre = payload.nombre || 'Usuario'
+    const apellido = payload.apellido || ''
+    const correo = payload.sub || ''
+    const id_rol = payload.id_rol
+
     setUser({
-      nombre: nombre || 'Usuario',
-      apellido: apellido || '',
-      correo: correo || '',
+      nombre: nombre,
+      apellido: apellido,
+      correo: correo,
       id_rol: String(id_rol)
     })
 
     setProfileData({
-      nombre: nombre || '',
-      apellido: apellido || '',
+      nombre: nombre,
+      apellido: apellido,
       clave: ''
     })
 
-    if (String(id_rol) === '1') {
+    if (String(id_rol) === '1' || String(id_rol) === '3') {
       fetchUsuarios()
+      fetchDashboardData()
     }
 
     const timer = setTimeout(() => {
@@ -149,7 +429,9 @@ export default function Dashboard() {
   }
 
   const handleLogout = () => {
-    localStorage.clear()
+    localStorage.removeItem('access_token')
+    localStorage.removeItem('nombre')
+    localStorage.removeItem('apellido')
     window.location.href = '/login?logout=true'
   }
 
@@ -163,8 +445,9 @@ export default function Dashboard() {
   }
 
   const handleToggleRole = (u) => {
-    const newRole = u.id_rol === 1 ? 2 : 1
-    const roleName = newRole === 1 ? 'Administrador' : 'Participante'
+    const roleCycle = { 1: 2, 2: 3, 3: 1 }
+    const newRole = roleCycle[u.id_rol] || 2
+    const roleName = newRole === 1 ? 'Administrador' : newRole === 2 ? 'Participante' : 'Superadmin'
     setConfirmDialog({
       isOpen: true,
       type: 'ROLE',
@@ -283,19 +566,24 @@ export default function Dashboard() {
   if (!user) return <div style={{ height: '100vh', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>Cargando...</div>
 
   const isAdmin = user.id_rol === '1'
+  const isSuperAdmin = user.id_rol === '3'
 
   // Opciones del menú lateral
   const menuItems = isAdmin ? [
-    { id: 'Dashboard', icon: <IconDashboard />, label: 'DASHBOARD' },
-    { id: 'Usuarios', icon: <IconUsers />, label: 'GESTIÓN DE USUARIOS', badge: usuarios.length },
-    { id: 'Eventos', icon: <IconEvents />, label: 'EVENTOS UNL', badge: 3 },
-    { id: 'Sensores', icon: <IconSensors />, label: 'SENSORES IOT', labelRight: 'ESTABLE' },
-    { id: 'Configuracion', icon: <IconSettings />, label: 'CONFIGURACIÓN' },
+    { id: 'Dashboard', icon: <IconDashboard />, label: 'PANEL PRINCIPAL' },
+    { id: 'Eventos', icon: <IconEvents />, label: 'EVENTOS UNL' },
+    { id: 'Ubicacion', icon: <IconMap />, label: 'UBICACIÓN' },
+    { id: 'Moderacion', icon: <IconFlag />, label: 'MODERACIÓN' },
     { id: 'Perfil', icon: <IconUsers />, label: 'MI PERFIL' },
+  ] : isSuperAdmin ? [
+    { id: 'Usuarios', icon: <IconUsers />, label: 'GESTIÓN DE USUARIOS', badge: usuarios.length },
+    { id: 'Sensores', icon: <IconSensors />, label: 'SENSOR IOT', labelRight: 'ESTABLE' },
+    { id: 'Monitoreo', icon: <IconActivity />, label: 'MONITOREO DE DATOS' },
+    { id: 'Ubicacion', icon: <IconMap />, label: 'UBICACIÓN' },
+    { id: 'Configuracion', icon: <IconSettings />, label: 'CONFIGURACIÓN' },
   ] : [
-    { id: 'Dashboard', icon: <IconDashboard />, label: 'MI DASHBOARD', badge: 'PIONERO' },
-    { id: 'Eventos', icon: <IconEvents />, label: 'MIS EVENTOS', badge: 2 },
-    { id: 'Sensores', icon: <IconSensors />, label: 'SENSOR IOT', labelRight: 'VIRTUAL' },
+    { id: 'Dashboard', icon: <IconDashboard />, label: 'PANEL PRINCIPAL', badge: 'PIONERO' },
+    { id: 'Eventos', icon: <IconEvents />, label: 'MIS EVENTOS' },
     { id: 'Clima', icon: <IconSettings />, label: 'MÉTRICAS CLIMA' },
     { id: 'Perfil', icon: <IconUsers />, label: 'MI PERFIL' },
   ]
@@ -303,17 +591,19 @@ export default function Dashboard() {
   return (
     <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg-app)', fontFamily: "'Inter', sans-serif" }}>
 
+      {/* SIDEBAR OVERLAY FOR MOBILE */}
+      <div className={`sidebar-overlay ${sidebarOpen ? 'sidebar-open' : ''}`} onClick={() => setSidebarOpen(false)}></div>
+
       {/* SIDEBAR IZQUIERDO */}
-      <aside style={{ width: '280px', background: 'var(--bg-card)', borderRight: '1px solid #DBE3E0', display: 'flex', flexDirection: 'column' }}>
+      <aside className={sidebarOpen ? 'sidebar-open' : ''} style={{ width: '280px', minWidth: '280px', maxWidth: '280px', background: 'var(--bg-card)', borderRight: '1px solid #DBE3E0', display: 'flex', flexDirection: 'column', height: '100vh', position: 'sticky', top: 0, alignSelf: 'flex-start', overflow: 'hidden', boxSizing: 'border-box' }}>
 
         {/* LOGO AREA */}
-        <div style={{ padding: '24px', display: 'flex', alignItems: 'center', gap: '12px', borderBottom: '1px solid #f1f5f9' }}>
-          <div style={{ width: '40px', height: '40px', background: '#0F766E', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+        <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: '8px', borderBottom: '1px solid #f1f5f9' }}>
+          <div style={{ height: '40px', display: 'flex', alignItems: 'center', justifyContent: 'flex-start', background: 'transparent' }}>
+            <img src="/img/logo.png" alt="UNL Cloud Connect" style={{ height: '100%', width: 'auto', objectFit: 'contain' }} />
           </div>
           <div>
-            <h1 style={{ margin: 0, fontSize: '18px', fontWeight: '800', color: 'var(--text-main)', letterSpacing: '-0.5px' }}>UNL-CLOUD-CONNECT</h1>
-            <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '1px' }}>{isAdmin ? 'CONSOLE ADMIN' : 'CONSOLE PARTICIPANTE'}</span>
+            <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '1px' }}>{isAdmin ? 'CONSOLE ADMIN' : isSuperAdmin ? 'CONSOLE SUPER ADMIN' : 'CONSOLE PARTICIPANTE'}</span>
           </div>
         </div>
 
@@ -327,39 +617,78 @@ export default function Dashboard() {
           </div>
           <div>
             <h2 style={{ margin: '0 0 2px 0', fontSize: '14px', fontWeight: '700', color: 'var(--text-main)', textTransform: 'uppercase' }}>{user.nombre} {user.apellido}</h2>
-            <span style={{ fontSize: '10px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>{isAdmin ? 'ADMINISTRADOR' : 'PARTICIPANTE UNL'}</span>
+            <span style={{ fontSize: '10px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>{isAdmin ? 'ADMINISTRADOR' : isSuperAdmin ? 'SUPER ADMIN' : 'PARTICIPANTE UNL'}</span>
           </div>
         </div>
 
         {/* NAVIGATION */}
-        <nav style={{ padding: '24px 16px', flex: 1 }}>
+        <nav style={{ padding: '24px 16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
           {menuItems.map(item => (
-            <button
+            <a
               key={item.id}
-              onClick={() => setActiveTab(item.id)}
+              href="#"
+              onClick={(e) => {
+                e.preventDefault()
+                setActiveTab(item.id)
+                setSidebarOpen(false)
+              }}
               style={{
-                width: '100%', display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px', marginBottom: '8px',
+                width: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', gap: '16px', padding: '12px 16px', marginBottom: '8px',
                 background: activeTab === item.id ? '#0F766E' : 'transparent',
-                color: activeTab === item.id ? 'var(--bg-card)' : 'var(--text-muted)',
-                border: 'none', borderRadius: '8px', cursor: 'pointer', textAlign: 'left',
-                transition: 'all 0.2s ease', fontWeight: '600', fontSize: '13px'
+                color: activeTab === item.id ? 'white' : 'var(--text-muted)',
+                border: 'none', 
+                borderRadius: '10px', 
+                boxShadow: activeTab === item.id ? '0 4px 10px rgba(15, 118, 110, 0.3)' : 'none',
+                cursor: 'pointer', textAlign: 'left',
+                transition: 'all 0.2s ease', 
+                fontWeight: activeTab === item.id ? '800' : '600', 
+                fontSize: '13px', textDecoration: 'none',
+                letterSpacing: activeTab === item.id ? '0.5px' : '0'
               }}
             >
-              <div style={{ color: activeTab === item.id ? 'var(--bg-card)' : 'var(--text-muted)' }}>{item.icon}</div>
-              <span style={{ flex: 1 }}>{item.label}</span>
+              <div style={{ color: activeTab === item.id ? 'white' : 'var(--text-muted)', display: 'flex' }}>
+                {item.icon}
+              </div>
+              <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', minWidth: 0 }}>
+                {item.label}
+              </span>
 
               {item.badge > 0 && (
-                <span style={{ background: activeTab === item.id ? 'rgba(255,255,255,0.2)' : 'var(--border)', color: activeTab === item.id ? 'var(--text-inverse)' : 'var(--text-muted)', padding: '2px 8px', borderRadius: '12px', fontSize: '11px' }}>
+                <span style={{ 
+                  background: activeTab === item.id ? 'rgba(255, 255, 255, 0.25)' : 'var(--border)', 
+                  color: activeTab === item.id ? 'white' : 'var(--text-muted)', 
+                  padding: '4px 10px', 
+                  borderRadius: '12px', 
+                  fontSize: '12px',
+                  fontWeight: '800'
+                }}>
                   {item.badge}
                 </span>
               )}
               {item.labelRight && (
-                <span style={{ fontSize: '9px', fontWeight: '700', color: '#10b981', border: '1px solid #10b981', padding: '2px 6px', borderRadius: '4px' }}>
+                <span style={{ fontSize: '8px', fontWeight: '800', color: '#10b981', border: '1px solid #10b981', padding: '2px 6px', borderRadius: '4px', whiteSpace: 'nowrap', flexShrink: 0 }}>
                   {item.labelRight}
                 </span>
               )}
-            </button>
+            </a>
           ))}
+
+          {/* CERRAR SESIÓN */}
+          <div style={{ marginTop: 'auto', borderTop: '1px solid #f1f5f9', paddingTop: '16px' }}>
+            <button
+              onClick={handleLogout}
+              style={{
+                width: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', gap: '16px',
+                padding: '12px 16px', border: 'none', borderRadius: '8px',
+                background: 'transparent', color: '#ef4444', fontWeight: '600',
+                fontSize: '13px', cursor: 'pointer', textAlign: 'left'
+              }}
+              onMouseOver={(e) => e.target.style.background = '#fee2e2'}
+              onMouseOut={(e) => e.target.style.background = 'transparent'}
+            >
+              <IconLogOut /> CERRAR SESIÓN
+            </button>
+          </div>
         </nav>
 
         {/* THEME / CONSOLE TOGGLE (Participant only) */}
@@ -374,18 +703,6 @@ export default function Dashboard() {
             </div>
           </div>
         )}
-
-        {/* BOTTOM CONTROLS */}
-        <div style={{ padding: '24px', borderTop: '1px solid #f1f5f9', background: 'var(--bg-app)' }}>
-          <button
-            onClick={handleLogout}
-            style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', padding: '12px', background: 'transparent', border: '1px solid #fca5a5', borderRadius: '8px', color: '#ef4444', fontWeight: '600', fontSize: '13px', cursor: 'pointer', transition: 'all 0.2s' }}
-            onMouseOver={(e) => e.target.style.background = '#fee2e2'}
-            onMouseOut={(e) => e.target.style.background = 'transparent'}
-          >
-            <IconLogOut /> CERRAR SESIÓN
-          </button>
-        </div>
       </aside>
 
       {/* CONTENIDO PRINCIPAL */}
@@ -394,87 +711,197 @@ export default function Dashboard() {
         {/* TOP HEADER BAR */}
         <header style={{ height: '80px', background: 'var(--bg-card)', borderBottom: '1px solid #DBE3E0', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 40px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button className="mobile-menu-btn" onClick={() => setSidebarOpen(true)} style={{ background: 'transparent', border: 'none', color: 'var(--text-main)', cursor: 'pointer', display: 'none' }}>
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            </button>
             <div style={{ background: '#dbeafe', color: '#0F766E', padding: '6px 12px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', letterSpacing: '1px' }}>
-              DASHBOARD VIEW
+              PANEL PRINCIPAL
             </div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>
+            <div className="hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>
               <div style={{ width: '8px', height: '8px', background: '#10b981', borderRadius: '50%' }}></div>
               RED CENTRAL UNL INTEGRADA
             </div>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>CLIMA UNL LOJA</div>
-              <div style={{ fontSize: '16px', fontWeight: '800', color: 'var(--text-main)' }}>
-                {loadingWeather ? '...' : weatherError ? '--°C' : weatherData ? `${weatherData.currentConditions?.temp}°C` : '15.2°C'}
-                <span style={{ fontSize: '12px', color: '#10b981', fontWeight: '600', marginLeft: '4px', textTransform: 'lowercase' }}>
-                  {loadingWeather ? '' : weatherError ? 'Sin datos' : weatherData ? weatherData.currentConditions?.conditions?.split(',')[0] : 'estable'}
-                </span>
+          <div className="hide-on-mobile" style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+            
+            {/* Clima Block */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+              <div style={{ color: 'var(--text-muted)' }}>
+                <CloudSun size={28} strokeWidth={2.5} />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <div style={{ fontSize: '16px', fontWeight: '800', color: 'var(--text-main)', lineHeight: '1' }}>
+                  {loadingWeather ? '...' : weatherError ? '--°C' : weatherData ? `${weatherData.currentConditions?.temp}°C` : '12.4°C'}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
+                  <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>Loja, Ecuador</span>
+                  <span style={{ background: '#10b981', color: 'white', fontSize: '9px', fontWeight: '700', padding: '2px 6px', borderRadius: '12px' }}>
+                    {loadingWeather ? '...' : weatherError ? 'Sin datos' : weatherData ? weatherData.currentConditions?.conditions?.split(',')[0] : 'Lluvia'}
+                  </span>
+                </div>
               </div>
             </div>
-            <div style={{ width: '1px', height: '30px', background: 'var(--border)' }}></div>
-            <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px' }}>ESTADO SERVIDOR</div>
-              <div style={{ fontSize: '14px', fontWeight: '800', color: 'var(--text-main)' }}>SINCRONIZADO</div>
+
+            <div style={{ width: '1px', height: '32px', background: 'var(--border)' }}></div>
+
+            {/* Server Status Block */}
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+              <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: '2px', letterSpacing: '0.5px' }}>ESTADO SERVIDOR</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <span style={{ fontSize: '13px', fontWeight: '800', color: 'var(--text-main)' }}>SINCRONIZADO</span>
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#10b981" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round" style={{ background: '#ecfdf5', borderRadius: '50%', padding: '2px' }}><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </div>
+            </div>
+
+            <div style={{ width: '1px', height: '32px', background: 'var(--border)' }}></div>
+
+            {/* User & Notifications */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '16px', position: 'relative' }}>
+              <div 
+                style={{ position: 'relative', cursor: 'pointer', color: 'var(--text-muted)' }}
+                onClick={() => setShowNotificationsDropdown(!showNotificationsDropdown)}
+              >
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                {unreadCount > 0 && (
+                  <div style={{ position: 'absolute', top: '-4px', right: '-4px', background: '#10b981', color: 'white', fontSize: '10px', fontWeight: '800', width: '16px', height: '16px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid var(--bg-card)' }}>
+                    {unreadCount}
+                  </div>
+                )}
+              </div>
+              
+              {showNotificationsDropdown && (
+                <div style={{ position: 'absolute', top: '100%', right: '50px', marginTop: '16px', width: '320px', background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)', zIndex: 1000, overflow: 'hidden' }}>
+                  <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '800', color: 'var(--text-main)' }}>Notificaciones</h3>
+                    {unreadCount > 0 && (
+                      <span onClick={markAllAsRead} style={{ fontSize: '11px', fontWeight: '700', color: '#10b981', cursor: 'pointer' }}>Marcar como leídas</span>
+                    )}
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', maxHeight: '350px', overflowY: 'auto' }}>
+                    {notifications.length === 0 ? (
+                      <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                        No tienes notificaciones
+                      </div>
+                    ) : notifications.filter(n => !readNotifIds.includes(n.id)).length === 0 ? (
+                      <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
+                        No tienes notificaciones nuevas
+                      </div>
+                    ) : notifications.filter(n => !readNotifIds.includes(n.id)).map(notif => {
+                      const isRead = false // siempre false porque ya filtramos las leídas
+                      return (
+                      <div key={notif.id} style={{ 
+                        padding: '16px 20px', 
+                        borderBottom: '1px solid var(--border)', 
+                        display: 'flex', 
+                        gap: '12px', 
+                        alignItems: 'flex-start', 
+                        cursor: 'pointer', 
+                        background: isRead ? 'transparent' : 'var(--bg-app)',
+                        transition: 'background 0.2s' 
+                      }} 
+                      onMouseOver={e => e.currentTarget.style.background = 'var(--bg-app)'} 
+                      onMouseOut={e => e.currentTarget.style.background = isRead ? 'transparent' : 'var(--bg-app)'}>
+                        <div style={{ 
+                          width: '32px', height: '32px', borderRadius: '50%', flexShrink: 0,
+                          background: notif.type === 'success' ? '#ecfdf5' : notif.type === 'info' ? '#eff6ff' : '#fef2f2', 
+                          color: notif.type === 'success' ? '#10b981' : notif.type === 'info' ? '#3b82f6' : '#ef4444', 
+                          display: 'flex', alignItems: 'center', justifyContent: 'center'
+                        }}>
+                          {notif.iconType === 'mobile' ? (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+                          ) : notif.type === 'success' ? (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                          ) : notif.type === 'info' ? (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                          ) : (
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                          )}
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: isRead ? '600' : '800', color: 'var(--text-main)', marginBottom: '4px' }}>{notif.title}</div>
+                          <div style={{ fontSize: '12px', color: 'var(--text-muted)', lineHeight: '1.4' }}>{notif.message}</div>
+                          <div style={{ fontSize: '10px', fontWeight: '600', color: notif.type === 'success' ? '#10b981' : notif.type === 'info' ? '#3b82f6' : '#ef4444', marginTop: '6px' }}>{notif.time}</div>
+                        </div>
+                        {!isRead && (
+                          <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981', alignSelf: 'center', marginLeft: 'auto' }}></div>
+                        )}
+                      </div>
+                    )})}
+                  </div>
+                  <div style={{ padding: '12px', background: 'var(--bg-app)', textAlign: 'center', borderTop: '1px solid var(--border)', fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', cursor: 'pointer' }}>
+                    Ver todas las notificaciones
+                  </div>
+                </div>
+              )}
+
+              <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: '#10b981', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px', fontWeight: '700', cursor: 'pointer' }}>
+                {user?.nombre?.charAt(0) || 'M'}
+              </div>
             </div>
           </div>
         </header>
 
         {/* SCROLLABLE CONTENT */}
-        <div style={{ flex: 1, overflowY: 'auto', padding: '40px' }}>
+        <div style={{ flex: 1, overflowY: 'auto', padding: '32px', width: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' }}>
+
+          {/* VISTA DE EVENTOS: Aquí se inyecta tu componente sin asfixiar el espacio */}
+          {activeTab === 'Eventos' && (
+            <div style={{ width: '100%' }}>
+              <Events />
+            </div>
+          )}
+
+          {/* VISTA DE SENSORES IOT */}
+          {activeTab === 'Sensores' && (
+            <div style={{ width: '100%' }}>
+              <Sensors />
+            </div>
+          )}
+
+          {/* VISTA DE MONITOREO DE DATOS */}
+          {activeTab === 'Monitoreo' && (
+            <div style={{ width: '100%' }}>
+              <Monitoreo />
+            </div>
+          )}
 
           {/* KPI CARDS Y GRAFICOS (ADMIN DASHBOARD) */}
           {isAdmin && activeTab === 'Dashboard' && (
             <>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginBottom: '16px' }}>
+                <button onClick={exportEventsToPDF} style={{ padding: '8px 16px', backgroundColor: '#0F766E', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Exportar Eventos PDF</button>
+                <button onClick={exportUsersToPDF} style={{ padding: '8px 16px', backgroundColor: '#0F766E', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Exportar Usuarios PDF</button>
+              </div>
               {/* KPI CARDS */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '24px' }}>
-                <div style={{ background: 'var(--bg-card)', padding: '24px', border: '1px solid #DBE3E0' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '16px', marginBottom: '24px' }}>
+                <div style={{ background: 'var(--bg-card)', padding: '16px 20px', border: '1px solid #DBE3E0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
                     <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>EVENTOS TOTALES</span>
-                    <IconEvents />
+                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#0F766E', marginTop: '4px' }}>{loadingDashboard ? '...' : eventos.length}</div>
                   </div>
-                  <div style={{ fontSize: '32px', fontWeight: '900', color: '#0F766E', marginBottom: '16px' }}>1286</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                    <span>Sincronizados en campus</span>
-                    <span style={{ color: '#0F766E' }}>+12% este mes</span>
-                  </div>
+                  <IconEvents />
                 </div>
-
-                <div style={{ background: 'var(--bg-card)', padding: '24px', border: '1px solid #DBE3E0' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>EVENTOS ACTIVOS</span>
-                    <IconActivity />
+                <div style={{ background: 'var(--bg-card)', padding: '16px 20px', border: '1px solid #DBE3E0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>EN PROGRESO</span>
+                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#10b981', marginTop: '4px' }}>{loadingDashboard ? '...' : (Array.isArray(eventos) ? eventos : []).filter(e => e.estado === 'EN_PROGRESO').length}</div>
                   </div>
-                  <div style={{ fontSize: '32px', fontWeight: '900', color: '#0F766E', marginBottom: '16px' }}>42</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                    <span>Transmitiendo microdatos</span>
-                    <span style={{ color: '#10b981' }}>En Tiempo Real</span>
-                  </div>
+                  <IconActivity />
                 </div>
-
-                <div style={{ background: 'var(--bg-card)', padding: '24px', border: '1px solid #DBE3E0' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>SENSORS EN LÍNEA</span>
-                    <IconSensors />
+                <div style={{ background: 'var(--bg-card)', padding: '16px 20px', border: '1px solid #DBE3E0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>SENSORES</span>
+                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#0F766E', marginTop: '4px' }}>{loadingDashboard ? '...' : sensores.length}</div>
                   </div>
-                  <div style={{ fontSize: '32px', fontWeight: '900', color: '#0F766E', marginBottom: '16px' }}>942</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                    <span>Nodos MESH activos</span>
-                    <span style={{ color: '#0F766E' }}>98.2% Uptime</span>
-                  </div>
+                  <IconSensors />
                 </div>
-
-                <div style={{ background: 'var(--bg-card)', padding: '24px', border: '1px solid #DBE3E0' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>ESTUDIANTES UNL</span>
-                    <IconUsers />
+                <div style={{ background: 'var(--bg-card)', padding: '16px 20px', border: '1px solid #DBE3E0', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div>
+                    <span style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>USUARIOS</span>
+                    <div style={{ fontSize: '24px', fontWeight: '900', color: '#0F766E', marginTop: '4px' }}>{loadingDashboard ? '...' : usuarios.length}</div>
                   </div>
-                  <div style={{ fontSize: '32px', fontWeight: '900', color: '#0F766E', marginBottom: '16px' }}>{usuarios.length > 0 ? usuarios.length : '15,402'}</div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-                    <span>Usuarios Registrados</span>
-                    <span style={{ color: '#0F766E' }}>Acreditados</span>
-                  </div>
+                  <IconUsers />
                 </div>
               </div>
 
@@ -492,14 +919,20 @@ export default function Dashboard() {
                       <button style={{ padding: '6px 16px', background: 'var(--text-inverse)', color: 'var(--text-muted)', fontSize: '10px', fontWeight: '700', border: 'none', cursor: 'pointer' }}>SEMANA</button>
                     </div>
                   </div>
-                  <div style={{ height: '240px', display: 'flex', alignItems: 'flex-end', gap: '16px', borderBottom: '1px solid #DBE3E0', paddingBottom: '20px' }}>
-                    {[50, 60, 70, 80, 90, 85, 80, 70, 75, 50, 40, 50, 55, 65, 85].map((val, i) => (
-                      <div key={i} style={{ flex: 1, background: i === 14 ? 'var(--text-main)' : i === 10 ? '#cbd5e1' : 'var(--border)', height: `${val}%`, position: 'relative' }}>
-                        <span style={{ position: 'absolute', bottom: '-20px', left: '50%', transform: 'translateX(-50%)', fontSize: '9px', fontWeight: '700', color: 'var(--text-muted)' }}>
-                          {6 + i}:00
-                        </span>
-                      </div>
-                    ))}
+                  <div style={{ height: '240px', paddingBottom: '20px' }}>
+                    {weatherData?.days ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <LineChart data={weatherData.days.slice(0, 15)}>
+                          <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
+                          <XAxis dataKey="datetime" tickFormatter={(val) => val.substring(5)} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6B7280' }} />
+                          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#6B7280' }} />
+                          <RechartsTooltip contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)' }} />
+                          <Line type="monotone" dataKey="temp" stroke="#0F766E" strokeWidth={3} dot={{ r: 4, fill: '#0F766E', strokeWidth: 0 }} activeDot={{ r: 6 }} />
+                        </LineChart>
+                      </ResponsiveContainer>
+                    ) : (
+                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#9CA3AF', fontSize: '12px' }}>Cargando datos climáticos...</div>
+                    )}
                   </div>
                 </div>
 
@@ -513,27 +946,27 @@ export default function Dashboard() {
                     <div style={{ fontSize: '9px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>SINCRONIZACIÓN EN TIEMPO REAL</div>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', flex: 1 }}>
-                    <div>
-                      <div style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-main)', marginBottom: '2px' }}>TEMPERATURA ELEVADA EN LAB 304</div>
-                      <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>HACE 2 MIN <span style={{ color: '#0F766E' }}>• NODO FF422</span></div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-main)', marginBottom: '2px' }}>NUEVA CURADURÍA APPROVED</div>
-                      <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>HACE 15 MIN <span style={{ color: '#0F766E' }}>• @elisa_s</span></div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-main)', marginBottom: '2px' }}>PUSH DE FIRMWARE A GATEWAY-NORTH</div>
-                      <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>HACE 1 HORA <span style={{ color: '#0F766E' }}>• System_v4</span></div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-main)', marginBottom: '2px' }}>SEMINARIO IOT: 650 LOGINS</div>
-                      <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>HACE 3 HORAS <span style={{ color: '#0F766E' }}>• Event_042</span></div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-main)', marginBottom: '2px' }}>SENSOR 12B EN ESTADO STAND-BY</div>
-                      <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>HACE 5 HORAS <span style={{ color: '#0F766E' }}>• Maintenance</span></div>
-                    </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', flex: 1 }}>
+                    {eventos.length === 0 && (
+                      <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', textAlign: 'center', padding: '40px 0' }}>No hay eventos registrados</div>
+                    )}
+                    {eventos.slice(-5).reverse().map((evt, i) => {
+                      const tiempoRel = (() => {
+                        const diff = Date.now() - new Date(evt.fecha_hora_inicio).getTime();
+                        const mins = Math.floor(diff / 60000);
+                        if (mins < 60) return `HACE ${mins} MIN`;
+                        const hrs = Math.floor(mins / 60);
+                        if (hrs < 24) return `HACE ${hrs} HORA${hrs > 1 ? 'S' : ''}`;
+                        return `${new Date(evt.fecha_hora_inicio).toLocaleDateString()}`;
+                      })();
+                      const estados = { EN_PROGRESO: '● EN CURSO', PROGRAMADO: '● PROGRAMADO', FINALIZADO: '● FINALIZADO', CANCELADO: '● CANCELADO' };
+                      return (
+                        <div key={evt.id_evento || i}>
+                          <div style={{ fontSize: '10px', fontWeight: '800', color: 'var(--text-main)', marginBottom: '2px' }}>{evt.nombre}</div>
+                          <div style={{ fontSize: '9px', color: 'var(--text-muted)', fontWeight: '700', textTransform: 'uppercase' }}>{tiempoRel} <span style={{ color: '#0F766E' }}>• {estados[evt.estado] || evt.estado}</span></div>
+                        </div>
+                      );
+                    })}
                   </div>
 
                   <button style={{ width: '100%', marginTop: '24px', padding: '12px', background: 'var(--bg-app)', border: '1px solid #DBE3E0', fontSize: '10px', fontWeight: '800', color: 'var(--text-main)', letterSpacing: '1px', cursor: 'pointer' }}>
@@ -550,11 +983,16 @@ export default function Dashboard() {
                     <h3 style={{ margin: 0, fontSize: '14px', fontWeight: '900', color: 'var(--text-main)' }}>TOPOLOGÍA DE SENSORS UNL (MAPA CONCEPTUAL)</h3>
                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '500', marginTop: '4px' }}>Representación gráfica del campus de Loja y la central de recepción de tramas atmosféricas.</div>
                   </div>
-                  <div style={{ background: 'var(--border-light)', height: '120px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '0 20px', border: '1px solid #DBE3E0' }}>
-                    <div style={{ padding: '6px 12px', background: 'var(--text-muted)', color: 'var(--text-inverse)', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}><div style={{ width: 6, height: 6, background: '#10b981', borderRadius: '50%' }}></div> Campus Físico (Central)</div>
-                    <div style={{ padding: '6px 12px', background: 'var(--text-muted)', color: 'var(--text-inverse)', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}><div style={{ width: 6, height: 6, background: '#10b981', borderRadius: '50%' }}></div> SENSOR Norte 002</div>
-                    <div style={{ padding: '6px 12px', background: 'var(--text-muted)', color: 'var(--text-inverse)', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}><div style={{ width: 6, height: 6, background: '#10b981', borderRadius: '50%' }}></div> Centro Ambiental</div>
-                    <div style={{ padding: '6px 12px', background: 'var(--text-muted)', color: 'var(--text-inverse)', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}><div style={{ width: 6, height: 6, background: '#10b981', borderRadius: '50%' }}></div> Clínica Educativa</div>
+                  <div style={{ background: 'var(--border-light)', height: '120px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'space-around', padding: '0 20px', border: '1px solid #DBE3E0', flexWrap: 'wrap' }}>
+                    {ubicacionesDB.length === 0 && (
+                      <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)' }}>No hay ubicaciones registradas</span>
+                    )}
+                    {ubicacionesDB.slice(0, 6).map((ubi, i) => (
+                      <div key={ubi.id_ubicacion || i} style={{ padding: '6px 12px', background: 'var(--text-muted)', color: 'var(--text-inverse)', fontSize: '10px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: '600' }}>
+                        <div style={{ width: 6, height: 6, background: '#10b981', borderRadius: '50%' }}></div>
+                        {ubi.nombre_lugar}
+                      </div>
+                    ))}
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '1px' }}>
                     <span>CONEXIÓN: CLÚSTER UNL LOJA</span>
@@ -572,8 +1010,8 @@ export default function Dashboard() {
                   <div style={{ marginBottom: '40px' }}>
                     <div style={{ fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '1px', marginBottom: '8px' }}>ALMACENAMIENTO DE RECURSOS</div>
                     <div style={{ width: '100%', height: '8px', background: 'var(--border)', display: 'flex' }}>
-                      <div style={{ width: '70%', background: 'var(--text-main)' }}></div>
-                      <div style={{ width: '15%', background: '#0F766E' }}></div>
+                      <div style={{ width: `${Math.min(eventos.length * 5, 85)}%`, background: 'var(--text-main)' }}></div>
+                      <div style={{ width: `${Math.min(ubicacionesDB.length * 3, 15)}%`, background: '#0F766E' }}></div>
                     </div>
                   </div>
 
@@ -582,14 +1020,14 @@ export default function Dashboard() {
                     <span style={{ fontSize: '12px', fontWeight: '800', color: '#0F766E' }}>24 ms</span>
                   </div>
 
-                  <div style={{ fontSize: '9px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>REPOSITORIO EN LÍNEA CONFIRMADO</div>
+                  <div style={{ fontSize: '9px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>{eventos.length} EVENTOS • {ubicacionesDB.length} UBICACIONES • {sensores.length} SENSORES</div>
                 </div>
               </div>
             </>
           )}
 
           {/* PARTICIPANT DASHBOARD VIEW */}
-          {!isAdmin && activeTab === 'Dashboard' && (
+          {!isAdmin && !isSuperAdmin && activeTab === 'Dashboard' && (
             <>
               {/* KPI CARDS PARTICIPANT */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px', marginBottom: '32px' }}>
@@ -742,7 +1180,7 @@ export default function Dashboard() {
           )}
 
           {/* MAIN CONTENT AREA - CONDITIONAL RENDERING BASED ON TAB */}
-          {activeTab === 'Usuarios' && isAdmin && (
+          {activeTab === 'Usuarios' && (isAdmin || isSuperAdmin) && (
             <div style={{ background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid #DBE3E0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', overflow: 'hidden' }}>
               <div style={{ padding: '24px', borderBottom: '1px solid #DBE3E0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
@@ -782,10 +1220,10 @@ export default function Dashboard() {
                           <td style={{ padding: '16px 24px' }}>
                             <span style={{
                               padding: '4px 12px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', letterSpacing: '0.5px',
-                              background: u.id_rol === 1 ? '#fee2e2' : '#e0e7ff',
-                              color: u.id_rol === 1 ? '#ef4444' : '#4338ca'
+                              background: u.id_rol === 1 ? '#fee2e2' : u.id_rol === 3 ? '#fef3c7' : '#e0e7ff',
+                              color: u.id_rol === 1 ? '#ef4444' : u.id_rol === 3 ? '#d97706' : '#4338ca'
                             }}>
-                              {u.id_rol === 1 ? 'ADMINISTRADOR' : 'PARTICIPANTE'}
+                              {u.id_rol === 1 ? 'ADMINISTRADOR' : u.id_rol === 3 ? 'SUPERADMIN' : 'PARTICIPANTE'}
                             </span>
                           </td>
                           <td style={{ padding: '16px 24px', textAlign: 'right' }}>
@@ -818,71 +1256,243 @@ export default function Dashboard() {
             </div>
           )}
 
+          {activeTab === 'Sensores' && (
+            <div className="animate-fade-in">
 
-          {/* MÓDULO DE PERFIL */}
+            </div>
+          )}
+
+          {activeTab === 'Moderacion' && (
+            <div>
+              <ModerationPanel />
+            </div>
+          )}
+
           {activeTab === 'Perfil' && (
-            <div style={{ background: 'var(--bg-card)', padding: '40px', borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '32px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  <div style={{ width: '80px', height: '80px', borderRadius: '50%', background: 'linear-gradient(135deg, #0F766E, #10B981)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text-inverse)', fontSize: '32px', fontWeight: '700' }}>
-                    {user.nombre.charAt(0)}
-                  </div>
-                  <div>
-                    <h2 style={{ margin: '0 0 4px 0', fontSize: '24px', fontWeight: '800', color: 'var(--text-main)', textTransform: 'uppercase' }}>{user.nombre} {user.apellido}</h2>
-                    <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--primary)', letterSpacing: '1px', background: 'var(--primary-light)', padding: '4px 12px', borderRadius: '20px' }}>
-                      {isAdmin ? 'ADMINISTRADOR' : 'PARTICIPANTE UNL'}
-                    </span>
-                  </div>
-                </div>
-                {!profileEditMode && (
-                  <button onClick={() => setProfileEditMode(true)} style={{ padding: '8px 16px', background: 'var(--primary-light)', border: '1px solid var(--primary)', color: 'var(--primary)', borderRadius: '8px', fontSize: '12px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <IconEdit /> Editar Perfil
-                  </button>
-                )}
+            <div style={{ width: '100%', maxWidth: '1200px', margin: '0 auto', paddingBottom: '40px' }}>
+              <div style={{ marginBottom: '24px' }}>
+                <h2 style={{ fontSize: '28px', fontWeight: '800', color: 'var(--text-main)', margin: '0 0 4px 0' }}>Mi Perfil</h2>
+                <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-muted)' }}>Gestiona tu información personal y configuración de cuenta</p>
               </div>
 
-              <form onSubmit={handleProfileSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>Correo Institucional</label>
-                  <input type="email" value={user.correo} disabled style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-app)', color: 'var(--text-muted)', fontSize: '14px', boxSizing: 'border-box', cursor: 'not-allowed' }} />
+              <div style={{ display: 'grid', gridTemplateColumns: 'minmax(250px, 1fr) minmax(400px, 2fr) minmax(250px, 1fr)', gap: '20px' }}>
+                
+                {/* COLUMNA IZQUIERDA */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '32px', display: 'flex', flexDirection: 'column', alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    <div style={{ position: 'relative', marginBottom: '16px' }}>
+                      <div style={{ width: '100px', height: '100px', borderRadius: '50%', background: '#0F766E', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '40px', fontWeight: 'bold' }}>
+                        {user.nombre.charAt(0)}
+                      </div>
+                      <div style={{ position: 'absolute', bottom: 0, right: 0, background: '#fff', borderRadius: '50%', width: '28px', height: '28px', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--border)', cursor: 'pointer', color: '#0F766E' }}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                      </div>
+                    </div>
+                    <h3 style={{ margin: '0 0 8px 0', fontSize: '20px', fontWeight: '700', color: 'var(--text-main)' }}>{user.nombre} {user.apellido}</h3>
+                    <span style={{ fontSize: '12px', background: '#ecfdf5', color: '#059669', padding: '4px 12px', borderRadius: '16px', fontWeight: '600', marginBottom: '16px' }}>
+                      {isAdmin ? 'Administrador' : isSuperAdmin ? 'Superadmin' : 'Participante'}
+                    </span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#059669', fontWeight: '600' }}>
+                      <IconCheck /> Cuenta verificada
+                    </div>
+                    
+                    <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid var(--border)', width: '100%', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-muted)' }}>
+                      <div style={{ background: 'var(--bg-app)', padding: '8px', borderRadius: '8px' }}><IconClock /></div>
+                      <div style={{ fontSize: '12px' }}>
+                        <div>Miembro desde</div>
+                        <div style={{ fontWeight: '700', color: 'var(--text-main)' }}>Marzo 2025</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
 
-                <div style={{ display: 'flex', gap: '16px' }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>Nombre</label>
-                    <input type="text" value={profileEditMode ? profileData.nombre : user.nombre} onChange={e => setProfileData({ ...profileData, nombre: e.target.value })} disabled={!profileEditMode} required style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: profileEditMode ? '1px solid var(--primary)' : '1px solid var(--border)', background: profileEditMode ? 'var(--bg-card)' : 'var(--bg-app)', color: 'var(--text-main)', fontSize: '14px', boxSizing: 'border-box' }} />
+                {/* COLUMNA CENTRAL */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '32px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                      <div>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', marginBottom: '8px' }}>Correo institucional</label>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <div style={{ position: 'relative', width: '280px' }}>
+                            <div style={{ position: 'absolute', left: '12px', top: '10px', color: '#9CA3AF' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg></div>
+                            <input type="email" value={user.correo} disabled style={{ width: '100%', padding: '10px 10px 10px 36px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-app)', color: 'var(--text-muted)', fontSize: '13px', boxSizing: 'border-box' }} />
+                          </div>
+                          <span style={{ fontSize: '11px', color: '#059669', background: '#ecfdf5', padding: '4px 8px', borderRadius: '12px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <IconCheck /> Verificado
+                          </span>
+                        </div>
+                      </div>
+                      {!profileEditMode && (
+                        <button onClick={() => setProfileEditMode(true)} style={{ padding: '8px 16px', background: '#fff', border: '1px solid var(--border)', color: 'var(--text-main)', borderRadius: '6px', fontSize: '12px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <IconEdit /> Editar Perfil
+                        </button>
+                      )}
+                    </div>
+
+                    <form onSubmit={handleProfileSubmit}>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', marginBottom: '8px' }}>Nombre</label>
+                          <div style={{ position: 'relative' }}>
+                            <div style={{ position: 'absolute', left: '12px', top: '10px', color: '#9CA3AF' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>
+                            <input type="text" value={profileEditMode ? profileData.nombre : user.nombre} onChange={e => setProfileData({ ...profileData, nombre: e.target.value })} disabled={!profileEditMode} required style={{ width: '100%', padding: '10px 10px 10px 36px', borderRadius: '8px', border: profileEditMode ? '1px solid #0F766E' : '1px solid var(--border)', background: profileEditMode ? '#fff' : 'var(--bg-app)', color: 'var(--text-main)', fontSize: '13px', boxSizing: 'border-box' }} />
+                          </div>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', marginBottom: '8px' }}>Apellido</label>
+                          <div style={{ position: 'relative' }}>
+                            <div style={{ position: 'absolute', left: '12px', top: '10px', color: '#9CA3AF' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>
+                            <input type="text" value={profileEditMode ? profileData.apellido : user.apellido} onChange={e => setProfileData({ ...profileData, apellido: e.target.value })} disabled={!profileEditMode} required style={{ width: '100%', padding: '10px 10px 10px 36px', borderRadius: '8px', border: profileEditMode ? '1px solid #0F766E' : '1px solid var(--border)', background: profileEditMode ? '#fff' : 'var(--bg-app)', color: 'var(--text-main)', fontSize: '13px', boxSizing: 'border-box' }} />
+                          </div>
+                        </div>
+                        
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', marginBottom: '8px' }}>Rol</label>
+                          <div style={{ position: 'relative' }}>
+                            <div style={{ position: 'absolute', left: '12px', top: '10px', color: '#9CA3AF' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></div>
+                            <input type="text" value={isAdmin ? 'Administrador' : isSuperAdmin ? 'Superadmin' : 'Participante'} disabled style={{ width: '100%', padding: '10px 10px 10px 36px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-app)', color: 'var(--text-muted)', fontSize: '13px', boxSizing: 'border-box' }} />
+                          </div>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', marginBottom: '8px' }}>Departamento / Área</label>
+                          <div style={{ position: 'relative' }}>
+                            <div style={{ position: 'absolute', left: '12px', top: '10px', color: '#9CA3AF' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg></div>
+                            <input type="text" value="Ingeniería en Computación" disabled style={{ width: '100%', padding: '10px 10px 10px 36px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-app)', color: 'var(--text-muted)', fontSize: '13px', boxSizing: 'border-box' }} />
+                          </div>
+                        </div>
+
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', marginBottom: '8px' }}>Teléfono</label>
+                          <div style={{ position: 'relative' }}>
+                            <div style={{ position: 'absolute', left: '12px', top: '10px', color: '#9CA3AF' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg></div>
+                            <input type="text" value="+593 96 123 4567" disabled style={{ width: '100%', padding: '10px 10px 10px 36px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-app)', color: 'var(--text-muted)', fontSize: '13px', boxSizing: 'border-box' }} />
+                          </div>
+                        </div>
+                        <div>
+                          <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', marginBottom: '8px' }}>Ubicación</label>
+                          <div style={{ position: 'relative' }}>
+                            <div style={{ position: 'absolute', left: '12px', top: '10px', color: '#9CA3AF' }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg></div>
+                            <input type="text" value="Loja, Ecuador" disabled style={{ width: '100%', padding: '10px 10px 10px 36px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-app)', color: 'var(--text-muted)', fontSize: '13px', boxSizing: 'border-box' }} />
+                          </div>
+                        </div>
+                      </div>
+
+                      <div style={{ marginBottom: '24px' }}>
+                        <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-main)', marginBottom: '8px' }}>Contraseña</label>
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                          <div style={{ position: 'relative', flex: 1 }}>
+                            <div style={{ position: 'absolute', left: '12px', top: '10px', color: '#9CA3AF' }}><IconLock /></div>
+                            <input type="password" value={profileEditMode ? profileData.clave : '................'} onChange={e => setProfileData({ ...profileData, clave: e.target.value })} disabled={!profileEditMode} placeholder={profileEditMode ? 'Nueva contraseña' : ''} style={{ width: '100%', padding: '10px 10px 10px 36px', borderRadius: '8px', border: profileEditMode ? '1px solid #0F766E' : '1px solid var(--border)', background: profileEditMode ? '#fff' : 'var(--bg-app)', color: 'var(--text-main)', fontSize: '13px', boxSizing: 'border-box' }} />
+                          </div>
+                          {!profileEditMode && (
+                             <button type="button" onClick={() => setProfileEditMode(true)} style={{ padding: '0 16px', background: '#fff', border: '1px solid var(--border)', borderRadius: '6px', fontSize: '12px', fontWeight: '600', color: 'var(--text-main)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                               Cambiar contraseña
+                             </button>
+                          )}
+                        </div>
+                      </div>
+
+                      {profileEditMode && (
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', borderTop: '1px solid var(--border)', paddingTop: '20px' }}>
+                          <button type="button" onClick={() => { setProfileEditMode(false); setProfileData({ nombre: user.nombre, apellido: user.apellido, clave: '' }) }} style={{ padding: '10px 24px', borderRadius: '6px', border: '1px solid var(--border)', background: '#fff', color: 'var(--text-main)', fontSize: '13px', fontWeight: '600', cursor: 'pointer' }}>
+                            Cancelar
+                          </button>
+                          <button type="submit" disabled={profileSaving} style={{ padding: '10px 24px', borderRadius: '6px', border: 'none', background: '#0F766E', color: '#fff', fontSize: '13px', fontWeight: '600', cursor: profileSaving ? 'not-allowed' : 'pointer', opacity: profileSaving ? 0.8 : 1 }}>
+                            {profileSaving ? 'Guardando...' : 'Guardar Cambios'}
+                          </button>
+                        </div>
+                      )}
+                    </form>
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>Apellido</label>
-                    <input type="text" value={profileEditMode ? profileData.apellido : user.apellido} onChange={e => setProfileData({ ...profileData, apellido: e.target.value })} disabled={!profileEditMode} required style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: profileEditMode ? '1px solid var(--primary)' : '1px solid var(--border)', background: profileEditMode ? 'var(--bg-card)' : 'var(--bg-app)', color: 'var(--text-main)', fontSize: '14px', boxSizing: 'border-box' }} />
+
+                  {/* Banner de seguridad inferior */}
+                  <div style={{ background: '#ecfdf5', border: '1px solid #d1fae5', borderRadius: '12px', padding: '24px', display: 'flex', alignItems: 'center', gap: '20px', position: 'relative', overflow: 'hidden' }}>
+                    <div style={{ width: '48px', height: '48px', borderRadius: '50%', background: '#d1fae5', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#059669', flexShrink: 0 }}>
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
+                    </div>
+                    <div style={{ zIndex: 1 }}>
+                      <h4 style={{ margin: '0 0 4px 0', fontSize: '16px', fontWeight: '800', color: '#065f46' }}>Tu seguridad es nuestra prioridad</h4>
+                      <p style={{ margin: 0, fontSize: '12px', color: '#047857', maxWidth: '400px', lineHeight: 1.5 }}>Trabajamos continuamente para proteger tu información y garantizar la integridad de la plataforma UNL Cloud Connect.</p>
+                    </div>
+                    <svg style={{ position: 'absolute', right: '-10px', bottom: '-20px', opacity: 0.1, color: '#059669' }} width="120" height="120" viewBox="0 0 24 24" fill="currentColor"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
                   </div>
                 </div>
 
-                {profileEditMode && (
-                  <div>
-                    <label style={{ display: 'block', fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase' }}>Nueva Contraseña (Opcional)</label>
-                    <input type="password" value={profileData.clave} onChange={e => setProfileData({ ...profileData, clave: e.target.value })} placeholder="Ingresa una nueva contraseña si deseas cambiarla" minLength={8} maxLength={12} style={{ width: '100%', padding: '12px 16px', borderRadius: '8px', border: '1px solid var(--primary)', background: 'var(--bg-card)', color: 'var(--text-main)', fontSize: '14px', boxSizing: 'border-box' }} />
-                  </div>
-                )}
+                {/* COLUMNA DERECHA */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                      <h4 style={{ margin: 0, fontSize: '14px', fontWeight: '700', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <IconClock /> Última actividad
+                      </h4>
+                      <span style={{ fontSize: '12px', color: '#0F766E', fontWeight: '600', cursor: 'pointer' }}>Ver todo</span>
+                    </div>
 
-                {profileEditMode ? (
-                  <div style={{ display: 'flex', gap: '12px', marginTop: '16px' }}>
-                    <button type="button" onClick={() => { setProfileEditMode(false); setProfileData({ nombre: user.nombre, apellido: user.apellido, clave: '' }) }} style={{ flex: 1, padding: '14px 16px', borderRadius: '8px', border: '1px solid var(--border)', background: 'var(--bg-app)', color: 'var(--text-muted)', fontSize: '14px', fontWeight: '700', cursor: 'pointer' }}>
-                      Cancelar
-                    </button>
-                    <button type="submit" disabled={profileSaving} style={{ flex: 1, padding: '14px 16px', borderRadius: '8px', border: 'none', background: 'var(--primary)', color: 'var(--text-inverse)', fontSize: '14px', fontWeight: '700', cursor: profileSaving ? 'not-allowed' : 'pointer', opacity: profileSaving ? 0.7 : 1 }}>
-                      {profileSaving ? 'Guardando...' : 'Guardar Cambios'}
-                    </button>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><IconCheck /></div>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)' }}>Inicio de sesión exitoso</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Hoy, 09:21</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><IconEdit /></div>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)' }}>Actualización de perfil</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Ayer, 16:45</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#fff7ed', color: '#ea580c', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><IconLock /></div>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)' }}>Cambio de contraseña</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>12 Jun 2025, 11:32</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px' }}>
+                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#f3e8ff', color: '#9333ea', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><IconActivity /></div>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)' }}>Visualización de reportes</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>11 Jun 2025, 09:15</div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                ) : (
-                  <div style={{ marginTop: '16px', padding: '16px', background: 'var(--primary-light)', border: '1px solid var(--border)', borderRadius: '8px', display: 'flex', alignItems: 'flex-start', gap: '12px' }}>
-                    <div style={{ color: 'var(--primary)', marginTop: '2px' }}><IconInfo /></div>
-                    <p style={{ margin: 0, fontSize: '12px', color: 'var(--primary)', fontWeight: '600', lineHeight: 1.5 }}>
-                      Puedes actualizar tu nombre, apellido y contraseña haciendo clic en "Editar Perfil".
-                    </p>
+
+                  <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: '12px', padding: '24px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                    <h4 style={{ margin: '0 0 24px 0', fontSize: '14px', fontWeight: '700', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Seguridad de la cuenta
+                    </h4>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <div style={{ color: '#059669' }}><IconCheck /></div>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)' }}>Autenticación segura</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Protegida con contraseña</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <div style={{ color: '#059669' }}><IconCheck /></div>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)' }}>Última verificación</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Hoy, 09:21</div>
+                        </div>
+                      </div>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <div style={{ color: '#059669' }}><IconCheck /></div>
+                        <div>
+                          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)' }}>Sesiones activas</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>1 sesión activa</div>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                )}
-              </form>
+                </div>
+
+              </div>
             </div>
           )}
 
@@ -930,11 +1540,11 @@ export default function Dashboard() {
           )}
 
           {/* MÓDULO DE CONFIGURACIÓN ADMIN */}
-          {activeTab === 'Configuracion' && isAdmin && (
+          {activeTab === 'Configuracion' && (isAdmin || isSuperAdmin) && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
               <div style={{ background: 'var(--bg-card)', padding: '40px', borderRadius: '12px', border: '1px solid var(--border)', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
                 <h2 style={{ margin: '0 0 24px 0', fontSize: '24px', fontWeight: '800', color: 'var(--text-main)' }}>Configuración Global del Sistema</h2>
-                
+
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
                   {/* Tarjeta de Seguridad */}
                   <div style={{ padding: '24px', border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--bg-app)' }}>
@@ -959,7 +1569,7 @@ export default function Dashboard() {
 
                   {/* Preferencias de la Interfaz */}
                   <div style={{ padding: '24px', border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--bg-app)' }}>
-                     <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <IconEvents /> Preferencias
                     </h3>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
@@ -989,19 +1599,16 @@ export default function Dashboard() {
             </div>
           )}
 
-          {/* FALLBACK FOR OTHER TABS */}
-          {((isAdmin && activeTab !== 'Usuarios' && activeTab !== 'Configuracion' && activeTab !== 'Perfil') || (!isAdmin && activeTab !== 'Dashboard' && activeTab !== 'Perfil' && activeTab !== 'Clima')) && (
-            <div style={{ background: 'var(--bg-card)', padding: '60px', borderRadius: '12px', border: '1px solid #DBE3E0', textAlign: 'center' }}>
-              <div style={{ fontSize: '48px', marginBottom: '16px' }}>🚧</div>
-              <h2 style={{ margin: '0 0 8px 0', fontSize: '24px', fontWeight: '800', color: 'var(--text-main)' }}>Módulo en Construcción</h2>
-              <p style={{ margin: 0, color: 'var(--text-muted)' }}>La sección de {menuItems.find(i => i.id === activeTab)?.label || 'seleccionada'} estará disponible próximamente.</p>
-            </div>
+          {/* VISTA DE UBICACIÓN */}
+          {activeTab === 'Ubicacion' && (
+            <Ubicacion userRole={user.id_rol} />
           )}
 
           {/* FOOTER */}
-          <div style={{ marginTop: '40px', borderTop: '1px solid #DBE3E0', paddingTop: '16px', display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '1px' }}>
-            <div>CONSOLA CENTRALIZADA UNIVERSIDAD NACIONAL DE LOJA / HANDSHAKE 04.</div>
-            <div>METODOLOGÍA: KANBAN + XP <span style={{ margin: '0 8px' }}>|</span> STACK: PY / RJS / IOT ESP32</div>
+          <div style={{ marginTop: 'auto', paddingTop: '40px' }}>
+            <div style={{ borderTop: '1px solid var(--border)', paddingTop: '24px', paddingBottom: '8px', textAlign: 'center', fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>
+              © {new Date().getFullYear()} Universidad Nacional de Loja — Ingeniería en Computación.
+            </div>
           </div>
 
         </div>
@@ -1063,6 +1670,7 @@ export default function Dashboard() {
                   <select value={formData.id_rol} onChange={e => setFormData({ ...formData, id_rol: e.target.value })} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '14px', boxSizing: 'border-box', background: 'var(--text-inverse)' }}>
                     <option value={2}>Participante (Estándar)</option>
                     <option value={1}>Administrador (Control Total)</option>
+                    <option value={3}>Superadmin (Acceso Total)</option>
                   </select>
                 </div>
 

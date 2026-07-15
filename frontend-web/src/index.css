@@ -60,3 +60,93 @@ button {
   border-radius: 4px;
   cursor: pointer;
 }
+
+/* RESPONSIVE DESIGN FOR WEB APP */
+@media (max-width: 1024px) {
+  .dashboard-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .chart-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+@media (max-width: 768px) {
+  /* Sidebar handling */
+  aside {
+    position: fixed !important;
+    left: -280px;
+    z-index: 50;
+    transition: left 0.3s ease;
+  }
+  aside.sidebar-open {
+    left: 0;
+  }
+
+  /* Overlay */
+  .sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0,0,0,0.5);
+    z-index: 40;
+  }
+  .sidebar-overlay.sidebar-open {
+    display: block;
+  }
+
+  /* Layout */
+  main {
+    margin-left: 0 !important;
+    width: 100% !important;
+  }
+  header {
+    padding: 0 16px !important;
+  }
+
+  /* Hamburger Menu Button */
+  .mobile-menu-btn {
+    display: flex !important;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: none;
+    color: var(--text-main);
+    padding: 8px;
+    margin-right: 8px;
+  }
+
+  /* Grids */
+  .dashboard-grid, [style*="grid-template-columns: repeat(4, 1fr)"] {
+    grid-template-columns: 1fr !important;
+  }
+  .chart-grid, [style*="grid-template-columns: 2fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+  
+  /* Profile section grid */
+  [style*="minmax(250px, 1fr) minmax(400px, 2fr) minmax(250px, 1fr)"] {
+    grid-template-columns: 1fr !important;
+  }
+  [style*="grid-template-columns: 1fr 1fr"] {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* Ubicaciones list grid */
+  [style*="minmax(250px, 3fr) 1fr 1fr 100px"] {
+    grid-template-columns: 1fr !important;
+    gap: 12px;
+  }
+  
+  /* Hide columns in mobile tables for clarity if needed, though we stacked them */
+  .hide-on-mobile {
+    display: none !important;
+  }
+}
+
+.mobile-menu-btn {
+  display: none;
+}

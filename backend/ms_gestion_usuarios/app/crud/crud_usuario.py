@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.models.usuario import Usuario
 from app.schemas.usuario import UsuarioCreate
 from app.core.security import obtener_hash_clave
+from sqlalchemy.exc import IntegrityError
 
 def obtener_usuario_por_correo(db: Session, correo: str):
     """
@@ -25,11 +26,11 @@ def crear_usuario(db: Session, usuario: UsuarioCreate, verificado: bool = False)
     El parámetro verificado permite marcar usuarios de Google como verificados automáticamente.
     """
     # Validar que el id_rol sea válido (solo 1: Administrador o 2: Participante)
-    if usuario.id_rol not in [1, 2]:
+    if usuario.id_rol not in [1, 2, 3]:
         from fastapi import HTTPException, status
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="El rol debe ser 1 (Administrador) o 2 (Participante)."
+            detail="El rol debe ser 1 (Administrador), 2 (Participante) o 3 (Superadmin)."
         )
     
     # Encriptar la contraseña si se proporcionó una (soporte para flujo híbrido)
@@ -48,8 +49,16 @@ def crear_usuario(db: Session, usuario: UsuarioCreate, verificado: bool = False)
     
     # Persistir en la base de datos
     db.add(db_usuario)
-    db.commit()
-    db.refresh(db_usuario)
+    try:
+        db.commit()
+        db.refresh(db_usuario)
+    except IntegrityError:
+        db.rollback()
+        from fastapi import HTTPException, status
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Error de integridad: Ya existe un registro con estos datos únicos (ej. correo duplicado)."
+        )
     
     return db_usuario
 
@@ -67,7 +76,17 @@ def actualizar_usuario(db: Session, db_usuario: Usuario, datos_actualizar: dict)
     db.refresh(db_usuario)
     return db_usuario
 
+from app.models.historial_clave import HistorialClave
+from app.models.auditoria import AuditoriaUsuario
+
 def eliminar_usuario(db: Session, db_usuario: Usuario):
+    # Primero: Eliminar historial de contraseñas (dependencia fuerte)
+    db.query(HistorialClave).filter(HistorialClave.id_usuario == db_usuario.id_usuario).delete()
+    
+    # Segundo: Desvincular registros de auditoría (para no perder el registro histórico)
+    db.query(AuditoriaUsuario).filter(AuditoriaUsuario.id_usuario == db_usuario.id_usuario).update({"id_usuario": None})
+    
+    # Tercero: Eliminar el usuario
     db.delete(db_usuario)
     db.commit()
     return db_usuario

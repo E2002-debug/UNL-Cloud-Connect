@@ -32,6 +32,7 @@ google-auth==2.29.0
 requests==2.31.0
 fastapi-mail==1.4.1
 asyncpg==0.29.0
+dnspython==2.6.1
 
 # Testing (Caja Blanca y Caja Negra)
 pytest==8.2.0
