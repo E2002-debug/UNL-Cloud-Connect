@@ -38,14 +38,14 @@ export async function getLojaWeather(): Promise<WeatherData> {
   } catch (error: any) {
     console.warn('Weather API Error, using realistic fallback:', error.message);
     return {
-      temp: 15.5,
-      description: 'Nublado con lluvia',
-      icon: 'rain',
-      humidity: 87,
-      windSpeed: 25.6,
-      feelsLike: 13,
-      rainChance: 87,
-      uvIndex: 6,
+      temp: undefined,
+      description: 'Sin conexión',
+      icon: 'cloudy',
+      humidity: undefined,
+      windSpeed: undefined,
+      feelsLike: undefined,
+      rainChance: undefined,
+      uvIndex: undefined,
       timestamp: Date.now(),
     };
   }

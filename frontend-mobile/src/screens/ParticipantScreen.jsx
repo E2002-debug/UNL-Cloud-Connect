@@ -519,7 +519,7 @@ export default function ParticipantScreen({ route, navigation }) {
                   </View>
                   <View style={styles.premiumBadgeSecondary}>
                     <Text style={styles.premiumBadgeTextSecondary}>
-                      {weather?.temperatura ? weather.temperatura.toFixed(1) + '°C' : '15.5°C'}
+                      {weather?.temperatura ? weather.temperatura.toFixed(1) + '°C' : '--°C'}
                     </Text>
                   </View>
                 </View>
@@ -695,10 +695,10 @@ export default function ParticipantScreen({ route, navigation }) {
           <View style={styles.weatherEngineBody}>
             <View style={styles.weatherEngineTempCol}>
               <Text style={styles.weatherEngineTemp}>
-                {weather.temperatura ? weather.temperatura.toFixed(1) : '15.5'}°C
+                {weather.temperatura ? weather.temperatura.toFixed(1) : '--'}°C
               </Text>
               <Text style={styles.weatherEngineFeelsLike}>
-                {(weather.temperatura || 15.5).toFixed(1)}°C / {((weather.temperatura || 15.5) + 3).toFixed(1)}°C
+                {weather.temperatura ? `${weather.temperatura.toFixed(1)}°C / ${(weather.temperatura + 3).toFixed(1)}°C` : '--°C / --°C'}
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
                 <CloudRain size={14} color="#FFFFFF" style={{ marginRight: 6 }} />
@@ -719,35 +719,35 @@ export default function ParticipantScreen({ route, navigation }) {
                <View style={[styles.weatherMetricIconBox, { backgroundColor: '#EFF6FF' }]}><Thermometer size={16} color="#3B82F6" /></View>
                <Text style={styles.weatherMetricLabel}>SENSACIÓN TÉRMICA</Text>
              </View>
-             <Text style={styles.weatherMetricValue}>{weather.feelsLike ? weather.feelsLike.toFixed(1) : '13.0'}°C</Text>
+             <Text style={styles.weatherMetricValue}>{weather.feelsLike ? weather.feelsLike.toFixed(1) : '--'}°C</Text>
           </View>
           <View style={styles.weatherMetricRow}>
              <View style={styles.weatherMetricLeft}>
                <View style={[styles.weatherMetricIconBox, { backgroundColor: '#ECFDF5' }]}><CloudRain size={16} color="#10B981" /></View>
                <Text style={styles.weatherMetricLabel}>PROB. DE LLUVIA</Text>
              </View>
-             <Text style={styles.weatherMetricValue}>{weather.rainChance || 87}%</Text>
+             <Text style={styles.weatherMetricValue}>{weather.rainChance !== undefined ? weather.rainChance : '--'}%</Text>
           </View>
           <View style={styles.weatherMetricRow}>
              <View style={styles.weatherMetricLeft}>
                <View style={[styles.weatherMetricIconBox, { backgroundColor: '#F5F3FF' }]}><Wind size={16} color="#8B5CF6" /></View>
                <Text style={styles.weatherMetricLabel}>VELOCIDAD VIENTO</Text>
              </View>
-             <Text style={styles.weatherMetricValue}>{weather.windSpeed || 25.6} km/h</Text>
+             <Text style={styles.weatherMetricValue}>{weather.windSpeed !== undefined ? weather.windSpeed : '--'} km/h</Text>
           </View>
           <View style={styles.weatherMetricRow}>
              <View style={styles.weatherMetricLeft}>
                <View style={[styles.weatherMetricIconBox, { backgroundColor: '#EFF6FF' }]}><Droplets size={16} color="#3B82F6" /></View>
                <Text style={styles.weatherMetricLabel}>HUMEDAD DEL AIRE</Text>
              </View>
-             <Text style={styles.weatherMetricValue}>{weather.humedad || 87}%</Text>
+             <Text style={styles.weatherMetricValue}>{weather.humedad !== undefined ? weather.humedad : '--'}%</Text>
           </View>
           <View style={styles.weatherMetricRowBorderNone}>
              <View style={styles.weatherMetricLeft}>
                <View style={[styles.weatherMetricIconBox, { backgroundColor: '#FFFBEB' }]}><Sun size={16} color="#F59E0B" /></View>
                <Text style={styles.weatherMetricLabel}>ÍNDICE UV</Text>
              </View>
-             <Text style={styles.weatherMetricValue}>{weather.uvIndex || 6}</Text>
+             <Text style={styles.weatherMetricValue}>{weather.uvIndex !== undefined ? weather.uvIndex : '--'}</Text>
           </View>
         </View>
 
