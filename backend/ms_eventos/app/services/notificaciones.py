@@ -7,10 +7,6 @@ async def enviar_alerta_evento(evento: Evento, auth_token: str = None, accion: s
     Paso 5.2: Lógica de envío asíncrona.
     Envía petición al ms_notificaciones para distribuir la notificación.
     """
-    if not auth_token:
-        print("[BACKGROUND TASK] ❌ No hay auth_token, no se puede enviar notificación.")
-        return
-        
     payload = {
         "nombre_evento": evento.nombre,
         "accion": accion,
@@ -19,7 +15,7 @@ async def enviar_alerta_evento(evento: Evento, auth_token: str = None, accion: s
     }
     
     headers = {
-        "Authorization": auth_token
+        "Content-Type": "application/json"
     }
     
     print("\n" + "="*55)

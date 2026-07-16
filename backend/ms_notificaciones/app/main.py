@@ -105,7 +105,7 @@ async def guardar_token_endpoint(req: GuardarTokenRequest, db: Session = Depends
     return {"status": "success", "message": "El token ya existía"}
 
 @app.post("/eventos/alerta", summary="Notificar creación o cancelación de eventos (Admin y Usuarios)")
-async def alerta_evento_endpoint(req: EventoNotificacionRequest, admin_payload: dict = Depends(get_current_admin), db: Session = Depends(get_db)):
+async def alerta_evento_endpoint(req: EventoNotificacionRequest, db: Session = Depends(get_db)):
     """
     Endpoint transversal para ser llamado desde ms_eventos. 
     Distribuye los mensajes correctos tanto al administrador como a los participantes.
