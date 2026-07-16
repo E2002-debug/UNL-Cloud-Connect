@@ -818,12 +818,8 @@ export default function Dashboard() {
                       <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
                         No tienes notificaciones
                       </div>
-                    ) : notifications.filter(n => !readNotifIds.includes(n.id)).length === 0 ? (
-                      <div style={{ padding: '30px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '13px' }}>
-                        No tienes notificaciones nuevas
-                      </div>
-                    ) : notifications.filter(n => !readNotifIds.includes(n.id)).map(notif => {
-                      const isRead = false // siempre false porque ya filtramos las leídas
+                    ) : notifications.map(notif => {
+                      const isRead = readNotifIds.includes(notif.id)
                       return (
                       <div key={notif.id} style={{ 
                         padding: '16px 20px', 
