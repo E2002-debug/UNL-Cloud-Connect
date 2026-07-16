@@ -155,12 +155,12 @@ export default function EventModal({ open, onClose, onSave, editando }) {
       const horaInicioNum = parseInt(formData.hora_inicio.split(':')[0], 10);
       const horaFinNum = parseInt(formData.hora_fin.split(':')[0], 10);
       
-      if (horaInicioNum < 9 || horaInicioNum > 18) {
-        nuevosErrores.fecha_inicio = "La hora de inicio debe estar entre las 09:00 y las 18:00.";
+      if (horaInicioNum < 8 || horaInicioNum > 18) {
+        nuevosErrores.fecha_inicio = "La hora de inicio debe estar entre las 08:00 y las 18:00.";
       }
       
-      if (horaFinNum < 9 || horaFinNum > 18) {
-        nuevosErrores.fecha_fin = "La hora de finalización debe estar entre las 09:00 y las 18:00.";
+      if (horaFinNum < 8 || horaFinNum > 18) {
+        nuevosErrores.fecha_fin = "La hora de finalización debe estar entre las 08:00 y las 18:00.";
       }
 
       if (fin <= inicio) {
@@ -365,11 +365,11 @@ export default function EventModal({ open, onClose, onSave, editando }) {
                 <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                   <select value={formData.hora_inicio?.split(':')[0] || ""} onChange={(e) => { const val = e.target.value + ":" + (formData.hora_inicio?.split(':')[1] || "00"); setFormData({...formData, hora_inicio: val}); limpiarError("fecha_inicio"); }} style={{ ...(errores.fecha_inicio ? inputErrorStyle : inputStyle), width: "50%" }}>
                     <option value="" disabled>HH</option>
-                    {Array.from({length: 10}, (_, i) => {
-                      const v = String(i + 9).padStart(2, '0');
-                      const h12 = (i + 9) > 12 ? (i + 9) - 12 : (i + 9);
-                      const ampm = (i + 9) < 12 ? 'AM' : 'PM';
-                      return <option key={i+9} value={v}>{String(h12).padStart(2, '0')} {ampm}</option>;
+                    {Array.from({length: 11}, (_, i) => {
+                      const v = String(i + 8).padStart(2, '0');
+                      const h12 = (i + 8) > 12 ? (i + 8) - 12 : (i + 8);
+                      const ampm = (i + 8) < 12 ? 'AM' : 'PM';
+                      return <option key={i+8} value={v}>{String(h12).padStart(2, '0')} {ampm}</option>;
                     })}
                   </select>
                   <span style={{ fontSize: "16px", fontWeight: "700", color: "var(--text-muted)", lineHeight: "38px" }}>:</span>
@@ -391,11 +391,11 @@ export default function EventModal({ open, onClose, onSave, editando }) {
                 <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                   <select value={formData.hora_fin?.split(':')[0] || ""} onChange={(e) => { const val = e.target.value + ":" + (formData.hora_fin?.split(':')[1] || "00"); setFormData({...formData, hora_fin: val}); limpiarError("fecha_fin"); }} style={{ ...(errores.fecha_fin ? inputErrorStyle : inputStyle), width: "50%" }}>
                     <option value="" disabled>HH</option>
-                    {Array.from({length: 10}, (_, i) => {
-                      const v = String(i + 9).padStart(2, '0');
-                      const h12 = (i + 9) > 12 ? (i + 9) - 12 : (i + 9);
-                      const ampm = (i + 9) < 12 ? 'AM' : 'PM';
-                      return <option key={i+9} value={v}>{String(h12).padStart(2, '0')} {ampm}</option>;
+                    {Array.from({length: 11}, (_, i) => {
+                      const v = String(i + 8).padStart(2, '0');
+                      const h12 = (i + 8) > 12 ? (i + 8) - 12 : (i + 8);
+                      const ampm = (i + 8) < 12 ? 'AM' : 'PM';
+                      return <option key={i+8} value={v}>{String(h12).padStart(2, '0')} {ampm}</option>;
                     })}
                   </select>
                   <span style={{ fontSize: "16px", fontWeight: "700", color: "var(--text-muted)", lineHeight: "38px" }}>:</span>

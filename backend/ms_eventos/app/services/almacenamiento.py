@@ -9,10 +9,8 @@ from app.core.config import settings
 from datetime import timedelta
 from app.core.config import settings
 
-# Inicializamos el cliente de MinIO usando la URL pública para firmas de presigned URLs correctas
-minio_public_host = settings.MINIO_PUBLIC_URL.replace("http://", "").replace("https://", "")
 minio_client = Minio(
-    minio_public_host,
+    settings.MINIO_SERVER,
     access_key=settings.MINIO_ROOT_USER,
     secret_key=settings.MINIO_ROOT_PASSWORD,
     secure=False
@@ -107,11 +105,12 @@ def generar_url_firmada(url_base: str) -> str:
     try:
         object_name = url_base.split(f"{settings.MINIO_BUCKET_NAME}/")[-1]
         # Generar enlace temporal (expira en 2 horas)
-        return minio_client.presigned_get_object(
+        url_interna = minio_client.presigned_get_object(
             bucket_name=settings.MINIO_BUCKET_NAME,
             object_name=object_name,
             expires=timedelta(hours=2)
         )
+        return url_interna.replace(f"http://{settings.MINIO_SERVER}", settings.MINIO_PUBLIC_URL)
     except Exception as e:
         print(f"[MinIO ERROR] Fallo al firmar URL: {e}")
         return url_base

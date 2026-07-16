@@ -102,8 +102,22 @@ export default function LoginScreen({ navigation }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [captchaQ, setCaptchaQ] = useState('');
+  const [captchaA, setCaptchaA] = useState('');
+  const [userCaptcha, setUserCaptcha] = useState('');
+
+  const generateCaptcha = () => {
+    const num1 = Math.floor(Math.random() * 10) + 1;
+    const num2 = Math.floor(Math.random() * 10) + 1;
+    setCaptchaQ(`${num1} + ${num2}`);
+    setCaptchaA((num1 + num2).toString());
+    setUserCaptcha('');
+  };
+
+  useEffect(() => {
+    generateCaptcha();
+  }, []);
 
   useEffect(() => {
     if (GoogleSignin) {
@@ -119,8 +133,13 @@ export default function LoginScreen({ navigation }) {
   }, []);
 
   const submit = async () => {
-    if (!username.trim() || !password.trim()) {
-      setError('Por favor, ingresa tu correo y contraseña.');
+    if (!username.trim() || !password.trim() || !userCaptcha.trim()) {
+      setError('Por favor, completa todos los campos, incluido el CAPTCHA.');
+      return;
+    }
+    if (userCaptcha.trim() !== captchaA) {
+      setError('El CAPTCHA es incorrecto.');
+      generateCaptcha();
       return;
     }
     setError('');
@@ -164,6 +183,7 @@ export default function LoginScreen({ navigation }) {
       navigation.replace('Participant', { user: userProfile });
     } catch (err) {
       setLoading(false);
+      generateCaptcha();
       const msg = err.response?.data?.detail || 'Error de conexión. Intente más tarde.';
       setError(msg);
       Alert.alert('Error de Autenticación', msg);
@@ -293,6 +313,28 @@ export default function LoginScreen({ navigation }) {
               style={styles.passwordToggle}
             >
               {showPassword ? <EyeOff size={18} color="#6B7280" /> : <Eye size={18} color="#6B7280" />}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        <View style={styles.inputGroup}>
+          <View style={styles.labelRow}>
+            <View style={styles.iconCircle}>
+              <Lock size={16} color="#059669" />
+            </View>
+            <Text style={styles.label}>Resuelve: {captchaQ} = ?</Text>
+          </View>
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={styles.inputText}
+              value={userCaptcha}
+              onChangeText={setUserCaptcha}
+              placeholder="Respuesta"
+              keyboardType="numeric"
+              placeholderTextColor="#9CA3AF"
+            />
+            <TouchableOpacity onPress={generateCaptcha} style={{ padding: 12 }}>
+              <Text style={{ fontSize: 18, color: '#6B7280' }}>↻</Text>
             </TouchableOpacity>
           </View>
         </View>

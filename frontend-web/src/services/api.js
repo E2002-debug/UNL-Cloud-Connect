@@ -64,6 +64,11 @@ api.interceptors.response.use(
       504: 'El servidor tardó demasiado en responder. Por favor intenta de nuevo.',
     }
 
+    if (status === 502 || status === 503 || status === 504) {
+      // Disparar evento global para mostrar la pantalla bonita de fuera de servicio
+      window.dispatchEvent(new Event('service_unavailable'));
+    }
+
     const mensaje = mensajes[status] || 'Ocurrió un error inesperado. Por favor intenta de nuevo.'
     return Promise.reject(new Error(mensaje))
   }

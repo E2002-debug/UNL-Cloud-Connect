@@ -11,6 +11,7 @@ import Dashboard from './pages/Dashboard'
 import VerificarCuenta from './pages/VerificarCuenta'
 import EventoPage from './pages/EventoPage'
 import MobileOnly from './pages/MobileOnly'
+import MaintenanceModal from './components/MaintenanceModal'
 
 /**
  * Componente de protección de ruta por Rol (Solo Admin '1' y Superadmin '3')
@@ -98,6 +99,7 @@ export default function App() {
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
     <Toaster position="top-right" reverseOrder={false} />
+    <MaintenanceModal />
     </>
   )
 }

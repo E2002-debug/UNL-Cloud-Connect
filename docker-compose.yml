@@ -128,6 +128,9 @@ services:
       - ./backend/ms_notificaciones/.env
     volumes:
       - ./backend/ms_notificaciones/app:/app/app
+    depends_on:
+      db:
+        condition: service_healthy
 
   # 8. API Gateway (Kong)
   api-gateway:

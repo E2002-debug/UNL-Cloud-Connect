@@ -32,6 +32,23 @@ export default function Login() {
   const [searchParams] = useSearchParams()
   const navigate = useNavigate()
 
+  // CAPTCHA State
+  const [captchaQ, setCaptchaQ] = useState('')
+  const [captchaA, setCaptchaA] = useState('')
+  const [userCaptcha, setUserCaptcha] = useState('')
+
+  const generateCaptcha = () => {
+    const num1 = Math.floor(Math.random() * 10) + 1
+    const num2 = Math.floor(Math.random() * 10) + 1
+    setCaptchaQ(`${num1} + ${num2}`)
+    setCaptchaA((num1 + num2).toString())
+    setUserCaptcha('')
+  }
+
+  useEffect(() => {
+    generateCaptcha()
+  }, [])
+
   // Redirigir si el usuario ya está autenticado (evita acceso manual a /login)
   useEffect(() => {
     const token = localStorage.getItem('access_token')
@@ -120,10 +137,18 @@ export default function Login() {
 
     const cleanEmail = email.trim().toLowerCase()
 
-    if (!cleanEmail || !password) {
-      const msg = 'Por favor, complete todos los campos.'
+    if (!cleanEmail || !password || !userCaptcha) {
+      const msg = 'Por favor, complete todos los campos, incluido el CAPTCHA.'
       setError(msg)
       toast.error(msg)
+      return
+    }
+
+    if (userCaptcha !== captchaA) {
+      const msg = 'El CAPTCHA es incorrecto.'
+      setError(msg)
+      toast.error(msg)
+      generateCaptcha()
       return
     }
 
@@ -159,6 +184,7 @@ export default function Login() {
       }
       setError(msg)
       setLoading(false)
+      generateCaptcha()
     }
   }
 
@@ -243,6 +269,18 @@ export default function Login() {
                     ) : (
                       <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
                     )}
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#1a1a1a', marginBottom: '8px' }}>
+                  Resuelve: {captchaQ} = ?
+                </label>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <input type="text" value={userCaptcha} onChange={(e) => setUserCaptcha(e.target.value)} placeholder="Respuesta" style={{ flex: 1, padding: '12px 16px', borderRadius: '8px', border: '1px solid #DBE3E0', background: '#F4F8F6', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
+                  <button type="button" onClick={generateCaptcha} style={{ padding: '0 16px', borderRadius: '8px', border: '1px solid #DBE3E0', background: '#fff', cursor: 'pointer' }}>
+                    ↻
                   </button>
                 </div>
               </div>
