@@ -11,7 +11,6 @@ import Dashboard from './pages/Dashboard'
 import VerificarCuenta from './pages/VerificarCuenta'
 import EventoPage from './pages/EventoPage'
 import MobileOnly from './pages/MobileOnly'
-import Configuracion from './pages/Configuracion'
 import MaintenanceModal from './components/MaintenanceModal'
 import { NotificationProvider } from './contexts/NotificationContext'
 
@@ -89,10 +88,6 @@ export default function App() {
       <Route
         path="/dashboard"
         element={<GuardedRoute element={Dashboard} />}
-      />
-      <Route
-        path="/configuracion"
-        element={<GuardedRoute element={Configuracion} />}
       />
 
       {/* Ruta pública: Solo app móvil (para participantes) */}
