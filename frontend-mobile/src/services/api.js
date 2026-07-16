@@ -103,7 +103,7 @@ export const getClimaActual = async () => {
     const { getLojaWeather } = await import('./weatherService');
     w = await getLojaWeather();
   } catch (e) {
-    w = { temp: 18.5, humidity: 62, description: 'Estación fuera de línea', icon: 'clear-day', feelsLike: 18, windSpeed: 10, rainChance: 0, uvIndex: 0 };
+    w = { temp: undefined, humidity: undefined, description: 'Estación fuera de línea', icon: 'clear-day', feelsLike: undefined, windSpeed: undefined, rainChance: undefined, uvIndex: undefined };
   }
 
   try {
@@ -112,6 +112,8 @@ export const getClimaActual = async () => {
     const fechaDato = new Date(data.fecha_captura + 'Z');
     const ahora = new Date();
     const diferenciaMinutos = (ahora - fechaDato) / (1000 * 60);
+    
+    // Si la ESP32 está activa (datos frescos menores a 5 min), usar sus datos:
     if (diferenciaMinutos <= 5) {
       return {
         ...w,
@@ -119,21 +121,22 @@ export const getClimaActual = async () => {
         humedad: data.humedad,
         fuente: 'ESP32',
         alerta: data.alerta || false,
-        detalles_alerta: data.alerta ? '¡Alerta local!' : w.description,
+        detalles_alerta: data.alerta ? '¡Alerta local!' : (w?.description || 'Normal'),
       };
     }
-    console.warn(`[CLIMA] Dato IoT antiguo (${Math.round(diferenciaMinutos)} min). Usando fallback...`);
+    console.warn(`[CLIMA] Dato IoT antiguo (${Math.round(diferenciaMinutos)} min). Usando fallback de Visual Crossing...`);
   } catch (error) {
-    console.log('[CLIMA] Sensor local no disponible, usando fallback...');
+    console.log('[CLIMA] Sensor ESP32 local no disponible, usando fallback...');
   }
-  
+
+  // Si la ESP32 falló o está apagada, usamos los datos de la API que "dan la cara"
   return {
     ...w,
-    temperatura: w.temp,
-    humedad: w.humidity,
-    fuente: 'API',
+    temperatura: w?.temp,
+    humedad: w?.humidity,
+    fuente: 'API VisualCrossing',
     alerta: false,
-    detalles_alerta: w.description,
+    detalles_alerta: w?.description || 'Sin datos de respaldo',
   };
 };
 

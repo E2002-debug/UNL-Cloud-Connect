@@ -93,7 +93,7 @@ services:
       - name: ruta-notificaciones
         paths:
           - /api/notificaciones
-        strip_path: false
+        strip_path: true
 
 # ==========================================
 # FIN DE CONFIGURACIÓN

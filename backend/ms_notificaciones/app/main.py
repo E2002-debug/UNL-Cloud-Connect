@@ -83,6 +83,7 @@ async def send_push_endpoint(req: PushRequest, admin_payload: dict = Depends(get
         raise HTTPException(status_code=500, detail="Error al enviar la notificacion Push")
     return {"status": "success", "expo_response": res}
 
+@app.post("/api/notificaciones/guardar-token", summary="Guardar el Push Token (Ruta Absoluta)")
 @app.post("/guardar-token", summary="Guardar el Push Token de un usuario")
 async def guardar_token_endpoint(req: GuardarTokenRequest, db: Session = Depends(get_db), usuario_payload: dict = Depends(validar_token)):
     # Upsert logic: Si existe para ese usuario y token, ignorar; o actualizar si es nuevo.
@@ -122,6 +123,7 @@ async def alerta_evento_endpoint(req: EventoNotificacionRequest, db: Session = D
 # ENDPOINTS WEB (WebSockets & Historial)
 # ==========================================
 
+@app.websocket("/api/notificaciones/ws/{id_usuario}")
 @app.websocket("/ws/{id_usuario}")
 async def websocket_endpoint(websocket: WebSocket, id_usuario: int):
     await manager.connect(websocket, id_usuario)
@@ -134,12 +136,14 @@ async def websocket_endpoint(websocket: WebSocket, id_usuario: int):
     except WebSocketDisconnect:
         manager.disconnect(websocket, id_usuario)
 
+@app.get("/api/notificaciones/historial")
 @app.get("/historial")
 async def obtener_historial_notificaciones(db: Session = Depends(get_db)):
     # Retorna las últimas 50 notificaciones (id_usuario = 0 son globales)
     notificaciones = db.query(NotificacionWeb).order_by(NotificacionWeb.fecha_creacion.desc()).limit(50).all()
     return notificaciones
 
+@app.put("/api/notificaciones/historial/{id_notificacion}/leer")
 @app.put("/historial/{id_notificacion}/leer")
 async def marcar_notificacion_leida(id_notificacion: int, db: Session = Depends(get_db)):
     notif = db.query(NotificacionWeb).filter(NotificacionWeb.id_notificacion == id_notificacion).first()

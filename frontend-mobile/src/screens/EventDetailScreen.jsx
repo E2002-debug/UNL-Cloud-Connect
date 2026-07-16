@@ -478,18 +478,20 @@ export default function EventDetailScreen({ route, navigation }) {
 
     let result;
     const remainingCount = 3 - uploadedCount;
-    const pickerOptions = {
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: false,
-      quality: 0.9,
-      allowsMultipleSelection: !useCamera,
-      selectionLimit: remainingCount > 0 ? remainingCount : 1,
-    };
-
     if (useCamera) {
-      result = await ImagePicker.launchCameraAsync(pickerOptions);
+      result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.9,
+      });
     } else {
-      result = await ImagePicker.launchImageLibraryAsync(pickerOptions);
+      result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: false,
+        quality: 0.9,
+        allowsMultipleSelection: true,
+        selectionLimit: remainingCount > 0 ? remainingCount : 1,
+      });
     }
 
     if (!result.canceled && result.assets && result.assets.length > 0) {
