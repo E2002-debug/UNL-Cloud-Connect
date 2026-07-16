@@ -5,6 +5,7 @@ import { listarSensores, obtenerClimaActual } from '../services/climaService'
 import { listarUbicaciones } from '../services/ubicacionService'
 import { getEventos, getUbicaciones } from '../components/dashboard/events/eventService'
 import toast from 'react-hot-toast'
+import { useNotifications } from '../contexts/NotificationContext'
 
 import Events from '../components/dashboard/events/Events'
 import Sensors from '../components/dashboard/sensors/Sensors'
@@ -60,6 +61,26 @@ export default function Dashboard() {
   
   const knownEventIds = useRef(new Set());
   const initialLoadDone = useRef(false);
+  
+  const { notificaciones: wsNotifs } = useNotifications();
+
+  useEffect(() => {
+    if (wsNotifs && wsNotifs.length > 0) {
+      const last = wsNotifs[0];
+      setNotifications(prev => {
+        if (prev.find(n => n.id === last.id_notificacion || n.title === last.titulo && n.message === last.mensaje)) return prev;
+        return [{
+          id: last.id_notificacion || Date.now(),
+          type: last.tipo === 'ALERTA' ? 'error' : last.tipo === 'success' ? 'success' : 'info',
+          iconType: 'web',
+          title: last.titulo,
+          message: last.mensaje,
+          time: 'Hace un momento',
+          timestamp: Date.now()
+        }, ...prev].slice(0, 50);
+      });
+    }
+  }, [wsNotifs]);
   
   useEffect(() => {
     if (currentUserId) {
