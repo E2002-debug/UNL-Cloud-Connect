@@ -16,8 +16,15 @@ minio_client_internal = Minio(
     secure=False
 )
 
-# Cliente público removido porque Kong sobrescribe el header Host y rompe la firma.
-# Usaremos minio_client_internal para firmar y reemplazaremos el dominio.
+# Cliente público con región explícita para evitar llamadas de red en presigned_urls
+minio_public_host = settings.MINIO_PUBLIC_URL.replace("http://", "").replace("https://", "")
+minio_client_public = Minio(
+    minio_public_host,
+    access_key=settings.MINIO_ROOT_USER,
+    secret_key=settings.MINIO_ROOT_PASSWORD,
+    secure=settings.MINIO_PUBLIC_URL.startswith("https"),
+    region="us-east-1"
+)
 
 def subir_imagen_minio(file: UploadFile) -> str:
     """
@@ -107,17 +114,14 @@ def generar_url_firmada(url_base: str) -> str:
         return None
     try:
         object_name = url_base.split(f"{settings.MINIO_BUCKET_NAME}/")[-1]
-        # Generar enlace temporal (expira en 2 horas) con el cliente interno
-        url_interna = minio_client_internal.presigned_get_object(
+        # Generamos la URL firmada usando el cliente público. 
+        # Al especificar region="us-east-1", no hace red, solo firma con el host público.
+        url_final = minio_client_public.presigned_get_object(
             bucket_name=settings.MINIO_BUCKET_NAME,
             object_name=object_name,
             expires=timedelta(hours=2)
         )
-        
-        # El cliente interno genera algo como http://minio:9000/bucket/objeto?firma...
-        # Reemplazamos "http://minio:9000" por el host público real.
-        host_interno = f"http://{settings.MINIO_SERVER}"
-        return url_interna.replace(host_interno, settings.MINIO_PUBLIC_URL)
+        return url_final
     except Exception as e:
         print(f"[MinIO ERROR] Fallo al firmar URL: {e}")
         return url_base

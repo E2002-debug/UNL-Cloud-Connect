@@ -28,8 +28,7 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(
     title="UNL-Cloud-Connect - MS Notificaciones (Push & IoT)",
-    version="1.0.0",
-    root_path="/api/notificaciones"
+    version="1.0.0"
 )
 
 # Configuración MQTT
@@ -123,18 +122,23 @@ async def alerta_evento_endpoint(req: EventoNotificacionRequest, db: Session = D
 # ENDPOINTS WEB (WebSockets & Historial)
 # ==========================================
 
-@app.websocket("/api/notificaciones/ws/{id_usuario}")
-@app.websocket("/ws/{id_usuario}")
-async def websocket_endpoint(websocket: WebSocket, id_usuario: int):
+async def handle_ws_connection(websocket: WebSocket, id_usuario: int):
     await manager.connect(websocket, id_usuario)
     try:
         while True:
-            # Mantener conexión viva
             data = await websocket.receive_text()
             if data == "ping":
                 await websocket.send_text("pong")
     except WebSocketDisconnect:
         manager.disconnect(websocket, id_usuario)
+
+@app.websocket("/api/notificaciones/ws/{id_usuario}")
+async def websocket_endpoint_absoluto(websocket: WebSocket, id_usuario: int):
+    await handle_ws_connection(websocket, id_usuario)
+
+@app.websocket("/ws/{id_usuario}")
+async def websocket_endpoint_relativo(websocket: WebSocket, id_usuario: int):
+    await handle_ws_connection(websocket, id_usuario)
 
 @app.get("/api/notificaciones/historial")
 @app.get("/historial")
