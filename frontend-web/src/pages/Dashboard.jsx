@@ -299,15 +299,21 @@ export default function Dashboard() {
       try {
         const histRes = await api.get('/notificaciones/historial');
         if (histRes.data && Array.isArray(histRes.data)) {
-          historiales = histRes.data.map(n => ({
-            id: n.id_notificacion,
-            type: n.tipo === 'ALERTA' ? 'error' : n.tipo === 'success' ? 'success' : 'info',
-            iconType: 'web',
-            title: n.titulo,
-            message: n.mensaje,
-            time: timeAgo(n.fecha_creacion + 'Z'),
-            timestamp: new Date(n.fecha_creacion + 'Z').getTime()
-          }));
+          historiales = histRes.data.map(n => {
+            const dateStr = (n.fecha_creacion && (n.fecha_creacion.endsWith('Z') || n.fecha_creacion.includes('+')))
+              ? n.fecha_creacion
+              : (n.fecha_creacion + 'Z');
+            
+            return {
+              id: n.id_notificacion,
+              type: n.tipo === 'ALERTA' ? 'error' : n.tipo === 'success' ? 'success' : 'info',
+              iconType: 'web',
+              title: n.titulo,
+              message: n.mensaje,
+              time: timeAgo(dateStr),
+              timestamp: new Date(dateStr).getTime()
+            };
+          });
         }
       } catch (err) {
         console.error("Error al cargar historial de notificaciones:", err);
