@@ -81,6 +81,7 @@ export default function Dashboard() {
   const [usuarios, setUsuarios] = useState([])
   const [loadingUsers, setLoadingUsers] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
+  const [auditorias, setAuditorias] = useState([])
 
   // Notifications State
   const addNotification = (type, title, message) => {
@@ -152,9 +153,27 @@ export default function Dashboard() {
   const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, type: '', payload: null, message: '' })
 
   // Configuración State
-  const handleSaveConfig = () => {
-    toast.success('Configuración guardada exitosamente')
-  }
+  const [configPrefs, setConfigPrefs] = useState({
+    alertas_clima: true,
+    alertas_eventos: true,
+    alertas_sistema: true
+  })
+  const [loadingConfig, setLoadingConfig] = useState(false)
+
+  const handleToggleConfig = async (key) => {
+    const newValue = !configPrefs[key];
+    setConfigPrefs(prev => ({ ...prev, [key]: newValue }));
+    
+    try {
+      // Importante: Asegurar que el objeto envíe el valor actualizado para ese key
+      const payload = { ...configPrefs, [key]: newValue }
+      await api.put(`/notificaciones/preferencias/${currentUserId}`, payload);
+      toast.success("Preferencia guardada en el backend");
+    } catch (error) {
+      toast.error("Error al sincronizar preferencia con el servidor");
+      setConfigPrefs(prev => ({ ...prev, [key]: !newValue })); // revertir si falla
+    }
+  };
 
   const exportEventsToPDF = () => {
     const doc = new jsPDF();
@@ -229,6 +248,10 @@ export default function Dashboard() {
         try {
           const auditRes = await getAuditoria()
           if (auditRes && auditRes.data) {
+            // Set auditorias (solo las propias)
+            const misAuditorias = auditRes.data.filter(a => String(a.id_usuario) === String(currentUserId)).slice(0, 5)
+            setAuditorias(misAuditorias)
+            
             loginAudits = auditRes.data
               .filter(audit => {
                 const accion = audit.accion.toLowerCase();
@@ -306,7 +329,18 @@ export default function Dashboard() {
     if (activeTab === 'Dashboard') {
       fetchDashboardData()
     }
-  }, [activeTab])
+    
+    // Si entra a Configuración, cargar datos reales desde el backend
+    if (activeTab === 'Configuracion' && currentUserId) {
+      setLoadingConfig(true)
+      api.get(`/notificaciones/preferencias/${currentUserId}`)
+        .then(res => {
+          if (res.data) setConfigPrefs(res.data)
+        })
+        .catch(err => console.error("Error cargando configuración:", err))
+        .finally(() => setLoadingConfig(false))
+    }
+  }, [activeTab, currentUserId])
 
   useEffect(() => {
     const fetchWeather = async () => {
@@ -574,6 +608,7 @@ export default function Dashboard() {
     { id: 'Eventos', icon: <IconEvents />, label: 'EVENTOS UNL' },
     { id: 'Ubicacion', icon: <IconMap />, label: 'UBICACIÓN' },
     { id: 'Moderacion', icon: <IconFlag />, label: 'MODERACIÓN' },
+    { id: 'Configuracion', icon: <IconSettings />, label: 'CONFIGURACIÓN' },
     { id: 'Perfil', icon: <IconUsers />, label: 'MI PERFIL' },
   ] : isSuperAdmin ? [
     { id: 'Usuarios', icon: <IconUsers />, label: 'GESTIÓN DE USUARIOS', badge: usuarios.length },
@@ -1430,34 +1465,40 @@ export default function Dashboard() {
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                      <div style={{ display: 'flex', gap: '12px' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><IconCheck /></div>
-                        <div>
-                          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)' }}>Inicio de sesión exitoso</div>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Hoy, 09:21</div>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '12px' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#eff6ff', color: '#2563eb', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><IconEdit /></div>
-                        <div>
-                          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)' }}>Actualización de perfil</div>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>Ayer, 16:45</div>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '12px' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#fff7ed', color: '#ea580c', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><IconLock /></div>
-                        <div>
-                          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)' }}>Cambio de contraseña</div>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>12 Jun 2025, 11:32</div>
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', gap: '12px' }}>
-                        <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#f3e8ff', color: '#9333ea', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}><IconActivity /></div>
-                        <div>
-                          <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)' }}>Visualización de reportes</div>
-                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>11 Jun 2025, 09:15</div>
-                        </div>
-                      </div>
+                      {auditorias.length > 0 ? auditorias.map((audit) => {
+                        let icon = <IconCheck />
+                        let colorStr = '#059669'
+                        let bgStr = '#ecfdf5'
+                        const accion = audit.accion.toLowerCase()
+                        
+                        if (accion.includes('actualiza')) {
+                          icon = <IconEdit />
+                          colorStr = '#2563eb'
+                          bgStr = '#eff6ff'
+                        } else if (accion.includes('clave') || accion.includes('password')) {
+                          icon = <IconLock />
+                          colorStr = '#ea580c'
+                          bgStr = '#fff7ed'
+                        } else if (accion.includes('error') || accion.includes('fallido')) {
+                          icon = <IconError />
+                          colorStr = '#ef4444'
+                          bgStr = '#fef2f2'
+                        }
+
+                        return (
+                          <div key={audit.id_log} style={{ display: 'flex', gap: '12px' }}>
+                            <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: bgStr, color: colorStr, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                              {icon}
+                            </div>
+                            <div>
+                              <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text-main)', textTransform: 'capitalize' }}>{audit.accion}</div>
+                              <div style={{ fontSize: '11px', color: 'var(--text-muted)', marginTop: '2px' }}>{timeAgo(audit.fecha_hora + 'Z')}</div>
+                            </div>
+                          </div>
+                        )
+                      }) : (
+                        <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No hay actividad reciente.</div>
+                      )}
                     </div>
                   </div>
 
@@ -1546,55 +1587,50 @@ export default function Dashboard() {
                 <h2 style={{ margin: '0 0 24px 0', fontSize: '24px', fontWeight: '800', color: 'var(--text-main)' }}>Configuración Global del Sistema</h2>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
-                  {/* Tarjeta de Seguridad */}
-                  <div style={{ padding: '24px', border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--bg-app)' }}>
-                    <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <IconSettings /> Seguridad y Acceso
-                    </h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '600' }}>Registro de nuevos participantes</span>
-                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                          <input type="checkbox" defaultChecked style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }} />
-                        </label>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '600' }}>Requerir verificación de correo</span>
-                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                          <input type="checkbox" defaultChecked style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }} />
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Preferencias de la Interfaz */}
-                  <div style={{ padding: '24px', border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--bg-app)' }}>
-                    <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <IconEvents /> Preferencias
-                    </h3>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '600' }}>Modo de mantenimiento</span>
-                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                          <input type="checkbox" style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }} />
-                        </label>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '600' }}>Alertas de sensores por email</span>
-                        <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
-                          <input type="checkbox" defaultChecked style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }} />
-                        </label>
+                  
+                  {loadingConfig ? <div style={{ padding: '20px' }}>Cargando preferencias desde el servidor...</div> : (
+                    <>
+                    {/* Tarjeta de Seguridad */}
+                    <div style={{ padding: '24px', border: '1px solid var(--border)', borderRadius: '12px', background: 'var(--bg-app)' }}>
+                      <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: 'var(--text-main)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <IconEvents /> Preferencias de Notificaciones (WebSockets & Push)
+                      </h3>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <span style={{ fontSize: '14px', color: 'var(--text-main)', fontWeight: '700', display: 'block' }}>Nuevos Eventos</span>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Alertas push cuando se creen o cancelen eventos</span>
+                          </div>
+                          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                            <input type="checkbox" checked={configPrefs.alertas_eventos} onChange={() => handleToggleConfig('alertas_eventos')} style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }} />
+                          </label>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <span style={{ fontSize: '14px', color: 'var(--text-main)', fontWeight: '700', display: 'block' }}>Alertas Climáticas</span>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Avisos generados por los nodos sensores (IoT)</span>
+                          </div>
+                          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                            <input type="checkbox" checked={configPrefs.alertas_clima} onChange={() => handleToggleConfig('alertas_clima')} style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }} />
+                          </label>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div>
+                            <span style={{ fontSize: '14px', color: 'var(--text-main)', fontWeight: '700', display: 'block' }}>Alertas de Sistema</span>
+                            <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Avisos críticos de seguridad de la plataforma</span>
+                          </div>
+                          <label style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
+                            <input type="checkbox" checked={configPrefs.alertas_sistema} onChange={() => handleToggleConfig('alertas_sistema')} style={{ width: '18px', height: '18px', accentColor: 'var(--primary)' }} />
+                          </label>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                    </>
+                  )}
 
                 </div>
 
-                <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'flex-end' }}>
-                  <button onClick={handleSaveConfig} style={{ padding: '12px 24px', background: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', cursor: 'pointer' }}>
-                    Guardar Configuración
-                  </button>
-                </div>
+
               </div>
             </div>
           )}
