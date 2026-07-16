@@ -35,8 +35,14 @@ export const NotificationProvider = ({ children }) => {
         setUnreadCount(prev => prev + 1);
         
         // Mostrar Toast nativo de la web
-        toast(data.titulo + "\\n" + data.mensaje, {
+        toast((t) => (
+          <div>
+            <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: 'bold' }}>{data.titulo}</h4>
+            <p style={{ margin: 0, fontSize: '13px', opacity: 0.9 }}>{data.mensaje}</p>
+          </div>
+        ), {
           icon: data.tipo === 'ALERTA' ? '🔴' : data.tipo === 'CLIMA' ? '☁️' : '🔔',
+          duration: 4000,
         });
       } catch (e) {
         console.error("Error parseando notificación WS", e);

@@ -294,50 +294,30 @@ export default function Dashboard() {
         }
       }
 
-      const now = new Date().getTime();
-      const ONE_DAY = 24 * 60 * 60 * 1000;
-      
-      let newEventsForNotification = [];
-      
-      evts.forEach(evt => {
-        if (!initialLoadDone.current) {
-          knownEventIds.current.add(evt.id_evento);
-        } else {
-          if (!knownEventIds.current.has(evt.id_evento)) {
-            knownEventIds.current.add(evt.id_evento);
-            const evtTime = new Date(evt.fecha_hora_inicio).getTime();
-            if (evtTime > now - ONE_DAY) {
-              newEventsForNotification.push(evt);
-            }
-          }
+      // Fetch real notifications history
+      let historiales = [];
+      try {
+        const histRes = await api.get('/notificaciones/historial');
+        if (histRes.data && Array.isArray(histRes.data)) {
+          historiales = histRes.data.map(n => ({
+            id: n.id_notificacion,
+            type: n.tipo === 'ALERTA' ? 'error' : n.tipo === 'success' ? 'success' : 'info',
+            iconType: 'web',
+            title: n.titulo,
+            message: n.mensaje,
+            time: timeAgo(n.fecha_creacion + 'Z'),
+            timestamp: new Date(n.fecha_creacion + 'Z').getTime()
+          }));
         }
-      });
-      
-      initialLoadDone.current = true;
-      
-      const newEventNotifications = newEventsForNotification.map(evt => ({
-          id: `evt-${evt.id_evento}`,
-          type: 'info',
-          iconType: 'web',
-          title: 'Evento Registrado',
-          message: `Se ha creado un nuevo evento: ${evt.nombre}`,
-          time: timeAgo(evt.fecha_hora_inicio),
-          timestamp: new Date(evt.fecha_hora_inicio).getTime()
-      }));
-      
-      if (!initialLoadDone.current || newEventNotifications.length > 0) {
-        setNotifications(prev => {
-          const combined = [...prev, ...newEventNotifications]
-            .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0))
-            .slice(0, 50); // Keep up to 50
-          return combined;
-        });
+      } catch (err) {
+        console.error("Error al cargar historial de notificaciones:", err);
       }
-      
-      // On initial load, just set the login audits
-      if (loginAudits.length > 0 && notifications.length === 0) {
-        setNotifications(loginAudits);
-      }
+
+      const combinedNotifs = [...historiales, ...loginAudits]
+        .sort((a, b) => b.timestamp - a.timestamp)
+        .slice(0, 50);
+
+      setNotifications(combinedNotifs);
       
     } catch (err) {
       console.error('Error al cargar datos del dashboard:', err)
