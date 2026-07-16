@@ -27,7 +27,7 @@ async def enviar_alerta_evento(evento: Evento, auth_token: str = None, accion: s
     try:
         async with httpx.AsyncClient() as client:
             res = await client.post(
-                "http://ms-notificaciones:8000/api/notificaciones/eventos/alerta",
+                "http://ms-notificaciones:8000/eventos/alerta",
                 json=payload,
                 headers=headers,
                 timeout=10.0

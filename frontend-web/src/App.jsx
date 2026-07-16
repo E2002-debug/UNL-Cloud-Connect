@@ -11,7 +11,9 @@ import Dashboard from './pages/Dashboard'
 import VerificarCuenta from './pages/VerificarCuenta'
 import EventoPage from './pages/EventoPage'
 import MobileOnly from './pages/MobileOnly'
+import Configuracion from './pages/Configuracion'
 import MaintenanceModal from './components/MaintenanceModal'
+import { NotificationProvider } from './contexts/NotificationContext'
 
 /**
  * Componente de protección de ruta por Rol (Solo Admin '1' y Superadmin '3')
@@ -66,7 +68,7 @@ export default function App() {
   const isParticipant = token && String(idRol) === '2'
 
   return (
-    <>
+    <NotificationProvider>
     <Routes>
       {/* Ruta raíz: Admin/Superadmin al dashboard, Participante a app móvil, invitados al Home */}
       <Route
@@ -88,6 +90,10 @@ export default function App() {
         path="/dashboard"
         element={<GuardedRoute element={Dashboard} />}
       />
+      <Route
+        path="/configuracion"
+        element={<GuardedRoute element={Configuracion} />}
+      />
 
       {/* Ruta pública: Solo app móvil (para participantes) */}
       <Route path="/solo-app-movil" element={<MobileOnly />} />
@@ -100,6 +106,6 @@ export default function App() {
     </Routes>
     <Toaster position="top-right" reverseOrder={false} />
     <MaintenanceModal />
-    </>
+    </NotificationProvider>
   )
 }

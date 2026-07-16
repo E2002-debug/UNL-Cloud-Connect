@@ -9,7 +9,8 @@ import httpx
 import logging
 import asyncio
 from sqlalchemy.orm import Session
-from .models import DispositivoUsuario
+from .models import DispositivoUsuario, NotificacionWeb, PreferenciaUsuario
+from .ws_manager import manager
 
 logger = logging.getLogger(__name__)
 
@@ -80,5 +81,45 @@ async def procesar_notificacion_evento(req: EventoNotificacionRequest, db: Sessi
         respuestas = await asyncio.gather(*tareas_push)
         for i, token in enumerate(tokens_procesados):
             resultados["usuarios"].append({"token": token, "estado": "ok" if respuestas[i] else "error"})
+            
+    # --- LÓGICA DE NOTIFICACIONES WEB (TIEMPO REAL) ---
+    if db:
+        # Determinar el mensaje para la Web
+        if req.accion == "clima":
+            tipo = "CLIMA"
+            titulo_web = "Alerta Climática"
+            mensaje_web = req.nombre_evento
+        elif req.accion == "modificado":
+            tipo = "INFO"
+            titulo_web = "Evento Actualizado"
+            mensaje_web = f"Se ha modificado el evento: '{req.nombre_evento}'"
+        elif req.accion == "cancelado":
+            tipo = "ALERTA"
+            titulo_web = "Evento Cancelado"
+            mensaje_web = f"Se ha cancelado el evento: '{req.nombre_evento}'"
+        else:
+            tipo = "INFO"
+            titulo_web = "Nuevo Evento"
+            mensaje_web = f"Se ha creado el evento '{req.nombre_evento}'"
+            
+        # 1. Guardar en Base de Datos (id_usuario = 0 para broadcast a todos)
+        nueva_notificacion = NotificacionWeb(
+            id_usuario=0,
+            titulo=titulo_web,
+            mensaje=mensaje_web,
+            tipo=tipo
+        )
+        db.add(nueva_notificacion)
+        db.commit()
+        db.refresh(nueva_notificacion)
+        
+        # 2. Emitir a todos los clientes web conectados vía WebSocket
+        await manager.broadcast({
+            "id_notificacion": nueva_notificacion.id_notificacion,
+            "titulo": nueva_notificacion.titulo,
+            "mensaje": nueva_notificacion.mensaje,
+            "tipo": nueva_notificacion.tipo,
+            "fecha_creacion": nueva_notificacion.fecha_creacion.isoformat()
+        })
             
     return resultados

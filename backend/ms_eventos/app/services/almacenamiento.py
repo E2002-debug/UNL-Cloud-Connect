@@ -9,11 +9,20 @@ from app.core.config import settings
 from datetime import timedelta
 from app.core.config import settings
 
-minio_client = Minio(
+minio_client_internal = Minio(
     settings.MINIO_SERVER,
     access_key=settings.MINIO_ROOT_USER,
     secret_key=settings.MINIO_ROOT_PASSWORD,
     secure=False
+)
+
+# Cliente para firmar URLs (no realiza conexiones, solo criptografía)
+minio_public_host = settings.MINIO_PUBLIC_URL.replace("http://", "").replace("https://", "")
+minio_client_public = Minio(
+    minio_public_host,
+    access_key=settings.MINIO_ROOT_USER,
+    secret_key=settings.MINIO_ROOT_PASSWORD,
+    secure=settings.MINIO_PUBLIC_URL.startswith("https")
 )
 
 def subir_imagen_minio(file: UploadFile) -> str:
@@ -53,7 +62,7 @@ def subir_imagen_minio(file: UploadFile) -> str:
         nombre_unico = f"{uuid.uuid4()}{extension}"
         
         # 3. Subimos el objeto a MinIO
-        minio_client.put_object(
+        minio_client_internal.put_object(
             bucket_name=settings.MINIO_BUCKET_NAME,  # Ej: "unl-eventos-media"
             object_name=nombre_unico,
             data=file_data,
@@ -89,7 +98,7 @@ def eliminar_imagen_minio(url: str) -> bool:
     """
     try:
         object_name = url.split(f"{settings.MINIO_BUCKET_NAME}/")[-1]
-        minio_client.remove_object(settings.MINIO_BUCKET_NAME, object_name)
+        minio_client_internal.remove_object(settings.MINIO_BUCKET_NAME, object_name)
         return True
     except S3Error as e:
         print(f"[MinIO ERROR] Fallo al eliminar objeto: {e}")
@@ -105,12 +114,11 @@ def generar_url_firmada(url_base: str) -> str:
     try:
         object_name = url_base.split(f"{settings.MINIO_BUCKET_NAME}/")[-1]
         # Generar enlace temporal (expira en 2 horas)
-        url_interna = minio_client.presigned_get_object(
+        return minio_client_public.presigned_get_object(
             bucket_name=settings.MINIO_BUCKET_NAME,
             object_name=object_name,
             expires=timedelta(hours=2)
         )
-        return url_interna.replace(f"http://{settings.MINIO_SERVER}", settings.MINIO_PUBLIC_URL)
     except Exception as e:
         print(f"[MinIO ERROR] Fallo al firmar URL: {e}")
         return url_base
