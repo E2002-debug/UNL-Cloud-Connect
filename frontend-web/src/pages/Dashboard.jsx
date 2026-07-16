@@ -1071,34 +1071,34 @@ export default function Dashboard() {
                     <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>MI IMPACTO RED</span>
                     <IconDashboard />
                   </div>
-                  <div style={{ fontSize: '32px', fontWeight: '800', color: '#0F766E', marginBottom: '16px' }}>8.4k</div>
+                  <div style={{ fontSize: '32px', fontWeight: '800', color: '#0F766E', marginBottom: '16px' }}>{eventos.length}</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)' }}>
-                    <span>APORTES AL ECOSISTE...</span>
+                    <span>APORTES AL ECOSISTEMA</span>
                     <span style={{ color: '#0F766E' }}>ACREDITADO</span>
                   </div>
                 </div>
 
                 <div style={{ background: 'var(--bg-card)', padding: '24px', border: '1px solid #DBE3E0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>GALERIA DE FOTOS</span>
+                    <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>EVENTOS EN PROGRESO</span>
                     <IconEvents />
                   </div>
-                  <div style={{ fontSize: '32px', fontWeight: '800', color: '#0F766E', marginBottom: '16px' }}>142 fotos</div>
+                  <div style={{ fontSize: '32px', fontWeight: '800', color: '#0F766E', marginBottom: '16px' }}>{eventos.filter(e => e.estado === 'EN_PROGRESO').length} activos</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)' }}>
-                    <span>SINTONIZADO AL CAMP...</span>
+                    <span>SINTONIZADO AL CAMPUS</span>
                     <span style={{ color: '#0F766E' }}>COMPLETADO</span>
                   </div>
                 </div>
 
                 <div style={{ background: 'var(--bg-card)', padding: '24px', border: '1px solid #DBE3E0', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
-                    <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>ESTADO DEL SENSOR</span>
+                    <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>ESTADO RED IOT</span>
                     <IconSensors />
                   </div>
-                  <div style={{ fontSize: '32px', fontWeight: '800', color: '#0F766E', marginBottom: '16px' }}>ONLINE</div>
+                  <div style={{ fontSize: '32px', fontWeight: '800', color: '#0F766E', marginBottom: '16px' }}>{sensores.length > 0 ? 'ONLINE' : 'OFFLINE'}</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)' }}>
-                    <span style={{ textTransform: 'uppercase' }}>node-04-Luna</span>
-                    <span style={{ color: '#0F766E' }}>4 ENVÍOS</span>
+                    <span style={{ textTransform: 'uppercase' }}>Nodos Activos</span>
+                    <span style={{ color: '#0F766E' }}>{sensores.length} ENVÍOS</span>
                   </div>
                 </div>
 
@@ -1107,7 +1107,7 @@ export default function Dashboard() {
                     <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>IDENTIDAD UNL</span>
                     <IconUsers />
                   </div>
-                  <div style={{ fontSize: '32px', fontWeight: '800', color: '#0F766E', marginBottom: '16px' }}>Pionero</div>
+                  <div style={{ fontSize: '32px', fontWeight: '800', color: '#0F766E', marginBottom: '16px' }}>Verificado</div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', fontWeight: '600', color: 'var(--text-muted)' }}>
                     <span>NIVEL/ROL VERIFICADO</span>
                     <span style={{ color: '#0F766E' }}>VALIDADO</span>
@@ -1137,26 +1137,29 @@ export default function Dashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      <tr style={{ borderBottom: '1px solid #f1f5f9' }}>
-                        <td style={{ padding: '16px 12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{ width: '32px', height: '32px', background: 'var(--text-main)' }}></div>
-                          <div style={{ fontSize: '12px', fontWeight: '800', color: 'var(--text-main)', maxWidth: '180px' }}>FESTIVAL INTERNACIONAL DE ARTES VIVAS (FIAVL)</div>
-                        </td>
-                        <td style={{ padding: '16px 12px', fontSize: '10px', color: 'var(--text-muted)', fontWeight: '600' }}>CENTRO HISTÓRICO...</td>
-                        <td style={{ padding: '16px 12px' }}><span style={{ background: '#dbeafe', color: '#0F766E', padding: '4px 8px', fontSize: '10px', fontWeight: '700', border: '1px solid #bfdbfe' }}>FESTIVAL</span></td>
-                        <td style={{ padding: '16px 12px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', fontFamily: 'monospace' }}>2026-11-15</td>
-                        <td style={{ padding: '16px 12px', fontSize: '13px', color: '#0F766E', fontWeight: '800', textAlign: 'right' }}>1540</td>
-                      </tr>
-                      <tr>
-                        <td style={{ padding: '16px 12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <div style={{ width: '32px', height: '32px', background: 'var(--text-main)' }}></div>
-                          <div style={{ fontSize: '12px', fontWeight: '800', color: 'var(--text-main)', maxWidth: '180px' }}>197 FERIA DE LOJA</div>
-                        </td>
-                        <td style={{ padding: '16px 12px', fontSize: '10px', color: 'var(--text-muted)', fontWeight: '600' }}>COMPLEJO FERIAL ...</td>
-                        <td style={{ padding: '16px 12px' }}><span style={{ background: '#dbeafe', color: '#0F766E', padding: '4px 8px', fontSize: '10px', fontWeight: '700', border: '1px solid #bfdbfe' }}>FAIR</span></td>
-                        <td style={{ padding: '16px 12px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', fontFamily: 'monospace' }}>2026-09-01</td>
-                        <td style={{ padding: '16px 12px', fontSize: '13px', color: '#0F766E', fontWeight: '800', textAlign: 'right' }}>3200</td>
-                      </tr>
+                      {eventos.filter(e => e.estado === 'EN_PROGRESO').slice(0, 5).map((evt) => (
+                        <tr key={evt.id_evento} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                          <td style={{ padding: '16px 12px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ width: '32px', height: '32px', background: 'var(--text-main)', borderRadius: '4px' }}>
+                              {evt.url_imagen && <img src={evt.url_imagen} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }} />}
+                            </div>
+                            <div style={{ fontSize: '12px', fontWeight: '800', color: 'var(--text-main)', maxWidth: '180px' }}>{evt.nombre}</div>
+                          </td>
+                          <td style={{ padding: '16px 12px', fontSize: '10px', color: 'var(--text-muted)', fontWeight: '600' }}>
+                            {ubicacionesDB.find(u => String(u.id_ubicacion) === String(evt.id_ubicacion))?.nombre || 'Desconocida'}
+                          </td>
+                          <td style={{ padding: '16px 12px' }}><span style={{ background: '#dbeafe', color: '#0F766E', padding: '4px 8px', fontSize: '10px', fontWeight: '700', border: '1px solid #bfdbfe', borderRadius: '4px' }}>ACADÉMICO</span></td>
+                          <td style={{ padding: '16px 12px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', fontFamily: 'monospace' }}>{evt.fecha_hora_inicio.substring(0, 10)}</td>
+                          <td style={{ padding: '16px 12px', fontSize: '13px', color: '#0F766E', fontWeight: '800', textAlign: 'right' }}>100%</td>
+                        </tr>
+                      ))}
+                      {eventos.filter(e => e.estado === 'EN_PROGRESO').length === 0 && (
+                        <tr>
+                          <td colSpan="5" style={{ padding: '32px', textAlign: 'center', fontSize: '12px', color: 'var(--text-muted)' }}>
+                            No hay eventos activos en este momento.
+                          </td>
+                        </tr>
+                      )}
                     </tbody>
                   </table>
                 </div>
@@ -1335,7 +1338,7 @@ export default function Dashboard() {
                       <div style={{ background: 'var(--bg-app)', padding: '8px', borderRadius: '8px' }}><IconClock /></div>
                       <div style={{ fontSize: '12px' }}>
                         <div>Miembro desde</div>
-                        <div style={{ fontWeight: '700', color: 'var(--text-main)' }}>Marzo 2025</div>
+                        <div style={{ fontWeight: '700', color: 'var(--text-main)' }}>{new Date(user.fecha_creacion || Date.now()).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' })}</div>
                       </div>
                     </div>
                   </div>
