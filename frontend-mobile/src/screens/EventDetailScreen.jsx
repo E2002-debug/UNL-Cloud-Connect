@@ -481,16 +481,15 @@ export default function EventDetailScreen({ route, navigation }) {
     if (useCamera) {
       result = await ImagePicker.launchCameraAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: false,
-        quality: 0.9,
+        allowsEditing: true,
+        quality: 0.3,
       });
     } else {
       result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: false,
-        quality: 0.9,
-        allowsMultipleSelection: true,
-        selectionLimit: remainingCount > 0 ? remainingCount : 1,
+        allowsEditing: true,
+        quality: 0.3,
+        allowsMultipleSelection: false,
       });
     }
 

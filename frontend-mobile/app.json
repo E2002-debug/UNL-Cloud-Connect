@@ -18,6 +18,7 @@
     ],
     "android": {
       "package": "com.unl.cloudconnect",
+      "googleServicesFile": "./google-services.json",
       "permissions": [
         "android.permission.CAMERA"
       ]

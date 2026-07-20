@@ -14,7 +14,7 @@ import * as Notifications from 'expo-notifications';
 import Input from '../components/Input';
 import Button from '../components/Button';
 import BackgroundLayout from '../components/BackgroundLayout';
-import { login, loginGoogle } from '../services/api';
+import api, { login, loginGoogle, setAuthHeaders } from '../services/api';
 
 const GoogleIcon = () => (
   <Svg width="18" height="18" viewBox="0 0 24 24" style={{ marginRight: 10 }}>
@@ -106,6 +106,7 @@ export default function LoginScreen({ navigation }) {
   const [captchaQ, setCaptchaQ] = useState('');
   const [captchaA, setCaptchaA] = useState('');
   const [userCaptcha, setUserCaptcha] = useState('');
+  const [error, setError] = useState('');
 
   const generateCaptcha = () => {
     const num1 = Math.floor(Math.random() * 10) + 1;
@@ -162,22 +163,31 @@ export default function LoginScreen({ navigation }) {
         token: res.access_token,
       };
 
+      // Configurar el token en la instancia de Axios antes de usarla para llamadas protegidas
+      setAuthHeaders(res.id_usuario, res.id_rol, res.access_token);
+
       // Obtener token push al iniciar sesión.
       // Envuelto en su propio try/catch: si falla (normal en Expo Go o Web,
       // donde las notificaciones push remotas no están soportadas desde SDK 51),
       // NO debe bloquear ni cancelar el login que ya fue exitoso.
       try {
         const pushToken = await registerForPushNotificationsAsync();
+        console.log("🔔 Push token obtenido:", pushToken);
+        console.log("🔑 JWT token:", res.access_token ? res.access_token.substring(0, 30) + '...' : 'UNDEFINED');
+        console.log("📡 Auth header actual:", api.defaults.headers.common['Authorization'] ? 'SET' : 'NOT SET');
         if (pushToken) {
           // Enviar token al nuevo microservicio de notificaciones
-          await api.post('/notificaciones/guardar-token', {
+          const saveRes = await api.post('/notificaciones/guardar-token', {
             id_usuario: res.id_usuario,
             expo_push_token: pushToken
           });
-          console.log("Token guardado en el backend:", pushToken);
+          console.log("✅ Token guardado en el backend:", pushToken, saveRes.data);
         }
       } catch (pushError) {
-        console.warn('No se pudo registrar el push token (normal en Expo Go/Web):', pushError.message);
+        console.warn('❌ No se pudo registrar el push token:', pushError.message);
+        if (pushError.response) {
+          console.warn('❌ Status:', pushError.response.status, 'Data:', JSON.stringify(pushError.response.data));
+        }
       }
 
       navigation.replace('Participant', { user: userProfile });
@@ -220,6 +230,9 @@ export default function LoginScreen({ navigation }) {
         email: res.correo,
         token: res.access_token,
       };
+
+      // Configurar el token en la instancia de Axios
+      setAuthHeaders(res.id_usuario, res.id_rol, res.access_token);
 
       // Obtener token push al iniciar sesión con Google.
       // Envuelto en su propio try/catch por la misma razón que en submit().

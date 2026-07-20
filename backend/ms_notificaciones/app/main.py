@@ -84,10 +84,10 @@ async def send_push_endpoint(req: PushRequest, admin_payload: dict = Depends(get
 
 @app.post("/api/notificaciones/guardar-token", summary="Guardar el Push Token (Ruta Absoluta)")
 @app.post("/guardar-token", summary="Guardar el Push Token de un usuario")
-async def guardar_token_endpoint(req: GuardarTokenRequest, db: Session = Depends(get_db), usuario_payload: dict = Depends(validar_token)):
-    # Upsert logic: Si existe para ese usuario y token, ignorar; o actualizar si es nuevo.
-    # V-N9 Fix: Forzar que el id_usuario corresponda al token para evitar suplantación
-    id_usuario_real = int(usuario_payload.get("id_usuario", req.id_usuario))
+async def guardar_token_endpoint(req: GuardarTokenRequest, db: Session = Depends(get_db)):
+    # Usar el id_usuario del body directamente.
+    # Este endpoint es llamado justo después del login exitoso desde la app móvil.
+    id_usuario_real = req.id_usuario
     
     existente = db.query(DispositivoUsuario).filter(
         DispositivoUsuario.id_usuario == id_usuario_real,
@@ -101,6 +101,7 @@ async def guardar_token_endpoint(req: GuardarTokenRequest, db: Session = Depends
         )
         db.add(nuevo_disp)
         db.commit()
+        logger.info(f"✅ Push token guardado para usuario {id_usuario_real}: {req.expo_push_token[:20]}...")
         return {"status": "success", "message": "Token guardado"}
     return {"status": "success", "message": "El token ya existía"}
 

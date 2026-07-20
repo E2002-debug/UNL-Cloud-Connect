@@ -22,7 +22,8 @@ export const NotificationProvider = ({ children }) => {
     }
 
     // Usar la URL pública en producción, o localhost en desarrollo
-    const wsUrl = import.meta.env.VITE_WS_URL || 'wss://unl-cloud-connect.me/api/notificaciones';
+    // const wsUrl = import.meta.env.VITE_WS_URL || 'wss://unl-cloud-connect.me/api/notificaciones';
+    const wsUrl = 'ws://localhost:8000/api/notificaciones';
     
     // Conectar WebSocket
     const ws = new WebSocket(`${wsUrl}/ws/${idUsuario}`);

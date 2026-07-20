@@ -23,7 +23,7 @@ npm run build   # production build (served via Nginx in Docker)
 cd frontend-mobile
 npx expo start
 ```
-Known issues: `app.json` is empty (0 bytes); missing `@react-navigation/*` and `react-native-safe-area-context` in `package.json` but work via Expo SDK 48.
+Note: Ensure `@react-navigation/*` and `react-native-safe-area-context` are properly tested via Expo SDK 48.
 
 ## Backend — 3 FastAPI microservices under `backend/`
 
@@ -61,9 +61,9 @@ qa/scripts/test_rbac_backend.sh    # RBAC bypass tests (targets ms_eventos:8002)
 qa/scripts/test_rbac_frontend.sh   # localStorage manipulation tests
 ```
 
-## Known gotchas
-- `ms_eventos` port **8002 is exposed on the host** — bypasses Kong entirely (security finding V-05).
-- `ms_eventos` has **no JWT validation** — trusts Kong-injected `x-user-id` / `x-user-role` headers blindly.
-- Frontend RBAC is **client-side only** — controlled by `localStorage.getItem('id_rol')` (CWE-602, severity HIGH).
+## Solved Security Issues & Notes
+- ~~`ms_eventos` port 8002 exposed on host~~ (Fixed: Closed and routed properly through Kong).
+- ~~`ms_eventos` lacking JWT validation~~ (Fixed: JWT validated securely).
+- ~~Frontend RBAC client-side only (CWE-602)~~ (Mitigated: Backend properly validates JWT. Frontend still uses localStorage for UI logic only).
 - `.env` naming mismatch: frontend `.env` uses `VITE_API_URL`, Dockerfile args use `VITE_API_BASE`.
 - `resolve_conflicts.py` at repo root auto-fixes git merge markers in known source files.
