@@ -21,45 +21,66 @@ export const NotificationProvider = ({ children }) => {
       return;
     }
 
-    // Usar la URL pública en producción, o localhost en desarrollo
-    // const wsUrl = import.meta.env.VITE_WS_URL || 'wss://unl-cloud-connect.me/api/notificaciones';
-    const wsUrl = 'ws://localhost:8000/api/notificaciones';
+    // Usar VITE_WS_URL, si no, inferir dinámicamente si es HTTPS o HTTP en producción
+    const wsUrl = import.meta.env.VITE_WS_URL || (window.location.protocol === 'https:' ? 'wss://' : 'ws://') + window.location.host + '/api/notificaciones';
     
-    // Conectar WebSocket
-    const ws = new WebSocket(`${wsUrl}/ws/${idUsuario}`);
+    let ws = null;
+    let pingInterval = null;
+    let reconnectTimeout = null;
+    let isComponentMounted = true;
 
-    ws.onmessage = (event) => {
-      if (event.data === 'pong') return;
-      try {
-        const data = JSON.parse(event.data);
-        setNotificaciones(prev => [data, ...prev]);
-        setUnreadCount(prev => prev + 1);
-        
-        // Mostrar Toast nativo de la web
-        toast((t) => (
-          <div>
-            <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: 'bold' }}>{data.titulo}</h4>
-            <p style={{ margin: 0, fontSize: '13px', opacity: 0.9 }}>{data.mensaje}</p>
-          </div>
-        ), {
-          icon: data.tipo === 'ALERTA' ? '🔴' : data.tipo === 'CLIMA' ? '☁️' : '🔔',
-          duration: 4000,
-        });
-      } catch (e) {
-        console.error("Error parseando notificación WS", e);
-      }
+    const connectWebSocket = () => {
+      ws = new WebSocket(`${wsUrl}/ws/${idUsuario}`);
+
+      ws.onopen = () => {
+        pingInterval = setInterval(() => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send("ping");
+          }
+        }, 30000);
+      };
+
+      ws.onmessage = (event) => {
+        if (event.data === 'pong') return;
+        try {
+          const data = JSON.parse(event.data);
+          setNotificaciones(prev => [data, ...prev]);
+          setUnreadCount(prev => prev + 1);
+          
+          toast((t) => (
+            <div>
+              <h4 style={{ margin: '0 0 4px 0', fontSize: '14px', fontWeight: 'bold' }}>{data.titulo}</h4>
+              <p style={{ margin: 0, fontSize: '13px', opacity: 0.9 }}>{data.mensaje}</p>
+            </div>
+          ), {
+            icon: data.tipo === 'ALERTA' ? '🔴' : data.tipo === 'CLIMA' ? '☁️' : '🔔',
+            duration: 4000,
+          });
+        } catch (e) {
+          console.error("Error parseando notificación WS", e);
+        }
+      };
+
+      ws.onclose = () => {
+        clearInterval(pingInterval);
+        if (isComponentMounted) {
+          // Intentar reconectar cada 5 segundos si Nginx o el contenedor matan la conexión
+          reconnectTimeout = setTimeout(connectWebSocket, 5000);
+        }
+      };
+      
+      ws.onerror = () => {
+        ws.close(); // Forzar onclose para que se reconecte
+      };
     };
 
-    // Ping para mantener conexión
-    const pingInterval = setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send("ping");
-      }
-    }, 30000);
+    connectWebSocket();
 
     return () => {
+      isComponentMounted = false;
       clearInterval(pingInterval);
-      ws.close();
+      clearTimeout(reconnectTimeout);
+      if (ws) ws.close();
     };
   }, []);
 

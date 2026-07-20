@@ -203,4 +203,15 @@ export const eliminarImagen = async (idImagen) => {
   return res.data;
 };
 
+// --- NOTIFICACIONES ENDPOINTS ---
+export const getAlertas = async () => {
+  const res = await api.get('/notificaciones/historial');
+  return res.data;
+};
+
+export const marcarAlertaLeida = async (id_notificacion) => {
+  const res = await api.put(`/notificaciones/historial/${id_notificacion}/leer`);
+  return res.data;
+};
+
 export default api;

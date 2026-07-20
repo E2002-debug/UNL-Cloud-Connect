@@ -47,7 +47,7 @@ import {
   Search,
   Map
 } from 'lucide-react-native';
-import { getEventos, getClimaActual, setAuthHeaders, reaccionarAImagen, obtenerReaccionesImagen, uploadImage } from '../services/api';
+import { getEventos, getClimaActual, setAuthHeaders, reaccionarAImagen, obtenerReaccionesImagen, uploadImage, getAlertas, marcarAlertaLeida } from '../services/api';
 import { getLojaWeather } from '../services/weatherService';
 
 Notifications.setNotificationHandler({
@@ -121,6 +121,35 @@ export default function ParticipantScreen({ route, navigation }) {
   }, []);
 
   const [alerts, setAlerts] = useState([]);
+  const [loadingAlerts, setLoadingAlerts] = useState(false);
+
+  const loadAlerts = async () => {
+    try {
+      setLoadingAlerts(true);
+      const data = await getAlertas();
+      const mappedAlerts = data.map(item => ({
+        id: String(item.id_notificacion),
+        title: item.titulo,
+        description: item.mensaje,
+        time: formatDate(item.fecha_creacion),
+        icon: item.tipo === 'ALERTA' ? Bell : (item.tipo === 'CLIMA' ? CloudRain : Info),
+        color: item.tipo === 'ALERTA' ? '#E11D48' : (item.tipo === 'CLIMA' ? '#0284C7' : '#0F766E'),
+        unread: !item.leida,
+        id_backend: item.id_notificacion
+      }));
+      setAlerts(mappedAlerts);
+    } catch (err) {
+      console.error('Error al cargar alertas del backend:', err);
+    } finally {
+      setLoadingAlerts(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'alertas') {
+      loadAlerts();
+    }
+  }, [activeTab]);
 
   useEffect(() => {
     const subscription = Notifications.addNotificationReceivedListener(notification => {
@@ -890,11 +919,29 @@ export default function ParticipantScreen({ route, navigation }) {
     );
   };
 
+  const handleAlertPress = async (alerta) => {
+    if (alerta.unread && alerta.id_backend) {
+      try {
+        await marcarAlertaLeida(alerta.id_backend);
+        setAlerts(prev => prev.map(a => a.id === alerta.id ? { ...a, unread: false } : a));
+      } catch (e) {
+        console.error('Error marcando alerta como leída', e);
+      }
+    }
+  };
+
   const renderAlertas = () => {
     return (
       <View style={styles.alertsContainer}>
         <Text style={styles.alertsHeader}>Tus Alertas</Text>
-        <ScrollView contentContainerStyle={styles.alertsList}>
+        {loadingAlerts && alerts.length === 0 ? (
+          <ActivityIndicator size="large" color="#0F766E" style={{ marginTop: 40 }} />
+        ) : (
+        <ScrollView 
+           contentContainerStyle={styles.alertsList}
+           refreshing={loadingAlerts}
+           onRefresh={loadAlerts}
+        >
           {alerts.length === 0 ? (
             <View style={{ alignItems: 'center', justifyContent: 'center', marginTop: 40, padding: 20 }}>
               <Bell size={48} color="#D1D5DB" style={{ marginBottom: 16 }} />
@@ -906,7 +953,12 @@ export default function ParticipantScreen({ route, navigation }) {
             alerts.map((alerta) => {
             const IconComponent = alerta.icon || Bell;
             return (
-              <View key={alerta.id} style={[styles.alertCard, alerta.unread && styles.alertCardUnread]}>
+              <TouchableOpacity 
+                key={alerta.id} 
+                style={[styles.alertCard, alerta.unread && styles.alertCardUnread]}
+                onPress={() => handleAlertPress(alerta)}
+                activeOpacity={0.7}
+              >
                 <View style={[styles.alertIconWrapper, { backgroundColor: alerta.color + '1A' }]}>
                   <IconComponent size={24} color={alerta.color} />
                 </View>
@@ -918,11 +970,12 @@ export default function ParticipantScreen({ route, navigation }) {
                   <Text style={styles.alertDescription}>{alerta.description}</Text>
                   <Text style={styles.alertTime}>{alerta.time}</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           })
           )}
         </ScrollView>
+        )}
       </View>
     );
   };
