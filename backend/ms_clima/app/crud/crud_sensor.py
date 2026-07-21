@@ -16,7 +16,7 @@ def listar_sensores(db: Session, solo_activos: bool = True) -> List[Sensor]:
     for s in sensores:
         if s.ultima_conexion:
             conn_time = s.ultima_conexion if s.ultima_conexion.tzinfo else s.ultima_conexion.replace(tzinfo=timezone.utc)
-            if (ahora - conn_time).total_seconds() > 30:
+            if (ahora - conn_time).total_seconds() > 45:
                 if s.estado != "offline":
                     s.estado = "offline"
                     modificado = True
