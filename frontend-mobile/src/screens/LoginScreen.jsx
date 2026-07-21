@@ -15,6 +15,8 @@ import Input from '../components/Input';
 import Button from '../components/Button';
 import BackgroundLayout from '../components/BackgroundLayout';
 import api, { login, loginGoogle, setAuthHeaders } from '../services/api';
+import Recaptcha from 'react-native-recaptcha-that-works';
+import { useRef } from 'react';
 
 const GoogleIcon = () => (
   <Svg width="18" height="18" viewBox="0 0 24 24" style={{ marginRight: 10 }}>
@@ -103,22 +105,10 @@ export default function LoginScreen({ navigation }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
-  const [captchaQ, setCaptchaQ] = useState('');
-  const [captchaA, setCaptchaA] = useState('');
-  const [userCaptcha, setUserCaptcha] = useState('');
   const [error, setError] = useState('');
+  const recaptcha = useRef();
 
-  const generateCaptcha = () => {
-    const num1 = Math.floor(Math.random() * 10) + 1;
-    const num2 = Math.floor(Math.random() * 10) + 1;
-    setCaptchaQ(`${num1} + ${num2}`);
-    setCaptchaA((num1 + num2).toString());
-    setUserCaptcha('');
-  };
 
-  useEffect(() => {
-    generateCaptcha();
-  }, []);
 
   useEffect(() => {
     if (GoogleSignin) {
@@ -133,21 +123,23 @@ export default function LoginScreen({ navigation }) {
     }
   }, []);
 
-  const submit = async () => {
-    if (!username.trim() || !password.trim() || !userCaptcha.trim()) {
-      setError('Por favor, completa todos los campos, incluido el CAPTCHA.');
-      return;
-    }
-    if (userCaptcha.trim() !== captchaA) {
-      setError('El CAPTCHA es incorrecto.');
-      generateCaptcha();
+  const submit = () => {
+    if (!username.trim() || !password.trim()) {
+      setError('Por favor, completa todos los campos.');
       return;
     }
     setError('');
+    // Al dar click en iniciar sesión, primero abrimos el reCAPTCHA
+    if (recaptcha.current) {
+      recaptcha.current.open();
+    }
+  };
+
+  const onRecaptchaVerify = async (token) => {
     setLoading(true);
 
     try {
-      const res = await login({ username: username.trim(), password });
+      const res = await login({ username: username.trim(), password, recaptcha_token: token });
       setLoading(false);
 
       if (res.id_rol !== 2) {
@@ -193,7 +185,6 @@ export default function LoginScreen({ navigation }) {
       navigation.replace('Participant', { user: userProfile });
     } catch (err) {
       setLoading(false);
-      generateCaptcha();
       const msg = err.response?.data?.detail || 'Error de conexión. Intente más tarde.';
       setError(msg);
       Alert.alert('Error de Autenticación', msg);
@@ -330,27 +321,15 @@ export default function LoginScreen({ navigation }) {
           </View>
         </View>
 
-        <View style={styles.inputGroup}>
-          <View style={styles.labelRow}>
-            <View style={styles.iconCircle}>
-              <Lock size={16} color="#059669" />
-            </View>
-            <Text style={styles.label}>Resuelve: {captchaQ} = ?</Text>
-          </View>
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={styles.inputText}
-              value={userCaptcha}
-              onChangeText={setUserCaptcha}
-              placeholder="Respuesta"
-              keyboardType="numeric"
-              placeholderTextColor="#9CA3AF"
-            />
-            <TouchableOpacity onPress={generateCaptcha} style={{ padding: 12 }}>
-              <Text style={{ fontSize: 18, color: '#6B7280' }}>↻</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
+        <Recaptcha
+          ref={recaptcha}
+          siteKey={process.env.EXPO_PUBLIC_RECAPTCHA_SITE_KEY}
+          baseUrl="https://unl-cloud-connect.me"
+          onVerify={onRecaptchaVerify}
+          onExpire={() => setError('El captcha expiró. Inténtalo de nuevo.')}
+          onError={() => setError('Error al cargar el captcha.')}
+          size="normal"
+        />
 
         <TouchableOpacity onPress={() => navigation.navigate('Recover')} style={styles.forgotButton}>
           <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>

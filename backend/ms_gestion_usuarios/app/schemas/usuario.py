@@ -119,6 +119,7 @@ class LoginRequest(BaseModel):
     """Esquema para request de login (desde JSON, no form-data)"""
     username: str  # correo
     password: str  # contraseña
+    recaptcha_token: Optional[str] = None
 
 class UsuarioUpdate(BaseModel):
     nombre: Optional[str] = None

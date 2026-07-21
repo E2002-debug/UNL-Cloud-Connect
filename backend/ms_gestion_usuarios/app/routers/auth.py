@@ -248,7 +248,7 @@ async def reenviar_verificacion(
 # ============ ENDPOINTS DE LOGIN ============
 
 @router.post("/login", response_model=Any)
-def iniciar_sesion(
+async def iniciar_sesion(
     credenciales: LoginRequest,
     request: Request,
     db: Session = Depends(get_db)
@@ -260,6 +260,10 @@ def iniciar_sesion(
     """
     # V-B2 Fix: Rate limiting — máximo 5 intentos de login por minuto por IP
     limiter_login.verificar(request)
+
+    # Verificar reCAPTCHA
+    await _verificar_recaptcha(credenciales.recaptcha_token)
+
     usuario = crud_usuario.obtener_usuario_por_correo(db, correo=credenciales.username)
     
     if not usuario:

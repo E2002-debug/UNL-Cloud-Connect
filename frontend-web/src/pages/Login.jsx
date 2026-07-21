@@ -5,6 +5,8 @@ import toast from 'react-hot-toast'
 import { login as apiLogin, loginGoogle as apiLoginGoogle, reenviarVerificacion } from '../services/api'
 import fondoImg from '../img/fondo.jpg'
 
+const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || ''
+
 const extractErrorMessage = (error) => {
   if (error.response?.data) {
     const data = error.response.data
@@ -33,20 +35,28 @@ export default function Login() {
   const navigate = useNavigate()
 
   // CAPTCHA State
-  const [captchaQ, setCaptchaQ] = useState('')
-  const [captchaA, setCaptchaA] = useState('')
-  const [userCaptcha, setUserCaptcha] = useState('')
+  const [recaptchaToken, setRecaptchaToken] = useState('')
+  const recaptchaRef = React.useRef(null)
 
-  const generateCaptcha = () => {
-    const num1 = Math.floor(Math.random() * 10) + 1
-    const num2 = Math.floor(Math.random() * 10) + 1
-    setCaptchaQ(`${num1} + ${num2}`)
-    setCaptchaA((num1 + num2).toString())
-    setUserCaptcha('')
-  }
-
+  // Cargar script de reCAPTCHA dinámicamente
   useEffect(() => {
-    generateCaptcha()
+    if (RECAPTCHA_SITE_KEY && !window.grecaptcha) {
+      const script = document.createElement('script')
+      script.src = 'https://www.google.com/recaptcha/api.js'
+      script.async = true
+      script.defer = true
+      document.head.appendChild(script)
+    }
+  }, [])
+
+  // Callback global para reCAPTCHA
+  useEffect(() => {
+    window.onRecaptchaSuccessLogin = (token) => setRecaptchaToken(token)
+    window.onRecaptchaExpiredLogin = () => setRecaptchaToken('')
+    return () => {
+      delete window.onRecaptchaSuccessLogin
+      delete window.onRecaptchaExpiredLogin
+    }
   }, [])
 
   // Redirigir si el usuario ya está autenticado (evita acceso manual a /login)
@@ -137,18 +147,17 @@ export default function Login() {
 
     const cleanEmail = email.trim().toLowerCase()
 
-    if (!cleanEmail || !password || !userCaptcha) {
-      const msg = 'Por favor, complete todos los campos, incluido el CAPTCHA.'
+    if (!cleanEmail || !password) {
+      const msg = 'Por favor, complete todos los campos.'
       setError(msg)
       toast.error(msg)
       return
     }
 
-    if (userCaptcha !== captchaA) {
-      const msg = 'El CAPTCHA es incorrecto.'
+    if (RECAPTCHA_SITE_KEY && !recaptchaToken) {
+      const msg = 'Por favor, complete el captcha de seguridad.'
       setError(msg)
       toast.error(msg)
-      generateCaptcha()
       return
     }
 
@@ -168,7 +177,7 @@ export default function Login() {
 
     setLoading(true)
     try {
-      const response = await apiLogin({ username: cleanEmail, password })
+      const response = await apiLogin({ username: cleanEmail, password, recaptcha_token: recaptchaToken })
       const data = response.data || response
       handleLoginSuccess(data)
     } catch (err) {
@@ -184,7 +193,11 @@ export default function Login() {
       }
       setError(msg)
       setLoading(false)
-      generateCaptcha()
+      // Reset reCAPTCHA
+      if (window.grecaptcha) {
+        window.grecaptcha.reset()
+        setRecaptchaToken('')
+      }
     }
   }
 
@@ -273,17 +286,18 @@ export default function Login() {
                 </div>
               </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '600', color: '#1a1a1a', marginBottom: '8px' }}>
-                  Resuelve: {captchaQ} = ?
-                </label>
-                <div style={{ display: 'flex', gap: '10px' }}>
-                  <input type="text" value={userCaptcha} onChange={(e) => setUserCaptcha(e.target.value)} placeholder="Respuesta" style={{ flex: 1, padding: '12px 16px', borderRadius: '8px', border: '1px solid #DBE3E0', background: '#F4F8F6', fontSize: '14px', boxSizing: 'border-box', outline: 'none' }} />
-                  <button type="button" onClick={generateCaptcha} style={{ padding: '0 16px', borderRadius: '8px', border: '1px solid #DBE3E0', background: '#fff', cursor: 'pointer' }}>
-                    ↻
-                  </button>
+              {/* reCAPTCHA */}
+              {RECAPTCHA_SITE_KEY && (
+                <div style={{ display: 'flex', justifyContent: 'center', margin: '8px 0' }}>
+                  <div
+                    className="g-recaptcha"
+                    data-sitekey={RECAPTCHA_SITE_KEY}
+                    data-callback="onRecaptchaSuccessLogin"
+                    data-expired-callback="onRecaptchaExpiredLogin"
+                    ref={recaptchaRef}
+                  ></div>
                 </div>
-              </div>
+              )}
 
               {/* ENLACE RECUPERADO: ¿Olvidaste tu contraseña? */}
               <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '-8px' }}>
