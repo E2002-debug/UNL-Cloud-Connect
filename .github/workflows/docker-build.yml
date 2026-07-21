@@ -89,9 +89,11 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             cd UNL-Cloud-Connect
+            git fetch --all
+            git reset --hard origin/main
             docker compose pull
-            grep -q "RECAPTCHA_SECRET_KEY" backend/ms_gestion_usuarios/.env || echo "RECAPTCHA_SECRET_KEY=6Le8JF4tAAAAAEmYhMjazqHvbADEiuql2wMtrrFq" >> backend/ms_gestion_usuarios/.env
-            docker compose up -d --remove-orphans
+            echo "RECAPTCHA_SECRET_KEY=6Le8JF4tAAAAAEmYhMjazqHvbADEiuql2wMtrrFq" >> backend/ms_gestion_usuarios/.env
+            docker compose up -d --build --remove-orphans
 
       - name: Deploy to GCP Server
         uses: appleboy/ssh-action@v1.0.3
@@ -101,6 +103,8 @@ jobs:
           key: ${{ secrets.GCP_SSH_PRIVATE_KEY }}
           script: |
             cd UNL-Cloud-Connect
+            git fetch --all
+            git reset --hard origin/main
             docker compose pull
-            grep -q "RECAPTCHA_SECRET_KEY" backend/ms_gestion_usuarios/.env || echo "RECAPTCHA_SECRET_KEY=6Le8JF4tAAAAAEmYhMjazqHvbADEiuql2wMtrrFq" >> backend/ms_gestion_usuarios/.env
-            docker compose up -d --remove-orphans
+            echo "RECAPTCHA_SECRET_KEY=6Le8JF4tAAAAAEmYhMjazqHvbADEiuql2wMtrrFq" >> backend/ms_gestion_usuarios/.env
+            docker compose up -d --build --remove-orphans
