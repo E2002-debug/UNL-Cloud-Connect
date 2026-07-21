@@ -177,9 +177,14 @@ export default function Sensors() {
                     <div style={{ fontSize: '9px', fontWeight: '800', color: 'var(--text-muted)', letterSpacing: '0.5px' }}>IDENTIFICADOR NODO</div>
                     <h3 style={{ margin: 0, fontSize: '16px', fontWeight: '900', color: 'var(--text-main)', fontStyle: 'italic' }}>{s.nombre}</h3>
                   </div>
-                  <span style={{ padding: '4px 8px', fontSize: '10px', fontWeight: '700', border: '1px solid #DBE3E0', background: online ? '#e6f4ea' : '#fce8e6', color: online ? '#0F766E' : '#ef4444' }}>
-                    {s.estado.toUpperCase()}
-                  </span>
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <span style={{ padding: '3px 6px', fontSize: '9px', fontWeight: '800', borderRadius: '4px', background: '#0F766E', color: 'white', letterSpacing: '0.5px' }}>
+                      ⚡ ESP32 (IoT)
+                    </span>
+                    <span style={{ padding: '4px 8px', fontSize: '10px', fontWeight: '700', border: '1px solid #DBE3E0', background: online ? '#e6f4ea' : '#fce8e6', color: online ? '#0F766E' : '#ef4444' }}>
+                      {s.estado.toUpperCase()}
+                    </span>
+                  </div>
                 </div>
 
                 <div style={{ fontSize: '11px', fontWeight: '700', color: s.id_ubicacion ? '#0F766E' : 'transparent', userSelect: 'none' }}>

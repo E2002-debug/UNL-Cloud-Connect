@@ -14,7 +14,7 @@ import Monitoreo from '../components/dashboard/monitoreo/Monitoreo'
 import ModerationPanel from '../components/dashboard/moderation/ModerationPanel'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, ResponsiveContainer } from 'recharts'
 import jsPDF from 'jspdf'
-import 'jspdf-autotable'
+import autoTable from 'jspdf-autotable'
 import { CloudSun } from 'lucide-react'
 
 // --- Iconos SVG Básicos ---
@@ -196,35 +196,144 @@ export default function Dashboard() {
     }
   };
 
-  const exportEventsToPDF = () => {
-    const doc = new jsPDF();
-    doc.text('Reporte de Eventos UNL-CLOUD-CONNECT', 14, 15);
-    const tableData = eventos.map(e => [
-      e.id_evento, e.nombre, e.estado, new Date(e.fecha_hora_inicio).toLocaleDateString()
-    ]);
-    doc.autoTable({
-      head: [['ID', 'Nombre', 'Estado', 'Fecha']],
-      body: tableData,
-      startY: 25,
-    });
-    doc.save('reporte_eventos.pdf');
-    addNotification('success', 'PDF EXPORTADO', 'El reporte de eventos ha sido generado.');
-  };
+  const exportEventsToPDF = async () => {
+    try {
+      let evts = eventos
+      if (!evts || evts.length === 0) {
+        try {
+          evts = await getEventos()
+          if (Array.isArray(evts)) setEventos(evts)
+        } catch (e) {
+          console.error("Error al obtener eventos para PDF:", e)
+        }
+      }
 
-  const exportUsersToPDF = () => {
-    const doc = new jsPDF();
-    doc.text('Reporte de Usuarios UNL-CLOUD-CONNECT', 14, 15);
-    const tableData = usuarios.map(u => [
-      u.id_usuario, `${u.nombre} ${u.apellido}`, u.correo, u.id_rol === 1 ? 'Admin' : u.id_rol === 3 ? 'Superadmin' : 'Participante'
-    ]);
-    doc.autoTable({
-      head: [['ID', 'Nombre', 'Correo', 'Rol']],
-      body: tableData,
-      startY: 25,
-    });
-    doc.save('reporte_usuarios.pdf');
-    addNotification('success', 'PDF EXPORTADO', 'El reporte de usuarios ha sido generado.');
-  };
+      if (!evts || evts.length === 0) {
+        toast.error("No hay eventos disponibles para exportar")
+        return
+      }
+
+      const doc = new jsPDF()
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(16)
+      doc.setTextColor(15, 118, 110)
+      doc.text('REPORTE DE EVENTOS UNL-CLOUD-CONNECT', 14, 18)
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(100, 116, 139)
+      doc.text(`Fecha de emisión: ${new Date().toLocaleString()}`, 14, 25)
+      doc.text(`Total de registros: ${evts.length}`, 14, 30)
+
+      const tableData = evts.map(e => {
+        let fechaStr = '-'
+        if (e.fecha_hora_inicio) {
+          try {
+            fechaStr = new Date(e.fecha_hora_inicio).toLocaleDateString()
+          } catch(err) {
+            fechaStr = String(e.fecha_hora_inicio)
+          }
+        }
+        return [
+          e.id_evento ?? '-',
+          e.nombre ?? 'Sin nombre',
+          e.estado ?? '-',
+          fechaStr
+        ]
+      })
+
+      const renderAutoTable = autoTable || doc.autoTable
+      if (typeof renderAutoTable === 'function') {
+        renderAutoTable(doc, {
+          head: [['ID', 'Nombre del Evento', 'Estado', 'Fecha Inicio']],
+          body: tableData,
+          startY: 35,
+          theme: 'grid',
+          headStyles: { fillColor: [15, 118, 110], textColor: [255, 255, 255], fontStyle: 'bold' },
+          styles: { fontSize: 9 }
+        })
+      } else {
+        doc.autoTable({
+          head: [['ID', 'Nombre del Evento', 'Estado', 'Fecha Inicio']],
+          body: tableData,
+          startY: 35
+        })
+      }
+
+      doc.save(`reporte_eventos_${Date.now()}.pdf`)
+      toast.success('Reporte de eventos exportado correctamente')
+      addNotification('success', 'PDF EXPORTADO', 'El reporte de eventos ha sido generado y descargado.')
+    } catch (err) {
+      console.error('Error al exportar PDF de eventos:', err)
+      toast.error('Error al exportar eventos: ' + (err.message || 'Error inesperado'))
+    }
+  }
+
+  const exportUsersToPDF = async () => {
+    try {
+      let usrs = usuarios
+      if (!usrs || usrs.length === 0) {
+        try {
+          const res = await getUsers()
+          if (res && res.data) {
+            usrs = res.data
+            setUsuarios(usrs)
+          }
+        } catch (e) {
+          console.error("Error al obtener usuarios para PDF:", e)
+        }
+      }
+
+      if (!usrs || usrs.length === 0) {
+        toast.error("No hay usuarios disponibles para exportar")
+        return
+      }
+
+      const doc = new jsPDF()
+      doc.setFont('helvetica', 'bold')
+      doc.setFontSize(16)
+      doc.setTextColor(15, 118, 110)
+      doc.text('REPORTE DE USUARIOS UNL-CLOUD-CONNECT', 14, 18)
+
+      doc.setFont('helvetica', 'normal')
+      doc.setFontSize(9)
+      doc.setTextColor(100, 116, 139)
+      doc.text(`Fecha de emisión: ${new Date().toLocaleString()}`, 14, 25)
+      doc.text(`Total de usuarios: ${usrs.length}`, 14, 30)
+
+      const tableData = usrs.map(u => [
+        u.id_usuario ?? '-',
+        `${u.nombre || ''} ${u.apellido || ''}`.trim() || 'Sin nombre',
+        u.correo ?? '-',
+        u.id_rol === 1 ? 'Administrador' : u.id_rol === 3 ? 'Superadmin' : 'Participante'
+      ])
+
+      const renderAutoTable = autoTable || doc.autoTable
+      if (typeof renderAutoTable === 'function') {
+        renderAutoTable(doc, {
+          head: [['ID', 'Nombre Completo', 'Correo Electrónico', 'Rol']],
+          body: tableData,
+          startY: 35,
+          theme: 'grid',
+          headStyles: { fillColor: [15, 118, 110], textColor: [255, 255, 255], fontStyle: 'bold' },
+          styles: { fontSize: 9 }
+        })
+      } else {
+        doc.autoTable({
+          head: [['ID', 'Nombre Completo', 'Correo Electrónico', 'Rol']],
+          body: tableData,
+          startY: 35
+        })
+      }
+
+      doc.save(`reporte_usuarios_${Date.now()}.pdf`)
+      toast.success('Reporte de usuarios exportado correctamente')
+      addNotification('success', 'PDF EXPORTADO', 'El reporte de usuarios ha sido generado y descargado.')
+    } catch (err) {
+      console.error('Error al exportar PDF de usuarios:', err)
+      toast.error('Error al exportar usuarios: ' + (err.message || 'Error inesperado'))
+    }
+  }
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme)
@@ -358,34 +467,26 @@ export default function Dashboard() {
         // 1. Intentar obtener datos físicos del ESP32 local primero (IoT Priorizado)
         const localData = await obtenerClimaActual()
         if (localData && localData.temperatura !== undefined) {
-          // Verificar qué tan antiguo es el dato
-          const fechaDato = new Date(localData.fecha_captura + 'Z') // Asegurar que lo lea como UTC
-          const ahora = new Date()
-          const diferenciaMinutos = (ahora - fechaDato) / (1000 * 60)
-
-          // Solo usamos el sensor si el dato es de hace menos de 1 minuto (para pruebas)
-          if (diferenciaMinutos <= 1) {
-            setWeatherData({
-              currentConditions: {
-                temp: localData.temperatura,
-                humidity: localData.humedad,
-                conditions: 's-activo',
-                feelslike: localData.temperatura,
-                windspeed: 0
-              },
-              source: 'esp32'
-            })
-            setLoadingWeather(false)
-            return // Si tiene éxito y es reciente, no llama a la API externa
-          }
-          // Si es muy viejo (el sensor se desconectó o desactivó), ignoramos y pasamos a la API
-          console.warn(`Dato IoT muy antiguo (${Math.round(diferenciaMinutos)} min). Pasando a API externa...`)
+          setWeatherData({
+            currentConditions: {
+              temp: localData.temperatura,
+              humidity: localData.humedad,
+              conditions: localData.alerta ? (localData.detalles_alerta || 'Alerta') : 'Estable',
+              feelslike: localData.temperatura,
+              windspeed: 0
+            },
+            source: 'esp32',
+            fuenteLabel: 'ESP32 (IoT)',
+            fecha_captura: localData.fecha_captura
+          })
+          setLoadingWeather(false)
+          return // Prioridad absoluta a ESP32 si existen datos locales
         }
       } catch (error) {
-        console.log("Sensor local no disponible, cambiando a API externa de respaldo...")
+        console.log("Sensor local ESP32 no disponible, cambiando a API externa de respaldo...")
       }
 
-      // 2. Fallback Automático a la API de VisualCrossing
+      // 2. Fallback Automático a la API de VisualCrossing solo si el ESP32 no responde
       const apiKey = import.meta.env.VITE_WEATHER_API_KEY
       if (!apiKey) {
         setWeatherError('No se ha configurado la clave de API del clima.')
@@ -399,7 +500,11 @@ export default function Dashboard() {
           return res.json()
         })
         .then(data => {
-          setWeatherData(data)
+          setWeatherData({
+            ...data,
+            source: 'api',
+            fuenteLabel: 'API EXTERNA'
+          })
           setLoadingWeather(false)
         })
         .catch(err => {
@@ -773,8 +878,26 @@ export default function Dashboard() {
                 <CloudSun size={28} strokeWidth={2.5} />
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                <div style={{ fontSize: '16px', fontWeight: '800', color: 'var(--text-main)', lineHeight: '1' }}>
-                  {loadingWeather ? '...' : weatherError ? '--°C' : weatherData ? `${weatherData.currentConditions?.temp}°C` : '12.4°C'}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', lineHeight: '1' }}>
+                  <span style={{ fontSize: '16px', fontWeight: '800', color: 'var(--text-main)' }}>
+                    {loadingWeather ? '...' : weatherError ? '--°C' : weatherData ? `${weatherData.currentConditions?.temp}°C` : '12.4°C'}
+                  </span>
+                  {weatherData && (
+                    <span style={{
+                      padding: '2px 6px',
+                      borderRadius: '4px',
+                      fontSize: '9px',
+                      fontWeight: '800',
+                      letterSpacing: '0.5px',
+                      background: weatherData.source === 'esp32' ? '#0F766E' : '#0284c7',
+                      color: 'white',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '3px'
+                    }}>
+                      {weatherData.source === 'esp32' ? '⚡ ESP32 (IoT)' : '🌐 API EXTERNA'}
+                    </span>
+                  )}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '4px' }}>
                   <span style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>Loja, Ecuador</span>
