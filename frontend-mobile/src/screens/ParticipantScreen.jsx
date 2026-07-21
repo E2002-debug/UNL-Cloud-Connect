@@ -118,6 +118,8 @@ export default function ParticipantScreen({ route, navigation }) {
   useEffect(() => {
     loadEvents();
     loadWeather();
+    const weatherTimer = setInterval(loadWeather, 5000);
+    return () => clearInterval(weatherTimer);
   }, []);
 
   const [alerts, setAlerts] = useState([]);
@@ -294,10 +296,47 @@ export default function ParticipantScreen({ route, navigation }) {
   const loadWeather = async () => {
     try {
       setLoadingWeather(true);
-      const data = await getClimaActual();
-      setWeather(data);
+      // 1. Intentar obtener datos físicos de la ESP32 local primero
+      const localData = await getClimaActual();
+      if (localData && localData.temperatura !== undefined && localData.fecha_captura) {
+        const dateStr = localData.fecha_captura;
+        const dateObj = new Date(typeof dateStr === 'string' ? dateStr.replace('Z', '') : dateStr);
+        const now = new Date();
+        let diffSeconds = Math.abs((now.getTime() - dateObj.getTime()) / 1000);
+        
+        if (diffSeconds > 17900 && diffSeconds < 18100) {
+          diffSeconds = Math.abs(diffSeconds - 18000);
+        }
+
+        // Si el dato fue enviado hace menos de 45 segundos, la ESP32 está activa y transmitiendo (Health Check OK)
+        if (diffSeconds <= 45) {
+          setWeather({
+            temperatura: localData.temperatura,
+            humedad: localData.humedad,
+            source: 'esp32',
+            fuenteLabel: 'ESP32 (IoT)'
+          });
+          setLoadingWeather(false);
+          return;
+        }
+      }
     } catch (err) {
-      console.error('Error al cargar clima:', err);
+      console.log('Sensor local ESP32 no disponible en móvil, cambiando a API externa...');
+    }
+
+    // 2. Fallback Automático a la API de VisualCrossing en móvil si ESP32 no responde o pasaron > 45s
+    try {
+      const extWeather = await getLojaWeather();
+      if (extWeather && extWeather.temp !== undefined) {
+        setWeather({
+          temperatura: extWeather.temp,
+          humedad: extWeather.humidity,
+          source: 'api',
+          fuenteLabel: 'API EXTERNA'
+        });
+      }
+    } catch (extErr) {
+      console.error('Error al obtener clima externo en móvil:', extErr);
     } finally {
       setLoadingWeather(false);
     }
@@ -547,9 +586,10 @@ export default function ParticipantScreen({ route, navigation }) {
                   <View style={styles.premiumBadgePrimary}>
                     <Text style={styles.premiumBadgeTextPrimary}>{item.estado}</Text>
                   </View>
-                  <View style={styles.premiumBadgeSecondary}>
+                  <View style={[styles.premiumBadgeSecondary, { backgroundColor: weather?.source === 'esp32' ? '#0F766E' : '#0284C7' }]}>
                     <Text style={styles.premiumBadgeTextSecondary}>
-                      {weather?.temperatura ? weather.temperatura.toFixed(1) + '°C' : '--°C'}
+                      {weather?.source === 'esp32' ? '⚡ ' : weather?.source === 'api' ? '🌐 ' : ''}
+                      {weather?.temperatura !== undefined ? weather.temperatura.toFixed(1) + '°C' : '--°C'}
                     </Text>
                   </View>
                 </View>

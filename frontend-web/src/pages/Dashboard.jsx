@@ -469,10 +469,14 @@ export default function Dashboard() {
         if (localData && localData.temperatura !== undefined && localData.fecha_captura) {
           // Health Check óptimo: Verificar si el dato de la ESP32 es reciente (hace menos de 45 segundos)
           const dateStr = localData.fecha_captura
-          const isoStr = (typeof dateStr === 'string' && !dateStr.endsWith('Z') && !dateStr.includes('+')) ? dateStr + 'Z' : dateStr
-          const fechaDato = new Date(isoStr)
-          const ahora = new Date()
-          const diffSeconds = Math.abs((ahora.getTime() - fechaDato.getTime()) / 1000)
+          const dateObj = new Date(typeof dateStr === 'string' ? dateStr.replace('Z', '') : dateStr)
+          const now = new Date()
+          let diffSeconds = Math.abs((now.getTime() - dateObj.getTime()) / 1000)
+          
+          // Corrección de desfasaje de zona horaria de 5 horas (18000s) si el backend guardó hora local sin offset
+          if (diffSeconds > 17900 && diffSeconds < 18100) {
+            diffSeconds = Math.abs(diffSeconds - 18000)
+          }
 
           // Si el dato fue enviado hace menos de 45 segundos (emisión cada 30s + 15s de margen), la ESP32 está activa
           if (diffSeconds <= 45) {
