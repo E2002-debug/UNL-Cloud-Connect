@@ -1,0 +1,60 @@
+{
+  "entities": {
+    "Event": {
+      "title": "Event",
+      "description": "Cultural event in Loja",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string", "enum": ["festival", "concert", "fair", "cultural"] },
+        "lat": { "type": "number" },
+        "lng": { "type": "number" },
+        "locationName": { "type": "string" },
+        "date": { "type": "string", "format": "date" },
+        "attendeesCount": { "type": "integer" },
+        "imageUrl": { "type": "string" }
+      },
+      "required": ["title", "lat", "lng", "category"]
+    },
+    "SocialPost": {
+      "title": "SocialPost",
+      "description": "User shared photo with AI analysis",
+      "type": "object",
+      "properties": {
+        "eventId": { "type": "string" },
+        "userId": { "type": "string" },
+        "imageUrl": { "type": "string" },
+        "caption": { "type": "string" },
+        "timestamp": { "type": "integer" },
+        "analysis": { "type": "string" }
+      },
+      "required": ["eventId", "imageUrl", "userId"]
+    },
+    "SystemMetric": {
+      "title": "SystemMetric",
+      "description": "Cloud cluster telemetry",
+      "type": "object",
+      "properties": {
+        "activeUsers": { "type": "integer" },
+        "cpuLoad": { "type": "number" },
+        "memoryUsage": { "type": "number" },
+        "timestamp": { "type": "integer" }
+      }
+    }
+  },
+  "firestore": {
+    "/events/{eventId}": {
+      "schema": "Event",
+      "description": "Central catalog of cultural events"
+    },
+    "/socialFeed/{postId}": {
+      "schema": "SocialPost",
+      "description": "Real-time stream of live photos"
+    },
+    "/systemStatus/current": {
+      "schema": "SystemMetric",
+      "description": "Live cloud infrastructure telemetry"
+    }
+  }
+}

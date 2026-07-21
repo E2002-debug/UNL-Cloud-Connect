@@ -1,0 +1,100 @@
+# Autor: Miguel Luna
+# Fecha: 07/07/2026
+# Version: 1.1
+# Historial:
+# 07/07/2026 v1.1 - Miguel Luna: Integración de la ruta para ms-notificaciones y configuración del plugin request-transformer para mitigación de vulnerabilidad RBAC (Strip Headers).
+
+#Autor:Isabel Morocho
+#Fecha:08/07/2026
+#Implementación de plugings
+
+_format_version: "3.0"
+_transform: true
+
+plugins:
+  - name: cors
+    config:
+      origins:
+        - "http://localhost:5173"
+        - "http://127.0.0.1:5173"
+        - "http://localhost:8082"
+        - "http://127.0.0.1:8082"
+        - "https://unl-cloud-connect.me"
+        - "http://respaldo.unl-cloud-connect.me"
+      methods:
+        - GET
+        - POST
+        - PUT
+        - PATCH
+        - DELETE
+        - OPTIONS
+      headers:
+        - Accept
+        - Accept-Version
+        - Content-Length
+        - Content-MD5
+        - Content-Type
+        - Date
+        - X-Auth-Token
+        - Authorization
+        - x-user-id
+        - x-user-role
+      credentials: true
+      max_age: 3600
+
+# ==========================================
+# DEFINICIÓN DE SERVICIOS (Tus Microservicios)
+# ==========================================
+services:
+  # 1. Servicio de Usuarios
+  - name: servicio-usuarios
+    url: http://ms-gestion-usuarios:8000 # Usa el nombre del SERVICIO (Docker Swarm ignora container_name)
+    routes:
+      - name: ruta-usuarios
+        paths:
+          - /api/auth
+          - /api/usuarios
+          - /api/auditoria
+        strip_path: false
+
+  # 2. Servicio de Clima/Telemetría
+  - name: servicio-clima
+    url: http://ms-clima:8000
+    routes:
+      - name: ruta-clima
+        paths:
+          - /api/clima
+        strip_path: false
+
+  # 2.5 Servicio de Almacenamiento MinIO (Proxy de imágenes HTTPS)
+  - name: servicio-minio
+    url: http://minio:9000
+    routes:
+      - name: ruta-minio
+        paths:
+          - /unl-eventos-media
+        strip_path: false
+
+  # 3. Servicio de Eventos 
+  - name: servicio-eventos
+    url: http://ms-eventos:8000 
+    routes:
+      - name: ruta-eventos
+        paths:
+          - /api/eventos  
+          - /api/imagenes
+        strip_path: false
+
+
+  # 4. Servicio de Notificaciones
+  - name: servicio-notificaciones
+    url: http://ms-notificaciones:8000
+    routes:
+      - name: ruta-notificaciones
+        paths:
+          - /api/notificaciones
+        strip_path: true
+
+# ==========================================
+# FIN DE CONFIGURACIÓN
+# ==========================================

@@ -1,0 +1,53 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: unl-ms-gestion-usuarios
+  namespace: unl-cloud-connect
+  labels:
+    app: ms-gestion-usuarios
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: ms-gestion-usuarios
+  template:
+    metadata:
+      labels:
+        app: ms-gestion-usuarios
+    spec:
+      containers:
+      - name: ms-gestion-usuarios
+        image: ghcr.io/${GITHUB_OWNER}/unl-ms_gestion_usuarios:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 8000
+        envFrom:
+        - secretRef:
+            name: ms-gestion-usuarios-secrets
+        resources:
+          requests:
+            memory: "128Mi"
+            cpu: "100m"
+          limits:
+            memory: "256Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /api/usuarios/health
+            port: 8000
+          initialDelaySeconds: 15
+          periodSeconds: 20
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ms-gestion-usuarios-service
+  namespace: unl-cloud-connect
+spec:
+  selector:
+    app: ms-gestion-usuarios
+  ports:
+    - protocol: TCP
+      port: 8000
+      targetPort: 8000
+  type: ClusterIP

@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    // --- EVENTS ---
+    function isValidEvent(data) {
+      return data.title is string && data.title.size() <= 200 &&
+             data.lat is number && data.lng is number &&
+             data.category in ['festival', 'concert', 'fair', 'cultural'];
+    }
+
+    match /events/{eventId} {
+      allow read: if true; // Public listings
+      allow write: if isSignedIn() && isValidId(eventId) && isValidEvent(request.resource.data);
+    }
+
+    // --- SOCIAL FEED ---
+    function isValidPost(data) {
+      return data.userId == request.auth.uid &&
+             data.imageUrl is string && data.imageUrl.size() <= 500 &&
+             data.eventId is string && data.timestamp is int;
+    }
+
+    match /socialFeed/{postId} {
+      allow read: if true;
+      allow create: if isSignedIn() && isValidId(postId) && isValidPost(request.resource.data);
+      allow delete: if isSignedIn() && resource.data.userId == request.auth.uid;
+    }
+
+    // --- SYSTEM STATUS ---
+    match /systemStatus/current {
+      allow read: if true;
+      allow write: if false; // System only
+    }
+  }
+}

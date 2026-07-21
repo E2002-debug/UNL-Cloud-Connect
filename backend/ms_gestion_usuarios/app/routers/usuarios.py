@@ -1,0 +1,186 @@
+from fastapi import APIRouter, Depends, HTTPException, status, Request, Query
+from sqlalchemy.orm import Session
+from typing import List, Any
+from app.database.session import get_db
+from app.models.usuario import Usuario
+from app.schemas.usuario import UsuarioResponse, UsuarioUpdate, UsuarioUpdateMe, UsuarioResumenResponse
+from app.crud import crud_usuario
+from app.core.deps import get_current_admin, get_current_user
+from app.core.security import obtener_hash_clave
+from app.crud.crud_auditoria import registrar_auditoria
+from app.schemas.auditoria import AuditoriaCreate
+from app.crud import crud_historial_clave
+
+router = APIRouter(
+    prefix="/usuarios",
+    tags=["Gestión de Usuarios (Admin)"]
+)
+
+@router.get("/batch", response_model=List[UsuarioResumenResponse])
+def listar_usuarios_por_ids(
+    ids: str = Query(..., description="IDs de usuarios separados por coma"),
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)  # V-A2 Fix: requiere autenticación
+) -> Any:
+    """
+    Retorna información básica de usuarios dado sus IDs separados por coma.
+    Requiere autenticación JWT. Solo usuarios autenticados pueden resolver nombres.
+    """
+    lista_ids = [int(id_) for id_ in ids.split(",") if id_.strip().isdigit()]
+    if not lista_ids:
+        return []
+    # Limitar a máximo 50 IDs por petición para prevenir abuso
+    lista_ids = lista_ids[:50]
+    usuarios = db.query(Usuario).filter(Usuario.id_usuario.in_(lista_ids)).all()
+    return usuarios
+
+@router.put("/me", response_model=UsuarioResponse)
+def actualizar_mi_perfil(
+    request: Request,
+    usuario_in: UsuarioUpdateMe,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+) -> Any:
+    """
+    Actualiza la información del usuario autenticado (nombre, apellido, clave).
+    """
+    datos_actualizar = usuario_in.model_dump(exclude_unset=True)
+    cambio_clave = False
+    if "clave" in datos_actualizar and datos_actualizar["clave"]:
+        from app.core.security import verificar_clave
+        nueva_clave = datos_actualizar["clave"]
+
+        # Validar que no sea la contraseña actual
+        if current_user.clave and verificar_clave(nueva_clave, current_user.clave):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="La nueva contraseña no puede ser igual a la actual."
+            )
+
+        # Validar que no esté en el historial de contraseñas anteriores
+        if crud_historial_clave.verificar_reutilizacion_clave(db, current_user.id_usuario, nueva_clave):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="No puedes reutilizar una contraseña que hayas usado anteriormente."
+            )
+
+        # Guardar la clave actual en historial antes de cambiarla
+        if current_user.clave:
+            crud_historial_clave.guardar_clave_en_historial(db, current_user.id_usuario, current_user.clave)
+
+        datos_actualizar["clave"] = obtener_hash_clave(nueva_clave)
+        cambio_clave = True
+    
+    usuario_actualizado = crud_usuario.actualizar_usuario(db, db_usuario=current_user, datos_actualizar=datos_actualizar)
+
+    accion = "CAMBIO_CLAVE" if cambio_clave else "ACTUALIZACION_PERFIL"
+    registrar_auditoria(db, AuditoriaCreate(
+        id_usuario=current_user.id_usuario,
+        correo=current_user.correo,
+        accion=accion,
+        ip_origen=request.client.host if request.client else None,
+        detalles=f"El usuario actualizó su {'contraseña' if cambio_clave else 'perfil'}"
+    ))
+    return usuario_actualizado
+
+@router.get("/", response_model=List[UsuarioResponse])
+def listar_usuarios(
+    skip: int = 0,
+    # V-N7 Fix: cap de 100 usuarios por página para prevenir dumps masivos de BD
+    limit: int = Query(default=50, ge=1, le=100),
+    db: Session = Depends(get_db),
+    admin_user = Depends(get_current_admin)
+) -> Any:
+    """
+    Obtiene la lista de todos los usuarios.
+    Ruta protegida: Solo accesible por Administradores.
+    """
+    usuarios = crud_usuario.obtener_usuarios(db, skip=skip, limit=limit)
+    return usuarios
+
+@router.put("/{id_usuario}", response_model=UsuarioResponse)
+def actualizar_usuario_endpoint(
+    id_usuario: int,
+    usuario_in: UsuarioUpdate,
+    request: Request,
+    db: Session = Depends(get_db),
+    admin_user = Depends(get_current_admin)
+) -> Any:
+    """
+    Actualiza la información de un usuario (ej. rol, nombre).
+    Ruta protegida: Solo accesible por Administradores.
+    """
+    usuario_db = crud_usuario.obtener_usuario_por_id(db, id_usuario=id_usuario)
+    if not usuario_db:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+    
+    if id_usuario == admin_user.id_usuario and usuario_in.id_rol == 2:
+        raise HTTPException(status_code=400, detail="No puedes quitarte tu propio rol de administrador")
+
+    rol_anterior = usuario_db.id_rol
+    datos_actualizar = usuario_in.model_dump(exclude_unset=True)
+    usuario_actualizado = crud_usuario.actualizar_usuario(db, db_usuario=usuario_db, datos_actualizar=datos_actualizar)
+
+    # Determinar si fue cambio de rol o modificación general
+    if "id_rol" in datos_actualizar and datos_actualizar["id_rol"] != rol_anterior:
+        accion = "CAMBIO_ROL"
+        detalles = f"Rol cambiado de {rol_anterior} a {datos_actualizar['id_rol']} en usuario: {usuario_db.correo}"
+    else:
+        accion = "MODIFICACION_USUARIO"
+        detalles = f"Admin modificó datos del usuario: {usuario_db.correo}"
+
+    registrar_auditoria(db, AuditoriaCreate(
+        id_usuario=admin_user.id_usuario,
+        correo=admin_user.correo,
+        accion=accion,
+        ip_origen=request.client.host if request.client else None,
+        detalles=detalles
+    ))
+    return usuario_actualizado
+
+@router.delete("/{id_usuario}", response_model=dict)
+def eliminar_usuario_endpoint(
+    id_usuario: int,
+    request: Request,
+    db: Session = Depends(get_db),
+    admin_user = Depends(get_current_admin)
+) -> Any:
+    """
+    Elimina un usuario del sistema.
+    Ruta protegida: Solo accesible por Administradores.
+    """
+    usuario_db = crud_usuario.obtener_usuario_por_id(db, id_usuario=id_usuario)
+    if not usuario_db:
+        raise HTTPException(status_code=404, detail="Usuario no encontrado")
+        
+    if id_usuario == admin_user.id_usuario:
+        raise HTTPException(status_code=400, detail="No puedes eliminar tu propia cuenta de administrador")
+
+    correo_eliminado = usuario_db.correo
+    crud_usuario.eliminar_usuario(db, db_usuario=usuario_db)
+
+    registrar_auditoria(db, AuditoriaCreate(
+        id_usuario=admin_user.id_usuario,
+        correo=admin_user.correo,
+        accion="ELIMINACION_USUARIO",
+        ip_origen=request.client.host if request.client else None,
+        detalles=f"Admin eliminó la cuenta del usuario: {correo_eliminado}"
+    ))
+    return {"mensaje": "Usuario eliminado correctamente"}
+
+
+@router.get("/{id_usuario}/perfil-basico", response_model=UsuarioResponse)
+def obtener_perfil_basico(
+    id_usuario: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(get_current_user)
+) -> Any:
+    """
+    Obtiene la información básica (perfil) de un usuario por su ID.
+    Ruta protegida: Accesible por cualquier usuario autenticado (participante o admin).
+    """
+    usuario = crud_usuario.obtener_usuario_por_id(db, id_usuario=id_usuario)
+    if not usuario:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+    return usuario
+
