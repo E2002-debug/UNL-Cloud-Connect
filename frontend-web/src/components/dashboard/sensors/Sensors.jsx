@@ -125,6 +125,13 @@ export default function Sensors() {
     return ubicacionesMap[s.id_ubicacion] || `ID: ${s.id_ubicacion}`
   }
 
+  const formatDate = (dateStr) => {
+    if (!dateStr) return ''
+    const isoStr = (typeof dateStr === 'string' && !dateStr.endsWith('Z') && !dateStr.includes('+')) ? dateStr + 'Z' : dateStr
+    const d = new Date(isoStr)
+    return isNaN(d.getTime()) ? new Date(dateStr).toLocaleString() : d.toLocaleString()
+  }
+
   return (
     <div style={{ width: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
@@ -221,8 +228,8 @@ export default function Sensors() {
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '10px', color: 'var(--text-muted)', fontWeight: '600' }}>
                   <span>Tópico: {s.topico_mqtt}</span>
-                  {s.ultima_conexion && (
-                    <span>Última conexión: {new Date(s.ultima_conexion).toLocaleString()}</span>
+                  {(lecturasMap[s.id_sensor]?.fecha_captura || s.ultima_conexion) && (
+                    <span>Última actualización: {formatDate(lecturasMap[s.id_sensor]?.fecha_captura || s.ultima_conexion)}</span>
                   )}
                 </div>
 

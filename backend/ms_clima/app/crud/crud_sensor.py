@@ -8,7 +8,25 @@ def listar_sensores(db: Session, solo_activos: bool = True) -> List[Sensor]:
     query = db.query(Sensor)
     if solo_activos:
         query = query.filter(Sensor.activo == True)
-    return query.order_by(Sensor.fecha_creacion.desc()).all()
+    sensores = query.order_by(Sensor.fecha_creacion.desc()).all()
+    
+    from datetime import datetime, timezone
+    ahora = datetime.now(timezone.utc)
+    modificado = False
+    for s in sensores:
+        if s.ultima_conexion:
+            conn_time = s.ultima_conexion if s.ultima_conexion.tzinfo else s.ultima_conexion.replace(tzinfo=timezone.utc)
+            if (ahora - conn_time).total_seconds() > 30:
+                if s.estado != "offline":
+                    s.estado = "offline"
+                    modificado = True
+        else:
+            if s.estado != "offline":
+                s.estado = "offline"
+                modificado = True
+    if modificado:
+        db.commit()
+    return sensores
 
 def obtener_sensor_por_id(db: Session, id_sensor: int) -> Optional[Sensor]:
     return db.query(Sensor).filter(Sensor.id_sensor == id_sensor).first()

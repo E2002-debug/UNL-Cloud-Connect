@@ -466,27 +466,39 @@ export default function Dashboard() {
       try {
         // 1. Intentar obtener datos físicos del ESP32 local primero (IoT Priorizado)
         const localData = await obtenerClimaActual()
-        if (localData && localData.temperatura !== undefined) {
-          setWeatherData({
-            currentConditions: {
-              temp: localData.temperatura,
-              humidity: localData.humedad,
-              conditions: localData.alerta ? (localData.detalles_alerta || 'Alerta') : 'Estable',
-              feelslike: localData.temperatura,
-              windspeed: 0
-            },
-            source: 'esp32',
-            fuenteLabel: 'ESP32 (IoT)',
-            fecha_captura: localData.fecha_captura
-          })
-          setLoadingWeather(false)
-          return // Prioridad absoluta a ESP32 si existen datos locales
+        if (localData && localData.temperatura !== undefined && localData.fecha_captura) {
+          // Health Check ultrarrápido: Verificar si el dato de la ESP32 es reciente (hace menos de 30 segundos)
+          const dateStr = localData.fecha_captura
+          const isoStr = (typeof dateStr === 'string' && !dateStr.endsWith('Z') && !dateStr.includes('+')) ? dateStr + 'Z' : dateStr
+          const fechaDato = new Date(isoStr)
+          const ahora = new Date()
+          const diffSeconds = Math.abs((ahora.getTime() - fechaDato.getTime()) / 1000)
+
+          // Si el dato fue enviado hace menos de 30 segundos, la ESP32 está activa y transmitiendo (Health Check OK)
+          if (diffSeconds <= 30) {
+            setWeatherData({
+              currentConditions: {
+                temp: localData.temperatura,
+                humidity: localData.humedad,
+                conditions: localData.alerta ? (localData.detalles_alerta || 'Alerta') : 'Estable',
+                feelslike: localData.temperatura,
+                windspeed: 0
+              },
+              source: 'esp32',
+              fuenteLabel: 'ESP32 (IoT)',
+              fecha_captura: localData.fecha_captura
+            })
+            setLoadingWeather(false)
+            return // ESP32 en línea y activa
+          }
+
+          console.warn(`[Health Check] ESP32 sin transmisión reciente (${Math.round(diffSeconds)}s > 30s). Cambiando a API de respaldo...`)
         }
       } catch (error) {
         console.log("Sensor local ESP32 no disponible, cambiando a API externa de respaldo...")
       }
 
-      // 2. Fallback Automático a la API de VisualCrossing solo si el ESP32 no responde
+      // 2. Fallback Automático a la API de VisualCrossing si la ESP32 está desconectada (Health Check Falló)
       const apiKey = import.meta.env.VITE_WEATHER_API_KEY
       if (!apiKey) {
         setWeatherError('No se ha configurado la clave de API del clima.')
@@ -514,6 +526,8 @@ export default function Dashboard() {
     }
 
     fetchWeather()
+    const timer = setInterval(fetchWeather, 5000) // Poll ultrarrápido cada 5 segundos para conmutación inmediata
+    return () => clearInterval(timer)
   }, [])
 
   useEffect(() => {
