@@ -42,7 +42,7 @@ jobs:
         with:
           context: ./backend/${{ matrix.service }}
           push: ${{ github.ref == 'refs/heads/main' }}
-          tags: ghcr.io/${{ github.repository_owner }}/unl-${{ matrix.service }}:latest
+          tags: ghcr.io/e2002-debug/unl-${{ matrix.service }}:latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -68,7 +68,7 @@ jobs:
         with:
           context: ./frontend-web
           push: ${{ github.ref == 'refs/heads/main' }}
-          tags: ghcr.io/${{ github.repository_owner }}/unl-frontend-web:latest
+          tags: ghcr.io/e2002-debug/unl-frontend-web:latest
           build-args: |
             VITE_API_BASE=/api
             VITE_RECAPTCHA_SITE_KEY=6Le8JF4tAAAAAFNB8HF-j13kZEOohG1canJhO0J_
