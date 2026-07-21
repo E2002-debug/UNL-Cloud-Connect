@@ -3,9 +3,10 @@ import { useNavigate, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { register, reenviarVerificacion } from '../services/api'
 import fondoImg from '../img/fondo.jpg'
+import ReCAPTCHA from 'react-google-recaptcha'
 
 // Clave pública de reCAPTCHA v2 (se carga desde variables de entorno de Vite)
-const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || ''
+const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || '6Le8JF4tAAAAAFNB8HF-j13kZEOohG1canJhO0J_'
 
 export default function Register() {
   const [showPassword, setShowPassword] = useState(false)
@@ -26,26 +27,9 @@ export default function Register() {
   const recaptchaRef = useRef(null)
   const nav = useNavigate()
 
-  // Cargar script de reCAPTCHA dinámicamente
-  useEffect(() => {
-    if (RECAPTCHA_SITE_KEY && !window.grecaptcha) {
-      const script = document.createElement('script')
-      script.src = 'https://www.google.com/recaptcha/api.js'
-      script.async = true
-      script.defer = true
-      document.head.appendChild(script)
-    }
-  }, [])
-
-  // Callback global para reCAPTCHA
-  useEffect(() => {
-    window.onRecaptchaSuccess = (token) => setRecaptchaToken(token)
-    window.onRecaptchaExpired = () => setRecaptchaToken('')
-    return () => {
-      delete window.onRecaptchaSuccess
-      delete window.onRecaptchaExpired
-    }
-  }, [])
+  const onRecaptchaChange = (token) => {
+    setRecaptchaToken(token)
+  }
 
   // Validación: no permitir números en nombre y apellido, ni espacios en la clave
   const handleChange = (e) => {
@@ -524,13 +508,12 @@ export default function Register() {
             {/* reCAPTCHA */}
             {RECAPTCHA_SITE_KEY && (
               <div style={{ display: 'flex', justifyContent: 'center', margin: '8px 0' }}>
-                <div
-                  className="g-recaptcha"
-                  data-sitekey={RECAPTCHA_SITE_KEY}
-                  data-callback="onRecaptchaSuccess"
-                  data-expired-callback="onRecaptchaExpired"
+                <ReCAPTCHA
                   ref={recaptchaRef}
-                ></div>
+                  sitekey={RECAPTCHA_SITE_KEY}
+                  onChange={onRecaptchaChange}
+                  onExpired={() => setRecaptchaToken('')}
+                />
               </div>
             )}
 

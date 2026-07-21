@@ -4,8 +4,9 @@ import { GoogleLogin, GoogleOAuthProvider } from '@react-oauth/google'
 import toast from 'react-hot-toast'
 import { login as apiLogin, loginGoogle as apiLoginGoogle, reenviarVerificacion } from '../services/api'
 import fondoImg from '../img/fondo.jpg'
+import ReCAPTCHA from 'react-google-recaptcha'
 
-const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || ''
+const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || '6Le8JF4tAAAAAFNB8HF-j13kZEOohG1canJhO0J_'
 
 const extractErrorMessage = (error) => {
   if (error.response?.data) {
@@ -38,26 +39,9 @@ export default function Login() {
   const [recaptchaToken, setRecaptchaToken] = useState('')
   const recaptchaRef = React.useRef(null)
 
-  // Cargar script de reCAPTCHA dinámicamente
-  useEffect(() => {
-    if (RECAPTCHA_SITE_KEY && !window.grecaptcha) {
-      const script = document.createElement('script')
-      script.src = 'https://www.google.com/recaptcha/api.js'
-      script.async = true
-      script.defer = true
-      document.head.appendChild(script)
-    }
-  }, [])
-
-  // Callback global para reCAPTCHA
-  useEffect(() => {
-    window.onRecaptchaSuccessLogin = (token) => setRecaptchaToken(token)
-    window.onRecaptchaExpiredLogin = () => setRecaptchaToken('')
-    return () => {
-      delete window.onRecaptchaSuccessLogin
-      delete window.onRecaptchaExpiredLogin
-    }
-  }, [])
+  const onRecaptchaChange = (token) => {
+    setRecaptchaToken(token)
+  }
 
   // Redirigir si el usuario ya está autenticado (evita acceso manual a /login)
   useEffect(() => {
@@ -194,8 +178,8 @@ export default function Login() {
       setError(msg)
       setLoading(false)
       // Reset reCAPTCHA
-      if (window.grecaptcha) {
-        window.grecaptcha.reset()
+      if (recaptchaRef.current) {
+        recaptchaRef.current.reset()
         setRecaptchaToken('')
       }
     }
@@ -289,13 +273,12 @@ export default function Login() {
               {/* reCAPTCHA */}
               {RECAPTCHA_SITE_KEY && (
                 <div style={{ display: 'flex', justifyContent: 'center', margin: '8px 0' }}>
-                  <div
-                    className="g-recaptcha"
-                    data-sitekey={RECAPTCHA_SITE_KEY}
-                    data-callback="onRecaptchaSuccessLogin"
-                    data-expired-callback="onRecaptchaExpiredLogin"
+                  <ReCAPTCHA
                     ref={recaptchaRef}
-                  ></div>
+                    sitekey={RECAPTCHA_SITE_KEY}
+                    onChange={onRecaptchaChange}
+                    onExpired={() => setRecaptchaToken('')}
+                  />
                 </div>
               )}
 
