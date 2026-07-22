@@ -66,6 +66,15 @@ export default function EventDetailScreen({ route, navigation }) {
   };
 
   const openReportModal = (idImagen) => {
+    const imgObj = event?.imagenes?.find(i => i.id_imagen === idImagen);
+    if (imgObj && imgObj.reportada) {
+      Alert.alert(
+        'Imagen Ya Reportada',
+        'Esta imagen ya ha sido reportada anteriormente y se encuentra en proceso de revisión por el equipo de moderación.',
+        [{ text: 'Entendido' }]
+      );
+      return;
+    }
     setReportTargetId(idImagen);
     setReportMotivo('');
     setShowReportModal(true);
@@ -85,12 +94,21 @@ export default function EventDetailScreen({ route, navigation }) {
     setReportando(true);
     try {
       await reportarImagen(reportTargetId, reportMotivo.trim());
-      Alert.alert('Reporte enviado', 'Un administrador lo revisará.');
+      // Marcar la imagen como reportada en el estado local para bloquear reportes duplicados
+      if (event && event.imagenes) {
+        setEvent({
+          ...event,
+          imagenes: event.imagenes.map(img => 
+            img.id_imagen === reportTargetId ? { ...img, reportada: true } : img
+          )
+        });
+      }
+      Alert.alert('Reporte enviado', 'Gracias por tu colaboración. Un administrador revisará la imagen.');
       closeReportModal();
     } catch (err) {
       console.error('Error al reportar imagen:', err);
       const msg = err.response?.data?.detail || 'No se pudo enviar el reporte.';
-      Alert.alert('Error', msg);
+      Alert.alert('Imagen Ya Reportada', typeof msg === 'string' ? msg : 'Esta imagen ya ha sido reportada previamente.');
     } finally {
       setReportando(false);
     }

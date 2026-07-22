@@ -375,7 +375,10 @@ def reportar_imagen_endpoint(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La imagen no existe.")
 
     if imagen_existente.reportada:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Esta imagen ya ha sido reportada.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Esta imagen ya ha sido reportada previamente y se encuentra en revisión por el equipo de moderación."
+        )
 
     resultado = crud_imagen.reportar_imagen(db, id_imagen, reporte_in.motivo_reporte)
 
