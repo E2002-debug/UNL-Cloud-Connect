@@ -34,6 +34,11 @@
       "bundleIdentifier": "com.unl.cloudconnect",
       "icon": "./assets/icon.png",
       "supportsTablet": true
+    },
+    "extra": {
+      "eas": {
+        "projectId": "39cba17d-a5da-4180-b30e-58603aa24474"
+      }
     }
   }
 }
