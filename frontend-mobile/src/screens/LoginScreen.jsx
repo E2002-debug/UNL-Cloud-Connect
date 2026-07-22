@@ -105,6 +105,19 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (GoogleSignin) {
+      try {
+        GoogleSignin.configure({
+          webClientId: '883175682519-lkel4p78fg16okp5v3808rho4u3c32v8.apps.googleusercontent.com',
+        });
+      } catch (err) {
+        console.warn('Error configurando GoogleSignin:', err.message);
+      }
+    }
+  }, []);
+
   const submit = async () => {
     if (!username.trim() || !password.trim()) {
       setError('Por favor, completa todos los campos.');
