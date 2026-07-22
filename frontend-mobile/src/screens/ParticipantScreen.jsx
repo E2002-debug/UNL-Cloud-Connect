@@ -117,8 +117,8 @@ export default function ParticipantScreen({ route, navigation }) {
   // Load Initial Data
   useEffect(() => {
     loadEvents();
-    loadWeather();
-    const weatherTimer = setInterval(loadWeather, 5000);
+    loadWeather(true);
+    const weatherTimer = setInterval(() => loadWeather(false), 5000);
     return () => clearInterval(weatherTimer);
   }, []);
 
@@ -293,14 +293,16 @@ export default function ParticipantScreen({ route, navigation }) {
     }
   };
 
-  const loadWeather = async () => {
-    try {
+  const loadWeather = async (isInitial = false) => {
+    if (isInitial) {
       setLoadingWeather(true);
-      // 1. Intentar obtener datos físicos de la ESP32 local primero
+    }
+    try {
+      // 1. Intentar obtener datos físicos de la ESP32 (IoT local/backend) primero
       const localData = await getClimaActual();
-      if (localData && localData.temperatura !== undefined && localData.fecha_captura) {
+      if (localData && localData.temperatura !== undefined) {
         const dateStr = localData.fecha_captura;
-        const dateObj = new Date(typeof dateStr === 'string' ? dateStr.replace('Z', '') : dateStr);
+        const dateObj = dateStr ? new Date(typeof dateStr === 'string' ? dateStr.replace('Z', '') : dateStr) : new Date();
         const now = new Date();
         let diffSeconds = Math.abs((now.getTime() - dateObj.getTime()) / 1000);
         
@@ -308,15 +310,23 @@ export default function ParticipantScreen({ route, navigation }) {
           diffSeconds = Math.abs(diffSeconds - 18000);
         }
 
-        // Si el dato fue enviado hace menos de 45 segundos, la ESP32 está activa y transmitiendo (Health Check OK)
-        if (diffSeconds <= 45) {
+        // Si la ESP32 transmitió en los últimos 5 minutos (300s), dar prioridad a la ESP32
+        if (diffSeconds <= 300 || localData.fuente === 'ESP32') {
           setWeather({
             temperatura: localData.temperatura,
             humedad: localData.humedad,
             source: 'esp32',
-            fuenteLabel: 'ESP32 (IoT)'
+            fuente: 'ESP32',
+            fuenteLabel: 'ESP32 (IoT)',
+            detalles_alerta: localData.detalles_alerta || 'Estación Local ESP32',
+            description: localData.detalles_alerta || 'Estación Local ESP32',
+            icon: localData.alerta ? 'rain' : 'clear-day',
+            feelsLike: localData.temperatura,
+            windSpeed: 10,
+            rainChance: localData.alerta ? 80 : 10,
+            uvIndex: 6
           });
-          setLoadingWeather(false);
+          if (isInitial) setLoadingWeather(false);
           return;
         }
       }
@@ -324,7 +334,7 @@ export default function ParticipantScreen({ route, navigation }) {
       console.log('Sensor local ESP32 no disponible en móvil, cambiando a API externa...');
     }
 
-    // 2. Fallback Automático a la API de Clima si la ESP32 no responde o está desconectada
+    // 2. Fallback Automático a la API de Clima si la ESP32 no responde o pasaron > 5 min
     try {
       const extWeather = await getLojaWeather();
       if (extWeather && extWeather.temp !== undefined) {
@@ -334,10 +344,12 @@ export default function ParticipantScreen({ route, navigation }) {
           windSpeed: extWeather.windSpeed,
           feelsLike: extWeather.feelsLike,
           description: extWeather.description || 'Clima Loja',
+          detalles_alerta: extWeather.description || 'Clima Loja',
           icon: extWeather.icon || 'partly-cloudy-day',
           rainChance: extWeather.rainChance,
           uvIndex: extWeather.uvIndex,
           source: 'api',
+          fuente: 'API VisualCrossing',
           fuenteLabel: 'API EXTERNA (Loja)'
         });
       }
@@ -347,12 +359,14 @@ export default function ParticipantScreen({ route, navigation }) {
         temperatura: 18,
         humedad: 72,
         description: 'Parcialmente Nublado',
+        detalles_alerta: 'Parcialmente Nublado',
         icon: 'partly-cloudy-day',
         source: 'api',
+        fuente: 'API VisualCrossing',
         fuenteLabel: 'API EXTERNA'
       });
     } finally {
-      setLoadingWeather(false);
+      if (isInitial) setLoadingWeather(false);
     }
   };
 
