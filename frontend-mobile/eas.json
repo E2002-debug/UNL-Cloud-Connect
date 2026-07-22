@@ -11,9 +11,18 @@
       "distribution": "internal",
       "android": {
         "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://unl-cloud-connect.me/api",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "883175682519-lkel4p78fg16okp5v3808rho4u3c32v8.apps.googleusercontent.com"
       }
     },
-    "production": {}
+    "production": {
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://unl-cloud-connect.me/api",
+        "EXPO_PUBLIC_GOOGLE_CLIENT_ID": "883175682519-lkel4p78fg16okp5v3808rho4u3c32v8.apps.googleusercontent.com"
+      }
+    }
   },
   "submit": {
     "production": {}
