@@ -16,6 +16,9 @@ psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-E
     -- 3. Base de datos exclusiva para el Microservicio de Eventos
     CREATE DATABASE db_eventos;
 
+    -- 4. Base de datos exclusiva para el Microservicio de Notificaciones
+    CREATE DATABASE db_notificaciones;
+
 EOSQL
 
-echo "[POSTGRES-INIT] Bases de datos 'db_usuarios', 'db_clima' y 'db_eventos' creadas exitosamente."
+echo "[POSTGRES-INIT] Bases de datos 'db_usuarios', 'db_clima', 'db_eventos' y 'db_notificaciones' creadas exitosamente."

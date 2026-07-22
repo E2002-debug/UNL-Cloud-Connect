@@ -22,7 +22,12 @@ class Settings(BaseSettings):
         "http://localhost:8000",   # Kong Gateway
         "http://localhost",        # Contenedores internos
         "http://127.0.0.1:5173",   # Loopback
-        # ⚠️  En producción añade aquí tu dominio real o usa la variable BACKEND_CORS_ORIGINS en .env
+        "http://localhost:8081",   # Expo Web
+        "http://127.0.0.1:8081",
+        "http://localhost:8100",
+        "http://127.0.0.1:8100",
+        "http://localhost:19006",
+        "http://127.0.0.1:19006",
     ]
 
     # Variables para la Autenticación y Base de Datos

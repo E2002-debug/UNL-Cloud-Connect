@@ -154,7 +154,16 @@ export default function LoginScreen({ navigation }) {
       navigation.replace('Participant', { user: userProfile });
     } catch (err) {
       setLoading(false);
-      const msg = err.response?.data?.detail || 'Error de conexión. Intente más tarde.';
+      console.error('❌ Error en login:', err.message, err.response?.data);
+      const detail = err.response?.data?.detail;
+      let msg = 'Error de conexión. Intente más tarde.';
+      if (typeof detail === 'string') {
+        msg = detail;
+      } else if (Array.isArray(detail) && detail.length > 0) {
+        msg = detail[0].msg || JSON.stringify(detail[0]);
+      } else if (err.message) {
+        msg = `Error de red: ${err.message}`;
+      }
       setError(msg);
       Alert.alert('Error de Autenticación', msg);
     }

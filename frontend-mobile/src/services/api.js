@@ -13,11 +13,9 @@ const CLOUD_BACKEND_URL = 'https://unl-cloud-connect.me/api';
 const LOCAL_BACKEND_URL = 'http://localhost:8000/api';
 
 const getBaseUrl = () => {
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
-  }
-  // Por defecto se conecta al servidor en la nube (Docker Nube)
-  return CLOUD_BACKEND_URL;
+  const url = process.env.EXPO_PUBLIC_API_URL || (__DEV__ ? (Platform.OS === 'android' ? 'http://10.0.2.2:8000/api' : LOCAL_BACKEND_URL) : CLOUD_BACKEND_URL);
+  console.log("🌐 [API] Conectando a:", url);
+  return url;
 };
 
 const api = axios.create({
