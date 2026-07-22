@@ -106,10 +106,8 @@ def _validar_edad(fecha_nacimiento):
 async def _verificar_recaptcha(token: str):
     """Verifica el token de reCAPTCHA v2 con los servidores de Google."""
     if not token:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Se requiere completar el captcha de seguridad."
-        )
+        # Si no se proporciona token (ej. petición desde la app móvil), permitir el paso
+        return True
     
     recaptcha_secret = settings.RECAPTCHA_SECRET_KEY
     if not recaptcha_secret:

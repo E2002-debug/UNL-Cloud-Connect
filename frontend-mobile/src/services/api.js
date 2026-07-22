@@ -16,18 +16,8 @@ const getBaseUrl = () => {
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL;
   }
-  if (__DEV__) {
-    if (Platform.OS === 'android') {
-      return 'http://10.0.2.2:8000/api'; // Emulador Android
-    }
-    if (Platform.OS === 'web') {
-      return LOCAL_BACKEND_URL; // Expo Web en el navegador
-    }
-    if (Platform.OS === 'ios') {
-      return LOCAL_BACKEND_URL; // Simulador iOS (localhost funciona igual que en Mac)
-    }
-  }
-  return CLOUD_BACKEND_URL; // Producción
+  // Por defecto se conecta al servidor en la nube (Docker Nube)
+  return CLOUD_BACKEND_URL;
 };
 
 const api = axios.create({

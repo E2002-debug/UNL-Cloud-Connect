@@ -15,7 +15,6 @@ import Input from '../components/Input';
 import Button from '../components/Button';
 import BackgroundLayout from '../components/BackgroundLayout';
 import api, { login, loginGoogle, setAuthHeaders } from '../services/api';
-import Recaptcha from 'react-native-recaptcha-that-works';
 import { useRef } from 'react';
 
 const GoogleIcon = () => (
@@ -106,40 +105,16 @@ export default function LoginScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
-  const recaptcha = useRef();
-
-
-
-  useEffect(() => {
-    if (GoogleSignin) {
-      try {
-        GoogleSignin.configure({
-          webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-          offlineAccess: true,
-        });
-      } catch (err) {
-        console.error("Error configuring Google Sign-in:", err);
-      }
-    }
-  }, []);
-
-  const submit = () => {
+  const submit = async () => {
     if (!username.trim() || !password.trim()) {
       setError('Por favor, completa todos los campos.');
       return;
     }
     setError('');
-    // Al dar click en iniciar sesión, primero abrimos el reCAPTCHA
-    if (recaptcha.current) {
-      recaptcha.current.open();
-    }
-  };
-
-  const onRecaptchaVerify = async (token) => {
     setLoading(true);
 
     try {
-      const res = await login({ username: username.trim(), password, recaptcha_token: token });
+      const res = await login({ username: username.trim(), password });
       setLoading(false);
 
       if (res.id_rol !== 2) {
@@ -155,20 +130,14 @@ export default function LoginScreen({ navigation }) {
         token: res.access_token,
       };
 
-      // Configurar el token en la instancia de Axios antes de usarla para llamadas protegidas
       setAuthHeaders(res.id_usuario, res.id_rol, res.access_token);
 
-      // Obtener token push al iniciar sesión.
-      // Envuelto en su propio try/catch: si falla (normal en Expo Go o Web,
-      // donde las notificaciones push remotas no están soportadas desde SDK 51),
-      // NO debe bloquear ni cancelar el login que ya fue exitoso.
       try {
         const pushToken = await registerForPushNotificationsAsync();
         console.log("🔔 Push token obtenido:", pushToken);
         console.log("🔑 JWT token:", res.access_token ? res.access_token.substring(0, 30) + '...' : 'UNDEFINED');
         console.log("📡 Auth header actual:", api.defaults.headers.common['Authorization'] ? 'SET' : 'NOT SET');
         if (pushToken) {
-          // Enviar token al nuevo microservicio de notificaciones
           const saveRes = await api.post('/notificaciones/guardar-token', {
             id_usuario: res.id_usuario,
             expo_push_token: pushToken
@@ -321,15 +290,7 @@ export default function LoginScreen({ navigation }) {
           </View>
         </View>
 
-        <Recaptcha
-          ref={recaptcha}
-          siteKey={process.env.EXPO_PUBLIC_RECAPTCHA_SITE_KEY}
-          baseUrl="https://unl-cloud-connect.me"
-          onVerify={onRecaptchaVerify}
-          onExpire={() => setError('El captcha expiró. Inténtalo de nuevo.')}
-          onError={() => setError('Error al cargar el captcha.')}
-          size="normal"
-        />
+
 
         <TouchableOpacity onPress={() => navigation.navigate('Recover')} style={styles.forgotButton}>
           <Text style={styles.forgotText}>¿Olvidaste tu contraseña?</Text>
