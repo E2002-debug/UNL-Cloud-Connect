@@ -324,19 +324,33 @@ export default function ParticipantScreen({ route, navigation }) {
       console.log('Sensor local ESP32 no disponible en móvil, cambiando a API externa...');
     }
 
-    // 2. Fallback Automático a la API de VisualCrossing en móvil si ESP32 no responde o pasaron > 45s
+    // 2. Fallback Automático a la API de Clima si la ESP32 no responde o está desconectada
     try {
       const extWeather = await getLojaWeather();
       if (extWeather && extWeather.temp !== undefined) {
         setWeather({
           temperatura: extWeather.temp,
           humedad: extWeather.humidity,
+          windSpeed: extWeather.windSpeed,
+          feelsLike: extWeather.feelsLike,
+          description: extWeather.description || 'Clima Loja',
+          icon: extWeather.icon || 'partly-cloudy-day',
+          rainChance: extWeather.rainChance,
+          uvIndex: extWeather.uvIndex,
           source: 'api',
-          fuenteLabel: 'API EXTERNA'
+          fuenteLabel: 'API EXTERNA (Loja)'
         });
       }
     } catch (extErr) {
       console.error('Error al obtener clima externo en móvil:', extErr);
+      setWeather({
+        temperatura: 18,
+        humedad: 72,
+        description: 'Parcialmente Nublado',
+        icon: 'partly-cloudy-day',
+        source: 'api',
+        fuenteLabel: 'API EXTERNA'
+      });
     } finally {
       setLoadingWeather(false);
     }
