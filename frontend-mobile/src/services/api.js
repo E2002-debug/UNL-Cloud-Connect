@@ -99,20 +99,21 @@ export const getClimaActual = async () => {
     const data = res.data;
     const fechaDato = new Date(data.fecha_captura + 'Z');
     const ahora = new Date();
-    const diferenciaMinutos = (ahora - fechaDato) / (1000 * 60);
+    const diferenciaSegundos = Math.abs((ahora - fechaDato) / 1000);
     
-    // Si la ESP32 está activa (datos frescos menores a 5 min), usar sus datos:
-    if (diferenciaMinutos <= 5) {
+    // Si la ESP32 está activa (datos frescos de máximo 45 segundos), usar sus datos:
+    if (diferenciaSegundos <= 45) {
       return {
         ...w,
         temperatura: data.temperatura,
         humedad: data.humedad,
         fuente: 'ESP32',
+        fecha_captura: data.fecha_captura,
         alerta: data.alerta || false,
         detalles_alerta: data.alerta ? '¡Alerta local!' : (w?.description || 'Normal'),
       };
     }
-    console.warn(`[CLIMA] Dato IoT antiguo (${Math.round(diferenciaMinutos)} min). Usando fallback de Visual Crossing...`);
+    console.warn(`[CLIMA] Dato IoT antiguo (${Math.round(diferenciaSegundos)}s). Usando fallback a API...`);
   } catch (error) {
     console.log('[CLIMA] Sensor ESP32 local no disponible, usando fallback...');
   }

@@ -310,8 +310,8 @@ export default function ParticipantScreen({ route, navigation }) {
           diffSeconds = Math.abs(diffSeconds - 18000);
         }
 
-        // Si la ESP32 transmitió en los últimos 5 minutos (300s), dar prioridad a la ESP32
-        if (diffSeconds <= 300 || localData.fuente === 'ESP32') {
+        // Si la ESP32 transmitió en los últimos 45 segundos (máximo), dar prioridad a la ESP32
+        if (diffSeconds <= 45 && localData.fuente === 'ESP32') {
           setWeather({
             temperatura: localData.temperatura,
             humedad: localData.humedad,
