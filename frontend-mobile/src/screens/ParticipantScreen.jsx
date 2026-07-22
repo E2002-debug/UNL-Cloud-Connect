@@ -786,7 +786,7 @@ export default function ParticipantScreen({ route, navigation }) {
               </Text>
               <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
                 <CloudRain size={14} color="#FFFFFF" style={{ marginRight: 6 }} />
-                <Text style={styles.weatherEngineDesc}>{weather.detalles_alerta.toUpperCase()}</Text>
+                <Text style={styles.weatherEngineDesc}>{(weather.detalles_alerta || weather.description || 'CLIMA NORMAL').toUpperCase()}</Text>
               </View>
             </View>
             <Image 
