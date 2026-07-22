@@ -107,10 +107,11 @@ export default function LoginScreen({ navigation }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    if (GoogleSignin) {
+    const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
+    if (GoogleSignin && googleClientId) {
       try {
         GoogleSignin.configure({
-          webClientId: '883175682519-lkel4p78fg16okp5v3808rho4u3c32v8.apps.googleusercontent.com',
+          webClientId: googleClientId,
         });
       } catch (err) {
         console.warn('Error configurando GoogleSignin:', err.message);
