@@ -99,6 +99,8 @@ const showPushNotification = async (title, body) => {
   });
 };
 
+const DEFAULT_GOOGLE_CLIENT_ID = '883175682519-lkel4p78fg16okp5v3808rho4u3c32v8.apps.googleusercontent.com';
+
 export default function LoginScreen({ navigation }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -107,8 +109,8 @@ export default function LoginScreen({ navigation }) {
   const [error, setError] = useState('');
 
   useEffect(() => {
-    const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID;
-    if (GoogleSignin && googleClientId) {
+    const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
+    if (GoogleSignin) {
       try {
         GoogleSignin.configure({
           webClientId: googleClientId,
@@ -148,21 +150,14 @@ export default function LoginScreen({ navigation }) {
 
       try {
         const pushToken = await registerForPushNotificationsAsync();
-        console.log("🔔 Push token obtenido:", pushToken);
-        console.log("🔑 JWT token:", res.access_token ? res.access_token.substring(0, 30) + '...' : 'UNDEFINED');
-        console.log("📡 Auth header actual:", api.defaults.headers.common['Authorization'] ? 'SET' : 'NOT SET');
         if (pushToken) {
-          const saveRes = await api.post('/notificaciones/guardar-token', {
+          await api.post('/notificaciones/guardar-token', {
             id_usuario: res.id_usuario,
             expo_push_token: pushToken
           });
-          console.log("✅ Token guardado en el backend:", pushToken, saveRes.data);
         }
       } catch (pushError) {
         console.warn('❌ No se pudo registrar el push token:', pushError.message);
-        if (pushError.response) {
-          console.warn('❌ Status:', pushError.response.status, 'Data:', JSON.stringify(pushError.response.data));
-        }
       }
 
       navigation.replace('Participant', { user: userProfile });
@@ -199,6 +194,15 @@ export default function LoginScreen({ navigation }) {
 
     // --- NATIVE GOOGLE SIGN-IN MODE (For Android / iOS App) ---
     try {
+      const googleClientId = process.env.EXPO_PUBLIC_GOOGLE_CLIENT_ID || DEFAULT_GOOGLE_CLIENT_ID;
+      try {
+        GoogleSignin.configure({
+          webClientId: googleClientId,
+        });
+      } catch (configErr) {
+        console.warn('Re-configure GoogleSignin error:', configErr);
+      }
+
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
       const idToken = userInfo.idToken;
@@ -229,7 +233,7 @@ export default function LoginScreen({ navigation }) {
         const pushToken = await registerForPushNotificationsAsync();
         if (pushToken) {
           await api.post('/notificaciones/guardar-token', {
-            id_usuario: res.usuario.id_usuario,
+            id_usuario: res.id_usuario,
             expo_push_token: pushToken
           });
         }
@@ -243,16 +247,19 @@ export default function LoginScreen({ navigation }) {
     } catch (err) {
       setLoading(false);
       let msg = 'Error al iniciar sesión con Google.';
-      if (err.code === statusCodes.SIGN_IN_CANCELLED) {
+      if (err.message && err.message.includes('apiClient')) {
+        msg = 'El inicio de sesión con Google no pudo inicializar el servicio de autenticación en este dispositivo.';
+      } else if (err.code === statusCodes?.SIGN_IN_CANCELLED) {
         msg = 'Inicio de sesión cancelado.';
-      } else if (err.code === statusCodes.IN_PROGRESS) {
+      } else if (err.code === statusCodes?.IN_PROGRESS) {
         msg = 'Inicio de sesión en progreso.';
-      } else if (err.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        msg = 'Servicios de Google Play no disponibles.';
-      } else {
-        msg = err.response?.data?.detail || err.message || msg;
+      } else if (err.code === statusCodes?.PLAY_SERVICES_NOT_AVAILABLE) {
+        msg = 'Servicios de Google Play no disponibles o desactualizados.';
+      } else if (err.response?.data?.detail) {
+        msg = typeof err.response.data.detail === 'string' ? err.response.data.detail : 'Error en el servidor de autenticación.';
       }
       setError(msg);
+      Alert.alert('Google Sign-In', msg);
     }
   };
 
