@@ -451,18 +451,12 @@ def eliminar_imagen_endpoint(
     if not imagen:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="La imagen no existe.")
 
-    # La portada es la imagen subida por el creador del evento -> nadie puede borrarla aquí
-    es_portada_evento = imagen.id_usuario == imagen.evento.id_usuario
-    if es_portada_evento:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="No se puede eliminar la imagen de portada del evento."
-        )
+    id_rol = str(usuario.get("id_rol", usuario.get("id_role", "")))
+    es_administrador = id_rol == "1"
+    es_dueño_del_evento = imagen.evento and int(imagen.evento.id_usuario) == id_usuario
+    es_dueño_de_la_imagen = int(imagen.id_usuario) == id_usuario
 
-    es_administrador = str(usuario["id_rol"]) == "1"
-    es_dueño_de_la_imagen = imagen.id_usuario == id_usuario
-
-    if not es_administrador and not es_dueño_de_la_imagen:
+    if not (es_administrador or es_dueño_del_evento or es_dueño_de_la_imagen):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="No tienes permiso para eliminar esta imagen."
