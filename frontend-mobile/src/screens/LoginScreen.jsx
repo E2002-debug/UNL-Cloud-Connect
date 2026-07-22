@@ -185,10 +185,19 @@ export default function LoginScreen({ navigation }) {
 
   const signInWithGoogle = async () => {
     setError('');
+
+    if (Platform.OS === 'web' || !GoogleSignin) {
+      Alert.alert(
+        'Inicio con Google (App Móvil)',
+        'El inicio de sesión nativo con Google está habilitado para la App instalada en Android/iOS. En la versión web, por favor ingresa con tu correo institucional y contraseña en el formulario.',
+        [{ text: 'Entendido' }]
+      );
+      return;
+    }
+
     setLoading(true);
 
-
-    // --- NATIVE GOOGLE SIGN-IN MODE (For Android Emulator / Physical Device with Dev Client) ---
+    // --- NATIVE GOOGLE SIGN-IN MODE (For Android / iOS App) ---
     try {
       await GoogleSignin.hasPlayServices();
       const userInfo = await GoogleSignin.signIn();
@@ -214,23 +223,18 @@ export default function LoginScreen({ navigation }) {
         token: res.access_token,
       };
 
-      // Configurar el token en la instancia de Axios
       setAuthHeaders(res.id_usuario, res.id_rol, res.access_token);
 
-      // Obtener token push al iniciar sesión con Google.
-      // Envuelto en su propio try/catch por la misma razón que en submit().
       try {
         const pushToken = await registerForPushNotificationsAsync();
         if (pushToken) {
-          // Enviar token al nuevo microservicio de notificaciones
           await api.post('/notificaciones/guardar-token', {
             id_usuario: res.usuario.id_usuario,
             expo_push_token: pushToken
           });
-          console.log("Token guardado en el backend (Google):", pushToken);
         }
       } catch (pushError) {
-        console.warn('No se pudo registrar el push token (normal en Expo Go/Web):', pushError.message);
+        console.warn('No se pudo registrar el push token:', pushError.message);
       }
 
       Alert.alert('¡Bienvenido!', `Hola, ${userProfile.name}`, [
@@ -249,7 +253,6 @@ export default function LoginScreen({ navigation }) {
         msg = err.response?.data?.detail || err.message || msg;
       }
       setError(msg);
-      Alert.alert('Error de Google Auth', msg);
     }
   };
 
