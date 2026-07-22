@@ -1,0 +1,12 @@
+.git
+.github
+.kilo
+.vscode
+backend
+frontend-web
+infraestructura
+k8s
+Tester
+v0.1
+gcp_key
+gcp_key.pub
